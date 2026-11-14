@@ -12,6 +12,9 @@ import io.github.perruzz.stacco.domain.BankAdjustment
 import io.github.perruzz.stacco.domain.BankCalculator
 import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
+import io.github.perruzz.stacco.domain.Engine
+import io.github.perruzz.stacco.domain.ShiftTemplate
+import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.StampSlot
 import kotlinx.coroutines.CoroutineScope
@@ -60,28 +63,58 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
         update { it.withDay(date, transform) }
     }
 
+    /** Sets (or clears) a stamp; a time earlier than the entry belongs to the next day. */
     suspend fun setStamp(date: LocalDate, slot: StampSlot, minutes: Int?) {
-        updateDay(date) { it.with(slot, minutes) }
+        updateDay(date) { day -> day.with(slot, minutes?.let { Engine.normalizeStamp(day, slot, it) }) }
     }
 
+    /** Result of a stamp: what was recorded, where, and the day as it was before. */
+    data class Stamp(val date: LocalDate, val slot: StampSlot, val minutes: Int, val previous: DayRecord)
+
     /**
-     * Stamps the current time in the next free slot of today. Returns the slot that was filled,
-     * or null when the day was already complete.
+     * Stamps the next free slot of the current working day (yesterday during a night shift).
+     * [minutes] lets the caller record a slightly different time (the dial, a company-app session);
+     * it is relative to the working day and defaults to "now".
      */
-    suspend fun stampNow(now: LocalDateTime, forceSlot: StampSlot? = null): StampSlot? {
-        var stamped: StampSlot? = null
+    suspend fun stampAt(now: LocalDateTime, forceSlot: StampSlot? = null, minutes: Int? = null): Stamp? {
+        var stamp: Stamp? = null
         update { data ->
-            val date = now.toLocalDate()
-            val record = data.days[date.toString()] ?: DayRecord.EMPTY
-            val slot = forceSlot ?: record.nextSlot ?: return@update data
-            stamped = slot
-            val minutes = now.hour * 60 + now.minute
-            data.withDay(date) { day ->
+            val active = Engine.activeDay(data, now)
+            val calendar = WorkCalendar.from(data)
+            val record = data.days[active.date.toString()] ?: DayRecord.EMPTY
+            val slot = forceSlot ?: record.nextSlot(calendar.expectsBreak(active.date)) ?: return@update data
+            val value = Engine.normalizeStamp(record, slot, minutes ?: active.minutes)
+            stamp = Stamp(active.date, slot, value, record)
+            data.withDay(active.date) { day ->
                 val base = if (day.type != null && day.type != DayType.OFFICE) day.copy(type = DayType.OFFICE) else day
-                base.with(slot, minutes)
+                base.with(slot, value)
             }
         }
-        return stamped
+        return stamp
+    }
+
+    suspend fun stampNow(now: LocalDateTime, forceSlot: StampSlot? = null): StampSlot? = stampAt(now, forceSlot)?.slot
+
+    suspend fun setShift(date: LocalDate, shiftId: String?) {
+        updateDay(date) { it.copy(shiftId = shiftId) }
+    }
+
+    suspend fun saveShiftTemplate(template: ShiftTemplate) {
+        update { data ->
+            val list = data.work.shifts
+            val updated = if (list.any { it.id == template.id }) list.map { if (it.id == template.id) template else it } else list + template
+            data.copy(work = data.work.copy(shifts = updated))
+        }
+    }
+
+    suspend fun deleteShiftTemplate(id: String) {
+        update { data ->
+            data.copy(
+                work = data.work.copy(shifts = data.work.shifts.filterNot { it.id == id }),
+                days = data.days.mapValues { (_, day) -> if (day.shiftId == id) day.copy(shiftId = null) else day }
+                    .filterValues { !it.isEmpty },
+            )
+        }
     }
 
     suspend fun setDayType(date: LocalDate, type: DayType?) {

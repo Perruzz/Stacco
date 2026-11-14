@@ -56,6 +56,14 @@ object Fmt {
         }
     }
 
+    /** Shift applied by the stamp dial: "−3 min", "+1 min", "−1h 05m". */
+    fun offset(minutes: Int): String = when {
+        minutes == 0 -> "0 min"
+        abs(minutes) >= 60 -> duration(minutes, signed = true)
+        minutes > 0 -> "+$minutes min"
+        else -> "$MINUS${-minutes} min"
+    }
+
     /** "2:14:05" or "14:05" for a countdown. */
     fun countdown(totalSeconds: Int): String {
         val s = abs(totalSeconds)

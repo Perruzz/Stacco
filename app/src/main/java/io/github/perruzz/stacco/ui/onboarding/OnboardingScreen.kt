@@ -6,6 +6,20 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import io.github.perruzz.stacco.ui.settings.defaultShifts
+import io.github.perruzz.stacco.ui.settings.ShiftList
+import io.github.perruzz.stacco.ui.settings.ShiftEditorDialog
+import io.github.perruzz.stacco.ui.components.bouncyClickable
+import io.github.perruzz.stacco.ui.components.IconBubble
+import io.github.perruzz.stacco.domain.WorkMode
+import io.github.perruzz.stacco.domain.ShiftTemplate
+import androidx.compose.material.icons.rounded.Diversity3
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.foundation.border
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -110,9 +124,16 @@ import io.github.perruzz.stacco.ui.theme.deltaColor
 import io.github.perruzz.stacco.ui.util.Fmt
 import kotlinx.coroutines.delay
 
-private const val PAGES = 8
+private enum class Step { WELCOME, NAME, MODE, HOURS, BREAK, SHIFTS, BANK, SMART, NOTIFY, DONE }
 
-private enum class Field { DAILY, MINIMUM, MIN_BREAK, MAX_BREAK, BALANCE }
+private fun stepsFor(mode: WorkMode): List<Step> =
+    if (mode == WorkMode.SHIFTS) {
+        listOf(Step.WELCOME, Step.NAME, Step.MODE, Step.SHIFTS, Step.BANK, Step.SMART, Step.NOTIFY, Step.DONE)
+    } else {
+        listOf(Step.WELCOME, Step.NAME, Step.MODE, Step.HOURS, Step.BREAK, Step.BANK, Step.SMART, Step.NOTIFY, Step.DONE)
+    }
+
+private enum class Field { DAILY, MINIMUM, MIN_BREAK, BALANCE }
 
 @Composable
 fun OnboardingScreen(viewModel: MainViewModel) {
@@ -122,10 +143,15 @@ fun OnboardingScreen(viewModel: MainViewModel) {
     var balance by rememberSaveable { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf<Field?>(null) }
     var confetti by remember { mutableIntStateOf(0) }
+    var editingShift by remember { mutableStateOf<ShiftTemplate?>(null) }
+    var addingShift by remember { mutableStateOf(false) }
+    val defaults = defaultShifts()
+    val steps = stepsFor(draft.work.mode)
+    val step = steps[page.coerceIn(0, steps.lastIndex)]
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { page++ }
 
     BackHandler(enabled = page > 0) { page-- }
-    LaunchedEffect(page) { if (page == PAGES - 1) confetti++ }
+    LaunchedEffect(step) { if (step == Step.DONE) confetti++ }
 
     Box(Modifier.fillMaxSize()) {
         AuroraBackground(intensity = 1.3f)
@@ -152,7 +178,7 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                     }
                 }
                 Spacer(Modifier.weight(1f))
-                ProgressDots(count = PAGES, current = page)
+                ProgressDots(count = steps.size, current = page)
                 Spacer(Modifier.weight(1f))
                 Spacer(Modifier.size(48.dp))
             }
@@ -174,9 +200,9 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                         .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    when (current) {
-                        0 -> WelcomePage()
-                        1 -> Page(Icons.Rounded.WavingHand, R.string.ob_name_title, R.string.ob_name_body) {
+                    when (steps[current.coerceIn(0, steps.lastIndex)]) {
+                        Step.WELCOME -> WelcomePage()
+                        Step.NAME -> Page(Icons.Rounded.WavingHand, R.string.ob_name_title, R.string.ob_name_body) {
                             OutlinedTextField(
                                 value = name,
                                 onValueChange = { name = it.take(40) },
@@ -187,7 +213,33 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                        2 -> Page(Icons.Rounded.Schedule, R.string.ob_work_title, R.string.ob_work_body) {
+                        Step.MODE -> Page(Icons.Rounded.Diversity3, R.string.ob_mode_title, R.string.ob_mode_body) {
+                            ModeChoice(
+                                mode = draft.work.mode,
+                                onSelect = { mode ->
+                                    draft = draft.copy(
+                                        work = draft.work.copy(
+                                            mode = mode,
+                                            shifts = if (mode == WorkMode.SHIFTS && draft.work.shifts.isEmpty()) defaults else draft.work.shifts,
+                                        ),
+                                        // Shift workers rarely work remotely: start from zero.
+                                        smart = draft.smart.copy(allowance = if (mode == WorkMode.SHIFTS) 0 else 10),
+                                    )
+                                },
+                            )
+                        }
+                        Step.SHIFTS -> Page(Icons.Rounded.Bedtime, R.string.ob_shifts_title, R.string.ob_shifts_body) {
+                            StaccoCard {
+                                ShiftList(
+                                    shifts = draft.work.shifts,
+                                    onEdit = { editingShift = it },
+                                    onAdd = { addingShift = true },
+                                )
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Explainer(stringResource(R.string.ob_shifts_explainer))
+                        }
+                        Step.HOURS -> Page(Icons.Rounded.Schedule, R.string.ob_work_title, R.string.ob_work_body) {
                             StaccoCard {
                                 SettingRow(
                                     icon = Icons.Rounded.Schedule,
@@ -212,7 +264,7 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                                 ),
                             )
                         }
-                        3 -> Page(Icons.Rounded.Restaurant, R.string.ob_break_title, R.string.ob_break_body) {
+                        Step.BREAK -> Page(Icons.Rounded.Restaurant, R.string.ob_break_title, R.string.ob_break_body) {
                             StaccoCard {
                                 SettingRow(
                                     icon = Icons.Rounded.Coffee,
@@ -221,24 +273,11 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                                     tint = StaccoTheme.colors.lunch,
                                     onClick = { editing = Field.MIN_BREAK },
                                 )
-                                SettingRow(
-                                    icon = Icons.Rounded.Restaurant,
-                                    title = stringResource(R.string.settings_max_break),
-                                    value = Fmt.duration(draft.work.maxBreakMinutes),
-                                    tint = StaccoTheme.colors.lunch,
-                                    onClick = { editing = Field.MAX_BREAK },
-                                )
                             }
                             Spacer(Modifier.height(12.dp))
-                            Explainer(
-                                stringResource(
-                                    R.string.ob_break_explainer,
-                                    Fmt.duration(draft.work.minBreakMinutes),
-                                    Fmt.duration(draft.work.maxBreakMinutes),
-                                ),
-                            )
+                            Explainer(stringResource(R.string.ob_break_explainer, Fmt.duration(draft.work.minBreakMinutes)))
                         }
-                        4 -> Page(Icons.Rounded.Savings, R.string.ob_bank_title, R.string.ob_bank_body) {
+                        Step.BANK -> Page(Icons.Rounded.Savings, R.string.ob_bank_title, R.string.ob_bank_body) {
                             StaccoCard {
                                 SettingRow(
                                     icon = Icons.Rounded.Savings,
@@ -265,7 +304,7 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                                 )
                             }
                         }
-                        5 -> Page(Icons.Rounded.Home, R.string.ob_smart_title, R.string.ob_smart_body) {
+                        Step.SMART -> Page(Icons.Rounded.Home, R.string.ob_smart_title, R.string.ob_smart_body) {
                             StaccoCard {
                                 StepperRow(
                                     icon = Icons.Rounded.Home,
@@ -289,18 +328,18 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                                 }
                             }
                         }
-                        6 -> Page(Icons.Rounded.NotificationsActive, R.string.ob_notif_title, R.string.ob_notif_body) {
+                        Step.NOTIFY -> Page(Icons.Rounded.NotificationsActive, R.string.ob_notif_title, R.string.ob_notif_body) {
                             Explainer(stringResource(R.string.ob_notif_explainer))
                         }
-                        else -> DonePage(name)
+                        Step.DONE -> DonePage(name)
                     }
                     Spacer(Modifier.height(24.dp))
                 }
             }
 
             // Bottom action
-            val isLast = page == PAGES - 1
-            val isNotifications = page == PAGES - 2
+            val isLast = step == Step.DONE
+            val isNotifications = step == Step.NOTIFY
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -345,7 +384,7 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                 }
                 if (isNotifications) {
                     TextButton(onClick = { page++ }) { Text(stringResource(R.string.ob_skip)) }
-                } else if (page in 1 until PAGES - 1) {
+                } else if (page in 1 until steps.size - 1) {
                     Text(
                         stringResource(R.string.ob_changeable),
                         style = MaterialTheme.typography.bodySmall,
@@ -358,13 +397,28 @@ fun OnboardingScreen(viewModel: MainViewModel) {
         ConfettiBurst(trigger = confetti)
     }
 
+    if (addingShift || editingShift != null) {
+        OnboardingShiftEditor(
+            initial = editingShift,
+            shifts = draft.work.shifts,
+            onDismiss = {
+                addingShift = false
+                editingShift = null
+            },
+            onChange = { list ->
+                draft = draft.copy(work = draft.work.copy(shifts = list))
+                addingShift = false
+                editingShift = null
+            },
+        )
+    }
+
     editing?.let { field ->
         val work = draft.work
         val (title, initial, max) = when (field) {
             Field.DAILY -> Triple(R.string.settings_daily, work.dailyMinutes, 16)
             Field.MINIMUM -> Triple(R.string.settings_minimum, work.minDailyMinutes, 16)
             Field.MIN_BREAK -> Triple(R.string.settings_min_break, work.minBreakMinutes, 4)
-            Field.MAX_BREAK -> Triple(R.string.settings_max_break, work.maxBreakMinutes, 6)
             Field.BALANCE -> Triple(R.string.settings_balance, balance, 300)
         }
         DurationPickerDialog(
@@ -377,13 +431,85 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                 draft = when (field) {
                     Field.DAILY -> draft.copy(work = work.copy(dailyMinutes = v, minDailyMinutes = work.minDailyMinutes.coerceAtMost(v)))
                     Field.MINIMUM -> draft.copy(work = work.copy(minDailyMinutes = v.coerceAtMost(work.dailyMinutes)))
-                    Field.MIN_BREAK -> draft.copy(work = work.copy(minBreakMinutes = v, maxBreakMinutes = work.maxBreakMinutes.coerceAtLeast(v)))
-                    Field.MAX_BREAK -> draft.copy(work = work.copy(maxBreakMinutes = v.coerceAtLeast(work.minBreakMinutes)))
+                    Field.MIN_BREAK -> draft.copy(work = work.copy(minBreakMinutes = v))
                     Field.BALANCE -> draft.also { balance = v }
                 }
                 editing = null
             },
         )
+    }
+}
+
+@Composable
+private fun OnboardingShiftEditor(
+    initial: ShiftTemplate?,
+    shifts: List<ShiftTemplate>,
+    onDismiss: () -> Unit,
+    onChange: (List<ShiftTemplate>) -> Unit,
+) {
+    ShiftEditorDialog(
+        initial = initial,
+        onDismiss = onDismiss,
+        onSave = { shift ->
+            onChange(if (shifts.any { it.id == shift.id }) shifts.map { if (it.id == shift.id) shift else it } else shifts + shift)
+        },
+        onDelete = if (initial != null && shifts.size > 1) {
+            { onChange(shifts.filterNot { it.id == initial.id }) }
+        } else {
+            null
+        },
+    )
+}
+
+/** Fixed hours or shifts: two big cards. */
+@Composable
+private fun ModeChoice(mode: WorkMode, onSelect: (WorkMode) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ModeCard(
+            icon = Icons.Rounded.Schedule,
+            title = stringResource(R.string.mode_fixed),
+            body = stringResource(R.string.mode_fixed_desc),
+            selected = mode == WorkMode.FIXED,
+            onClick = { onSelect(WorkMode.FIXED) },
+        )
+        ModeCard(
+            icon = Icons.Rounded.Bedtime,
+            title = stringResource(R.string.mode_shifts),
+            body = stringResource(R.string.mode_shifts_desc),
+            selected = mode == WorkMode.SHIFTS,
+            onClick = { onSelect(WorkMode.SHIFTS) },
+        )
+    }
+}
+
+@Composable
+private fun ModeCard(icon: ImageVector, title: String, body: String, selected: Boolean, onClick: () -> Unit) {
+    val border by animateColorAsState(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), label = "mode-border")
+    val background by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.9f),
+        label = "mode-bg",
+    )
+    val scale by animateFloatAsState(if (selected) 1.02f else 1f, spring(dampingRatio = 0.5f, stiffness = 400f), label = "mode-scale")
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(24.dp))
+            .background(background)
+            .border(if (selected) 2.dp else 1.dp, border, RoundedCornerShape(24.dp))
+            .bouncyClickable(pressed = 0.97f, onClick = onClick)
+            .padding(18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBubble(icon, tint = MaterialTheme.colorScheme.primary, container = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), size = 48.dp)
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleLarge)
+            Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        androidx.compose.animation.AnimatedVisibility(selected, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
+            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
+        }
     }
 }
 

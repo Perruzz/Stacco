@@ -95,6 +95,8 @@ data class StaccoColors(
     val officeContainer: Color,
     val smart: Color,
     val smartContainer: Color,
+    val travel: Color,
+    val travelContainer: Color,
     val vacation: Color,
     val vacationContainer: Color,
     val sick: Color,
@@ -115,6 +117,8 @@ val LightStaccoColors = StaccoColors(
     officeContainer = Color(0xFFCDEFDB),
     smart = Color(0xFF3A77A8),
     smartContainer = Color(0xFFD5E7F8),
+    travel = Color(0xFF13879A),
+    travelContainer = Color(0xFFCDEEF3),
     vacation = Color(0xFFB97A1E),
     vacationContainer = Color(0xFFF9E4C4),
     sick = Color(0xFFB4566A),
@@ -135,6 +139,8 @@ val DarkStaccoColors = StaccoColors(
     officeContainer = Color(0xFF1C4A36),
     smart = Color(0xFF9CC7EE),
     smartContainer = Color(0xFF1D3B56),
+    travel = Color(0xFF7FD4E2),
+    travelContainer = Color(0xFF12444C),
     vacation = Color(0xFFF3C27E),
     vacationContainer = Color(0xFF543B12),
     sick = Color(0xFFF1A7B6),
@@ -149,3 +155,21 @@ val DarkStaccoColors = StaccoColors(
 )
 
 val LocalStaccoColors = staticCompositionLocalOf { LightStaccoColors }
+
+/** Colours a shift can take (light, dark). Index is stored in [io.github.perruzz.stacco.domain.ShiftTemplate.color]. */
+val ShiftColorsLight = listOf(
+    Color(0xFFC98A1C), // sunrise amber
+    Color(0xFFD0603C), // afternoon coral
+    Color(0xFF4A5AA8), // night indigo
+    Color(0xFF2A8460), // green
+    Color(0xFF13879A), // teal
+    Color(0xFFB4566A), // rose
+)
+val ShiftColorsDark = listOf(
+    Color(0xFFF3C46B),
+    Color(0xFFFFA387),
+    Color(0xFFAEB9FF),
+    Color(0xFF7FD3A6),
+    Color(0xFF7FD4E2),
+    Color(0xFFF1A7B6),
+)

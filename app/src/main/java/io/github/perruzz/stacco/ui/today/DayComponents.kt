@@ -71,15 +71,21 @@ import io.github.perruzz.stacco.ui.util.Fmt
 @Composable
 fun StampTimeline(
     record: DayRecord,
+    next: StampSlot?,
     breakInfo: BreakInfo?,
     worked: Int?,
     onEdit: (StampSlot) -> Unit,
     modifier: Modifier = Modifier,
-    live: Boolean = true,
+    showBreak: Boolean = true,
 ) {
-    val next = if (live) record.nextSlot else null
+    // Without a planned break (e.g. many shifts) the timeline is just entry → exit.
+    val slots = if (showBreak || record.breakOut != null || record.breakIn != null) {
+        StampSlot.entries
+    } else {
+        listOf(StampSlot.ENTRY, StampSlot.EXIT)
+    }
     Column(modifier) {
-        StampSlot.entries.forEachIndexed { index, slot ->
+        slots.forEachIndexed { index, slot ->
             val value = record[slot]
             val supporting = when (slot) {
                 StampSlot.BREAK_IN -> breakInfo?.let { b ->
@@ -97,7 +103,7 @@ fun StampTimeline(
                 minutes = value,
                 isNext = slot == next,
                 lineAbove = if (index == 0) null else value != null,
-                lineBelow = if (index == StampSlot.entries.lastIndex) null else record[StampSlot.entries[index + 1]] != null,
+                lineBelow = if (index == slots.lastIndex) null else record[slots[index + 1]] != null,
                 supporting = supporting,
                 onClick = { onEdit(slot) },
             )
@@ -383,6 +389,76 @@ fun DayTimelineBar(
             Text(Fmt.time(entry), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.weight(1f))
             Text(Fmt.time(end), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+
+/** Chips to plan a shift on a day (or a rest day). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ShiftSelector(
+    shifts: List<io.github.perruzz.stacco.domain.ShiftTemplate>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+    restLabel: String = stringResource(R.string.type_rest),
+) {
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        shifts.forEach { shift ->
+            ShiftChip(
+                code = shift.code,
+                label = shift.name,
+                sub = "${Fmt.time(shift.start)}–${Fmt.time(shift.end)}",
+                color = io.github.perruzz.stacco.ui.theme.shiftColor(shift.color),
+                selected = selected == shift.id,
+                onClick = { onSelect(shift.id) },
+            )
+        }
+        ShiftChip(
+            code = "–",
+            label = restLabel,
+            sub = null,
+            color = MaterialTheme.colorScheme.outline,
+            selected = selected == null,
+            onClick = { onSelect(null) },
+        )
+    }
+}
+
+@Composable
+fun ShiftChip(code: String, label: String, sub: String?, color: Color, selected: Boolean, onClick: () -> Unit) {
+    val background by animateColorAsState(if (selected) color.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceContainer, label = "shift-bg")
+    val borderColor by animateColorAsState(if (selected) color else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), label = "shift-border")
+    val scale by animateFloatAsState(if (selected) 1.05f else 1f, spring(dampingRatio = 0.5f, stiffness = 500f), label = "shift-scale")
+    Row(
+        modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(16.dp))
+            .background(background)
+            .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
+            .bouncyClickable(onClick = onClick)
+            .padding(start = 6.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(28.dp)
+                .background(color, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(code, style = MaterialTheme.typography.labelLarge, color = Color.White)
+        }
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+            if (sub != null) {
+                Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
         }
     }
 }

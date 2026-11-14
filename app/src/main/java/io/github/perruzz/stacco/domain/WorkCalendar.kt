@@ -92,20 +92,32 @@ object Periods {
 }
 
 /**
- * Knows which days are working days and how much must be worked on each of them.
+ * Knows which days are working days and how much must be worked on each of them,
+ * both for a fixed weekly schedule and for planned shifts.
  */
 class WorkCalendar(
     private val work: WorkSettings,
     private val days: Map<LocalDate, DayRecord>,
 ) {
+    private val shiftsById = work.shifts.associateBy { it.id }
+    val isShiftMode: Boolean get() = work.mode == WorkMode.SHIFTS
+
     fun record(date: LocalDate): DayRecord? = days[date]
 
     fun holiday(date: LocalDate): Holiday? =
         if (work.italianHolidays) ItalianHolidays.holiday(date) else null
 
-    /** A day of the weekly schedule that is not a public holiday. */
+    /** Planned shift of the day (shift mode only). */
+    fun shift(date: LocalDate): ShiftTemplate? =
+        if (isShiftMode) days[date]?.shiftId?.let(shiftsById::get) else null
+
+    /** A day that is planned as working: weekly schedule (minus holidays) or a planned shift. */
     fun isScheduled(date: LocalDate): Boolean =
-        date.dayOfWeek.value in work.workDays && holiday(date) == null
+        if (isShiftMode) {
+            shift(date) != null
+        } else {
+            date.dayOfWeek.value in work.workDays && holiday(date) == null
+        }
 
     /** Explicit type, or the one implied by the schedule. Null means a rest day. */
     fun effectiveType(date: LocalDate): DayType? {
@@ -113,20 +125,36 @@ class WorkCalendar(
         record?.type?.let { return it }
         if (record?.hasStamps == true) return DayType.OFFICE
         if (isScheduled(date)) return DayType.OFFICE
-        if (holiday(date) != null && date.dayOfWeek.value in work.workDays) return DayType.HOLIDAY
+        if (!isShiftMode && holiday(date) != null && date.dayOfWeek.value in work.workDays) return DayType.HOLIDAY
         return null
     }
 
     fun required(date: LocalDate): Int {
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
-        return max(0, work.dailyMinutes - (days[date]?.leaveMinutes ?: 0))
+        val leave = days[date]?.leaveMinutes ?: 0
+        val planned = if (isShiftMode) shift(date)?.workMinutes ?: 0 else work.dailyMinutes
+        return max(0, planned - leave)
     }
 
     fun minimum(date: LocalDate): Int {
+        if (isShiftMode) return required(date)
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
         val leave = days[date]?.leaveMinutes ?: 0
         return max(0, minOf(work.minDailyMinutes, work.dailyMinutes) - leave)
     }
+
+    fun breakRules(date: LocalDate): BreakRules =
+        BreakRules(if (isShiftMode) shift(date)?.breakMinutes ?: 0 else work.minBreakMinutes)
+
+    fun expectsBreak(date: LocalDate): Boolean = breakRules(date).min > 0
+
+    /** Planned start of the shift (shift mode, working day). */
+    fun plannedStart(date: LocalDate): Int? =
+        shift(date)?.takeIf { effectiveType(date) == DayType.OFFICE }?.start
+
+    /** Planned end of the shift, possibly beyond midnight (shift mode, working day). */
+    fun plannedEnd(date: LocalDate): Int? =
+        shift(date)?.takeIf { effectiveType(date) == DayType.OFFICE }?.endAbsolute
 
     /** Office days (where the badge is stamped and the bank can move) in [from]..[to]. */
     fun officeDays(from: LocalDate, to: LocalDate): Int {
@@ -144,7 +172,7 @@ class WorkCalendar(
     fun delta(date: LocalDate): Int? {
         val record = days[date] ?: return null
         if (effectiveType(date) != DayType.OFFICE) return null
-        return DayCalculator.result(record, BreakRules.from(work), required(date))?.delta
+        return DayCalculator.result(record, breakRules(date), required(date))?.delta
     }
 
     fun smartUsed(range: ClosedRange<LocalDate>): Int =

@@ -41,6 +41,9 @@
             android:name=".notify.StampActionReceiver"
             android:exported="false" />
         <receiver
+            android:name=".notify.ShiftStartReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".notify.LiveDismissReceiver"
             android:exported="false" />
         <receiver

@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class StaccoData(
-    val schemaVersion: Int = 1,
+    val schemaVersion: Int = 2,
     val onboardingDone: Boolean = false,
     val profile: Profile = Profile(),
     val work: WorkSettings = WorkSettings(),
@@ -25,21 +25,46 @@ data class StaccoData(
 @Serializable
 data class Profile(val name: String = "")
 
+/** How the user works: a fixed daily schedule with a lunch break, or planned shifts. */
+@Serializable
+enum class WorkMode { FIXED, SHIFTS }
+
 @Serializable
 data class WorkSettings(
+    val mode: WorkMode = WorkMode.FIXED,
     /** Minutes that must be worked on a regular day (e.g. 8h = 480). */
     val dailyMinutes: Int = 8 * 60,
     /** Minimum minutes to be worked in a day: caps how much hour bank can be used daily. */
     val minDailyMinutes: Int = 7 * 60,
     /** Lunch break shorter than this is still counted as this long. */
     val minBreakMinutes: Int = 30,
-    /** Lunch break beyond this is not "break" anymore: the excess is drawn from the hour bank. */
-    val maxBreakMinutes: Int = 90,
     /** ISO-8601 days of week (1 = Monday … 7 = Sunday). */
     val workDays: Set<Int> = setOf(1, 2, 3, 4, 5),
-    /** Treat Italian national holidays as non-working days. */
+    /** Treat Italian national holidays as non-working days (fixed schedule only). */
     val italianHolidays: Boolean = true,
+    /** Shift templates (shift mode). */
+    val shifts: List<ShiftTemplate> = emptyList(),
 )
+
+/**
+ * A shift such as "Morning 07:00–14:00" or "Night 21:00–07:00" (ends the next day).
+ * Times are minutes since midnight of the day the shift starts.
+ */
+@Serializable
+data class ShiftTemplate(
+    val id: String,
+    val name: String,
+    val start: Int,
+    val end: Int,
+    val breakMinutes: Int = 0,
+    val color: Int = 0,
+) {
+    val crossesMidnight: Boolean get() = end <= start
+    val endAbsolute: Int get() = if (crossesMidnight) end + 1440 else end
+    val durationMinutes: Int get() = endAbsolute - start
+    val workMinutes: Int get() = (durationMinutes - breakMinutes).coerceAtLeast(0)
+    val code: String get() = name.trim().take(1).uppercase().ifEmpty { "?" }
+}
 
 @Serializable
 enum class ExpiryPeriod(val months: Int) {
@@ -54,7 +79,7 @@ data class BankSettings(
     val negativeMustBeRecovered: Boolean = true,
     /** If a month still closes negative: true = reset to zero (handled by HR), false = carry over. */
     val resetNegativeAtMonthEnd: Boolean = true,
-    /** Extra safety margin (in office days) added when deciding when to alert. */
+    /** Extra safety margin (in office days) added to the days strictly needed before alerting. */
     val alertLeadDays: Int = 3,
 )
 
@@ -77,6 +102,9 @@ data class NotificationSettings(
     val exitTarget: ExitTarget = ExitTarget.STANDARD,
     val liveNotification: Boolean = true,
     val bankAlerts: Boolean = true,
+    /** Shift mode: remind before the shift starts. */
+    val shiftStartReminder: Boolean = true,
+    val shiftStartLeadMinutes: Int = 30,
 )
 
 @Serializable
@@ -89,16 +117,21 @@ data class AppearanceSettings(
 )
 
 @Serializable
-enum class DayType { OFFICE, SMART, VACATION, SICK, HOLIDAY }
+enum class DayType { OFFICE, SMART, TRAVEL, VACATION, SICK, HOLIDAY }
 
 /** The four badge stamps of a day, in chronological order. */
 enum class StampSlot { ENTRY, BREAK_OUT, BREAK_IN, EXIT }
 
 @Serializable
 data class DayRecord(
-    /** Explicit type chosen by the user; null = derived from the work calendar. */
+    /** Explicit type chosen by the user; null = derived from the schedule. */
     val type: DayType? = null,
-    /** Stamps as minutes since midnight. */
+    /** Planned shift (shift mode). */
+    val shiftId: String? = null,
+    /**
+     * Stamps as minutes since midnight of this day. Stamps after midnight of a shift that
+     * crosses it are stored as 1440 + minutes.
+     */
     val entry: Int? = null,
     val breakOut: Int? = null,
     val breakIn: Int? = null,
@@ -123,19 +156,31 @@ data class DayRecord(
 
     val hasStamps: Boolean get() = entry != null || breakOut != null || breakIn != null || exit != null
 
-    val isEmpty: Boolean get() = type == null && !hasStamps && leaveMinutes == 0 && note.isBlank()
+    val isEmpty: Boolean get() = type == null && shiftId == null && !hasStamps && leaveMinutes == 0 && note.isBlank()
 
     fun clearStamps(): DayRecord = copy(entry = null, breakOut = null, breakIn = null, exit = null)
 
-    /** The next stamp to record, following the natural order of a working day. */
-    val nextSlot: StampSlot?
-        get() = when {
-            entry == null -> StampSlot.ENTRY
-            exit != null -> null
-            breakOut == null -> StampSlot.BREAK_OUT
-            breakIn == null -> StampSlot.BREAK_IN
-            else -> StampSlot.EXIT
-        }
+    /** Latest stamp recorded, if any. */
+    val lastStamp: Int? get() = listOfNotNull(entry, breakOut, breakIn, exit).maxOrNull()
+
+    /**
+     * The next stamp to record, following the natural order of a working day.
+     * When no lunch break is expected the day goes straight from entry to exit.
+     */
+    fun nextSlot(expectsBreak: Boolean): StampSlot? = when {
+        entry == null -> StampSlot.ENTRY
+        exit != null -> null
+        breakOut == null -> if (expectsBreak) StampSlot.BREAK_OUT else StampSlot.EXIT
+        breakIn == null -> StampSlot.BREAK_IN
+        else -> StampSlot.EXIT
+    }
+
+    /** A stamp of the "other" path: exit without break, or a break when none is expected. */
+    fun alternativeSlot(expectsBreak: Boolean): StampSlot? = when {
+        entry == null || exit != null || breakOut != null -> null
+        expectsBreak -> StampSlot.EXIT
+        else -> StampSlot.BREAK_OUT
+    }
 
     companion object {
         val EMPTY = DayRecord()

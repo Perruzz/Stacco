@@ -6,7 +6,7 @@
 
 **Il tuo tempo, finalmente chiaro.**
 
-Timbrature, pausa pranzo e banca ore in un'unica app Android, calma e piena di animazioni.<br/>
+Timbrature, pausa pranzo, turni e banca ore in un'unica app Android, calma e piena di animazioni.<br/>
 Sai sempre a che ora puoi *staccare*.
 
 <a href="https://github.com/Perruzz/Stacco/releases/latest/download/Stacco.apk">
@@ -29,15 +29,15 @@ Sai sempre a che ora puoi *staccare*.
 <div align="center">
 <table>
   <tr>
-    <td><img src="docs/screenshots/today.png" width="200" alt="Oggi"/></td>
-    <td><img src="docs/screenshots/calc.png" width="200" alt="Il calcolo di oggi"/></td>
-    <td><img src="docs/screenshots/calendar.png" width="200" alt="Calendario"/></td>
+    <td><img src="docs/screenshots/today.png" width="200" alt="Oggi: la ghiera per timbrare"/></td>
+    <td><img src="docs/screenshots/working.png" width="200" alt="Conto alla rovescia allo stacco"/></td>
+    <td><img src="docs/screenshots/calendar.png" width="200" alt="Calendario con smart working e trasferte"/></td>
     <td><img src="docs/screenshots/bank.png" width="200" alt="Banca ore"/></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/welcome.png" width="200" alt="Benvenuto"/></td>
-    <td><img src="docs/screenshots/day.png" width="200" alt="Dettaglio giorno"/></td>
-    <td><img src="docs/screenshots/dark.png" width="200" alt="Tema scuro"/></td>
+    <td><img src="docs/screenshots/shifts.png" width="200" alt="Pianificazione dei turni"/></td>
+    <td><img src="docs/screenshots/night.png" width="200" alt="Turno di notte, tema scuro"/></td>
     <td><img src="docs/screenshots/widget.png" width="200" alt="Widget"/></td>
   </tr>
 </table>
@@ -46,23 +46,33 @@ Sai sempre a che ora puoi *staccare*.
 ## ✨ Cosa fa
 
 ### ⏱️ Oggi
-- **Timbra con un tocco**: il pulsante grande si adatta al momento della giornata (*Timbra entrata → Vado in pausa → Rientro → Timbra uscita*), con vibrazione, animazione e possibilità di **annullare**.
+- **Timbra con la ghiera**: al centro del pulsante c'è l'ora attuale, che scorre come un orologio. Hai timbrato in azienda qualche minuto fa? **Ruota la ghiera** attorno al pulsante: ogni scatto è un minuto, con una vibrazione a ogni tacca (ci sono anche i tasti **−** e **+**). Poi tocca il centro per timbrare all'orario scelto. Se non timbri entro **10 secondi**, la ghiera torna da sola all'ora attuale, con un arco che mostra il tempo che resta.
+- Il pulsante si adatta al momento della giornata (*Timbra entrata → Vado in pausa → Rientro → Timbra uscita*), con animazione e possibilità di **annullare**.
 - **Anello della giornata** che si riempie mentre lavori e "scorre" come acqua; durante la pausa diventa color sabbia e si calma.
 - **Conto alla rovescia live** allo stacco, con l'ora di uscita sempre in vista.
 - Tutti gli orari si possono correggere toccandoli, con un **selettore a rotella 3D** che "ticchetta" sotto il dito.
 - **Il calcolo di oggi**:
   - **Uscita standard** = entrata + ore giornaliere + pausa conteggiata.
-  - **Pausa conteggiata**: se non timbri la pausa si applica la minima; se è più corta della minima conta comunque la minima; se supera la massima, i minuti in più vengono presi dalla banca ore.
+  - **Pausa conteggiata**: se non timbri la pausa si applica la minima; se è più corta della minima conta comunque la minima; se è più lunga conta per intero e l'uscita si sposta di conseguenza.
   - **Con la banca ore**: con saldo positivo ti dice quanto prima puoi uscire, rispettando le **ore minime** giornaliere; con saldo negativo ti dice fino a che ora restare per recuperare (e quanto recuperare al giorno fino a fine mese).
   - **Uscita minima**: l'orario più presto consentito dalle ore minime.
 - Giornata conclusa? **Coriandoli** 🎉, ore lavorate e saldo della giornata.
 
+### 🩺 Lavoro a turni
+Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo avvio o in *Impostazioni* scegli **Turni** invece di *Orario fisso*.
+- **Turni già pronti**: *Mattina 07–14*, *Pomeriggio 14–21* e *Notte 21–07*, senza pausa. Puoi rinominarli, cambiare orari e colore, aggiungere una pausa o crearne di nuovi.
+- **Pianifica il mese** dal calendario: scegli un turno e tocca i giorni per assegnarlo (o *Riposo*). Ogni giorno mostra la lettera del turno e il riepilogo conta turni e ore previste.
+- **Turni di notte** a cavallo della mezzanotte: la giornata continua dopo le 00:00 (*fine turno alle 07:00 +1*) e la timbratura d'uscita del mattino finisce nel turno giusto.
+- La schermata *Oggi* ti mostra il turno del giorno, il conto alla rovescia alla fine turno e il saldo se esci in orario; minuti in più o in meno vanno in banca ore.
+- **Promemoria di inizio turno** 30 minuti prima, con il nome del turno e l'orario.
+
 ### 📅 Calendario
-- Mese sfogliabile con celle animate: **in sede, smart working, ferie, malattia, festività** (feste nazionali italiane incluse, Pasquetta e 4 ottobre compresi).
+- Mese sfogliabile con celle animate: **in sede, smart working, trasferta, ferie, malattia, festività** (feste nazionali italiane incluse, Pasquetta e 4 ottobre compresi).
+- **Trasferta**: come lo smart working, non serve timbrare; la giornata vale come lavorata e la banca ore resta ferma.
 - Ogni giorno in sede mostra il **saldo della giornata** (+12m, −20m…).
 - Tocca un giorno per vedere/modificare **le timbrature**, aggiungere un **permesso/ROL** o una nota.
 - **Quota smart working** del mese (o della settimana) con avviso quando superi il limite del contratto.
-- Riepilogo mensile: giorni in sede, smart, assenze, ore lavorate e saldo del mese.
+- Riepilogo mensile: giorni in sede, smart, trasferte, assenze, ore lavorate e saldo del mese.
 
 ### 🐷 Banca ore
 - Saldo attuale con **grafico** degli ultimi 30/90 giorni.
@@ -72,8 +82,9 @@ Sai sempre a che ora puoi *staccare*.
 
 ### 🔔 Notifiche, widget e scorciatoie
 - **Promemoria di stacco** (all'orario o 5/10/15 minuti prima), con il pulsante *Timbra uscita* direttamente nella notifica.
+- **Promemoria di inizio turno** in modalità turni.
 - **Notifica live** con conto alla rovescia e barra di avanzamento a segmenti (lavoro / pausa / lavoro); su Android 16+ diventa un *Live Update* con il countdown nella barra di stato.
-- **Avvisi intelligenti sulla banca ore**: se sei in negativo ti avvisa *prima della fine del mese*; se hai ore positive in scadenza ti avvisa *prima della fine del periodo*. L'anticipo dell'avviso **dipende da quante ore hai**: più ore da recuperare o da usare → prima ti avvisa.
+- **Avvisi intelligenti sulla banca ore**: se sei in negativo ti avvisa *prima della fine del mese*; se hai ore positive in scadenza ti avvisa *prima della fine del periodo*. L'anticipo dell'avviso **dipende da quante ore hai**: più ore da recuperare o da usare → prima ti avvisa (vedi l'esempio più sotto).
 - **Widget** per la home con orario di uscita, saldo e pulsante *Timbra*.
 - **Riquadro Impostazioni rapide** "Timbra" e scorciatoia sull'icona (pressione prolungata → *Timbra adesso*).
 
@@ -88,24 +99,25 @@ Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 
 | Impostazione | Esempio | Effetto |
 | --- | --- | --- |
+| Modalità | Orario fisso | Oppure *Turni*, con turni personalizzabili pianificati sul calendario |
 | Ore giornaliere | 8h | Orario di uscita standard |
 | Ore minime | 7h | Massimo utilizzo giornaliero della banca ore (8h − 7h = 1h) |
 | Giorni lavorativi | Lun–Ven | Calendario, giorni in sede rimanenti |
 | Festività italiane | Sì | Le feste nazionali non sono lavorative |
 | Pausa minima | 30m | Una pausa 12:00 → 12:20 conta comunque 30m |
-| Pausa massima | 1h 30m | Pausa 12:00 → 14:00: contano 1h 30m, i 30m in più vanno sulla banca ore |
 | Scadenza saldo positivo | Trimestrale | Mai, mensile, bimestrale, trimestrale, quadrimestrale, semestrale, annuale |
 | Negativo da recuperare | Entro fine mese | Avvisi di recupero; a fine mese il negativo si azzera o si riporta |
-| Margine avvisi | 3 giorni | Giorni in sede di anticipo, oltre a quelli necessari |
+| Anticipo extra degli avvisi | 3 giorni | Giorni in sede in più rispetto a quelli strettamente necessari |
 | Smart working | 10 al mese | Oppure N a settimana |
 
-> **Esempio** — oggi è il 14 novembre e hai 5h in banca ore con scadenza trimestrale: Stacco ti mostra *"5h scadono il 31 dicembre · uscendo fino a 1h prima ti servono 5 giorni in sede"* e ti manda una notifica quando i giorni in sede rimasti si avvicinano a quelli necessari.
+> **Esempio** — oggi è il 14 novembre e hai **5h** in banca ore con scadenza trimestrale. Con 8h giornaliere e 7h minime puoi uscire al massimo 1h prima al giorno, quindi per usarle tutte ti servono **5 giorni in sede**. Stacco te lo mostra (*"5h scadono il 31 dicembre · uscendo fino a 1h prima ti servono 5 giorni in sede"*) e, con un anticipo extra di 3 giorni, ti manda la notifica quando i giorni in sede rimasti prima del 31 dicembre scendono a **8** (5 + 3).<br/>
+> Vale anche per il negativo: con **−45m** da recuperare entro fine mese basta 1 giorno, quindi l'avviso arriva quando restano 4 giorni in sede.
 
 ## 📲 Installazione
 
 1. Scarica **[Stacco.apk](https://github.com/Perruzz/Stacco/releases/latest/download/Stacco.apk)** dal telefono.
 2. Aprilo e consenti l'installazione da questa fonte quando Android lo chiede.
-3. Al primo avvio un breve onboarding ti guida nella configurazione.
+3. Al primo avvio un breve onboarding ti guida nella configurazione (orario fisso o turni).
 
 Requisiti: Android 8.0 (API 26) o superiore. Ottimizzata per Android 16/17 (Pixel inclusi).
 
@@ -141,7 +153,7 @@ Kotlin 2.4 · Jetpack Compose + Material 3 · DataStore + kotlinx.serialization 
 ### Struttura
 ```
 app/src/main/java/io/github/perruzz/stacco/
-├── domain/      # motore di calcolo puro (giornata, banca ore, calendario, avvisi) + test
+├── domain/      # motore di calcolo puro (giornata, turni, banca ore, calendario, avvisi) + test
 ├── data/        # DataStore (JSON) e repository
 ├── ui/          # Compose: Oggi, Calendario, Banca ore, Impostazioni, Onboarding, componenti
 ├── notify/      # promemoria, notifica live, avvisi banca ore, ricevitori di sistema
@@ -155,7 +167,11 @@ Il saldo della banca ore non è mai un contatore "fragile": viene **ricalcolato 
 
 Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un caffè ☕
 
-<a href="https://paypal.me/citrotren"><img src="https://img.shields.io/badge/Dona%20con-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Dona con PayPal" height="40"/></a>
+<p align="center">
+  <a href="https://paypal.me/citrotren">
+    <img src="docs/donate.svg" alt="Dona con PayPal" width="360" />
+  </a>
+</p>
 
 (Lo trovi anche nell'app, in *Impostazioni → Supporta Stacco*.)
 
@@ -168,11 +184,12 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 <details>
 <summary>🇬🇧 English</summary>
 
-**Stacco** (Italian for *clocking off*) is a calm, animated Android app to track badge stamps, lunch breaks and your **hour bank** (time bank / flexitime balance).
+**Stacco** (Italian for *clocking off*) is a calm, animated Android app to track badge stamps, lunch breaks, shifts and your **hour bank** (time bank / flexitime balance).
 
-- Tap once to stamp in, start/end the lunch break and clock out; live countdown to your exit time.
-- Exit time calculation with company rules: minimum and maximum lunch break, daily and minimum hours, early exit using the hour bank (capped by the minimum hours) or later exit to recover a negative balance.
-- Monthly calendar with office / remote / vacation / sick / holiday days, remote-work quota and per-day details.
+- Stamp with a **rotary dial**: the button shows the current time like a clock; turn the bezel to adjust the minutes (one haptic tick per minute), then tap the centre. After 10 seconds without stamping it springs back to the current time.
+- Live countdown to your exit time; exit time calculation with company rules: minimum lunch break, daily and minimum hours, early exit using the hour bank (capped by the minimum hours) or later exit to recover a negative balance.
+- **Shift work** mode (nurses, factories…): customizable shifts (morning 7–14, afternoon 14–21, night 21–7 out of the box), monthly planning by tapping days, night shifts across midnight, shift start reminders.
+- Monthly calendar with office / remote / business trip / vacation / sick / holiday days, remote-work quota and per-day details.
 - Hour bank with chart, movements, manual adjustments and configurable rules (positive balance expiry per month/quarter/…; negative balance to recover by month end).
 - Smart alerts whose timing adapts to how many hours you need to use or recover; exit reminders; Android 16 Live Update countdown; home screen widget; Quick Settings tile.
 - Light/dark/system theme with a circular reveal, Material You colors, Italian and English.

@@ -57,6 +57,20 @@ object StaccoTheme {
         @Composable @ReadOnlyComposable get() = LocalStaccoColors.current
 }
 
+/** Whether the light or the dark palette is in use (read from the semantic colours). */
+private val StaccoColors.isDark: Boolean get() = this === DarkStaccoColors
+
+@Composable
+@ReadOnlyComposable
+fun shiftColor(index: Int): Color {
+    val palette = if (StaccoTheme.colors.isDark) ShiftColorsDark else ShiftColorsLight
+    return palette[Math.floorMod(index, palette.size)]
+}
+
+@Composable
+@ReadOnlyComposable
+fun shiftContainer(index: Int): Color = shiftColor(index).copy(alpha = if (StaccoTheme.colors.isDark) 0.24f else 0.18f)
+
 /** Springs used across the app: everything moves like it has a little weight. */
 object Motion {
     fun <T> gentle(): SpringSpec<T> = spring(dampingRatio = 0.85f, stiffness = 320f)
@@ -72,6 +86,7 @@ fun DayType?.tint(): Color {
     return when (this) {
         DayType.OFFICE -> c.office
         DayType.SMART -> c.smart
+        DayType.TRAVEL -> c.travel
         DayType.VACATION -> c.vacation
         DayType.SICK -> c.sick
         DayType.HOLIDAY -> c.holiday
@@ -86,6 +101,7 @@ fun DayType?.container(): Color {
     return when (this) {
         DayType.OFFICE -> c.officeContainer
         DayType.SMART -> c.smartContainer
+        DayType.TRAVEL -> c.travelContainer
         DayType.VACATION -> c.vacationContainer
         DayType.SICK -> c.sickContainer
         DayType.HOLIDAY -> c.holidayContainer

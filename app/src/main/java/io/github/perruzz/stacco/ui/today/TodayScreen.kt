@@ -41,7 +41,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
-import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -52,6 +51,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LocalCafe
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.rounded.WbTwilight
@@ -90,7 +90,6 @@ import io.github.perruzz.stacco.domain.StampSlot
 import io.github.perruzz.stacco.domain.TodaySnapshot
 import io.github.perruzz.stacco.ui.MainTab
 import io.github.perruzz.stacco.ui.MainViewModel
-import io.github.perruzz.stacco.ui.components.BigPillButton
 import io.github.perruzz.stacco.ui.components.DayRing
 import io.github.perruzz.stacco.ui.components.IconBubble
 import io.github.perruzz.stacco.ui.components.InfoRow
@@ -101,11 +100,14 @@ import io.github.perruzz.stacco.ui.components.RollingText
 import io.github.perruzz.stacco.ui.components.SectionLabel
 import io.github.perruzz.stacco.ui.components.StaccoCard
 import io.github.perruzz.stacco.ui.components.StaccoDialog
+import io.github.perruzz.stacco.ui.components.StampDial
 import io.github.perruzz.stacco.ui.components.TimePickerDialog
 import io.github.perruzz.stacco.ui.components.bouncyClickable
 import io.github.perruzz.stacco.ui.theme.StaccoTheme
 import io.github.perruzz.stacco.ui.theme.container
 import io.github.perruzz.stacco.ui.theme.deltaColor
+import io.github.perruzz.stacco.ui.theme.shiftColor
+import io.github.perruzz.stacco.ui.theme.shiftContainer
 import io.github.perruzz.stacco.ui.theme.tint
 import io.github.perruzz.stacco.ui.util.Fmt
 import kotlinx.coroutines.delay
@@ -134,27 +136,42 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
         val working = s.isOffice || s.record.hasStamps
         when {
             s.isSmart -> Appear(index++) { SmartDayCard(s, onOffice = { viewModel.setDayType(s.date, if (s.scheduled) null else DayType.OFFICE) }) }
+            s.isTravel -> Appear(index++) { TravelCard(s, onChange = { choosingType = true }) }
             s.isAway -> Appear(index++) { AwayCard(s, onChange = { choosingType = true }) }
-            !working -> Appear(index++) { RestDayCard(s, onWork = { viewModel.stampNow(StampSlot.ENTRY) }) }
+            !working -> Appear(index++) { RestDayCard(s, onWork = { viewModel.stampAt(StampSlot.ENTRY, null) }) }
             else -> {
-                Appear(index++) {
-                    HeroCard(
-                        s = s,
-                        onTarget = { target ->
-                            viewModel.updateData { it.copy(notifications = it.notifications.copy(exitTarget = target)) }
-                        },
-                    )
+                if (s.projection.phase == DayPhase.NOT_STARTED) {
+                    Appear(index++) { ReadyCard(s) }
+                } else {
+                    Appear(index++) {
+                        HeroCard(
+                            s = s,
+                            onTarget = { target ->
+                                viewModel.updateData { it.copy(notifications = it.notifications.copy(exitTarget = target)) }
+                            },
+                        )
+                    }
                 }
-                Appear(index++) { StampActions(s, onStamp = viewModel::stampNow) }
+                Appear(index++) {
+                    AnimatedVisibility(
+                        visible = s.nextSlot != null,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut(tween(450)) + shrinkVertically(tween(500, delayMillis = 250)),
+                    ) {
+                        StampDialCard(s, onStamp = { slot, minutes -> viewModel.stampAt(slot, minutes) })
+                    }
+                }
                 Appear(index++) {
                     StaccoCard {
                         SectionLabel(stringResource(R.string.section_stamps))
                         Spacer(Modifier.height(8.dp))
                         StampTimeline(
                             record = s.record,
+                            next = s.nextSlot,
                             breakInfo = if (s.record.entry != null) s.projection.breakInfo else null,
                             worked = s.projection.result?.worked,
                             onEdit = { editing = it },
+                            showBreak = s.expectsBreak,
                         )
                         AnimatedVisibility(s.record.entry != null && s.record.breakOut == null && s.projection.breakInfo.deducted > 0) {
                             Hint(
@@ -215,7 +232,8 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
 
 /** A sensible starting point for the time picker of an empty slot. */
 private fun defaultFor(slot: StampSlot, s: TodaySnapshot): Int? = when (slot) {
-    StampSlot.BREAK_IN -> s.record.breakOut?.let { it + s.work.minBreakMinutes }
+    StampSlot.ENTRY -> s.projection.plannedStart
+    StampSlot.BREAK_IN -> s.record.breakOut?.let { it + s.projection.breakInfo.deducted.coerceAtLeast(1) }
     StampSlot.EXIT -> s.targetExit
     else -> null
 }
@@ -273,7 +291,7 @@ private fun Header(s: TodaySnapshot, onTypeClick: () -> Unit) {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    stringResource(R.string.today_date, Fmt.longDate(s.date)),
+                    stringResource(R.string.today_date, Fmt.longDate(s.calendarDate)),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -287,13 +305,24 @@ private fun Header(s: TodaySnapshot, onTypeClick: () -> Unit) {
         }
         Spacer(Modifier.width(12.dp))
         val type = s.type
-        Pill(
-            text = stringResource(type.label),
-            icon = type.icon,
-            color = type.container(),
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            onClick = onTypeClick,
-        )
+        val shift = s.shift
+        if (shift != null && type == DayType.OFFICE) {
+            Pill(
+                text = shift.name,
+                icon = Icons.Rounded.Schedule,
+                color = shiftContainer(shift.color),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                onClick = onTypeClick,
+            )
+        } else {
+            Pill(
+                text = stringResource(type.label),
+                icon = type.icon,
+                color = type.container(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                onClick = onTypeClick,
+            )
+        }
     }
 }
 
@@ -350,9 +379,9 @@ private fun HeroCard(s: TodaySnapshot, onTarget: (ExitTarget) -> Unit) {
                 flowing = state == HeroState.WORKING || state == HeroState.OVERTIME,
                 markers = markers,
                 modifier = Modifier
-                    .widthIn(max = 300.dp)
+                    .widthIn(max = 280.dp)
                     .fillMaxWidth()
-                    .height(280.dp),
+                    .height(250.dp),
             ) {
                 AnimatedContent(
                     targetState = state,
@@ -412,7 +441,7 @@ private fun HeroCenter(state: HeroState, s: TodaySnapshot) {
                 RollingText(Fmt.time(s.nowMinutes), style = MaterialTheme.typography.displayLarge)
                 Spacer(Modifier.height(6.dp))
                 val preview = io.github.perruzz.stacco.domain.DayCalculator.previewExit(
-                    s.nowMinutes, s.projection.required, io.github.perruzz.stacco.domain.BreakRules.from(s.work),
+                    s.nowMinutes, s.projection.required, io.github.perruzz.stacco.domain.BreakRules(s.projection.breakInfo.deducted),
                 )
                 Text(
                     stringResource(R.string.hero_preview, Fmt.timeDay(preview)),
@@ -422,7 +451,7 @@ private fun HeroCenter(state: HeroState, s: TodaySnapshot) {
                 )
             }
             HeroState.WORKING -> {
-                Text(stringResource(R.string.hero_left), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(if (s.projection.isShift) R.string.hero_shift_left else R.string.hero_left), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(2.dp))
                 RollingText(
                     Fmt.countdown(s.secondsTo(exit ?: s.nowMinutes)),
@@ -443,9 +472,9 @@ private fun HeroCenter(state: HeroState, s: TodaySnapshot) {
                 val out = s.record.breakOut ?: s.nowMinutes
                 RollingText(Fmt.countdown(s.nowSeconds - out * 60), style = MaterialTheme.typography.displayMedium)
                 Spacer(Modifier.height(6.dp))
-                p.returnWindow?.let { window ->
+                p.earliestReturn?.let { from ->
                     Text(
-                        stringResource(R.string.hero_return_window, Fmt.time(window.first), Fmt.time(window.last)),
+                        stringResource(R.string.hero_return_from, Fmt.time(from)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -506,33 +535,96 @@ private fun TargetChip(title: String, time: String, selected: Boolean, color: Co
     }
 }
 
+/** The stamp dial: the clock in the middle, the bezel to fix the minutes. */
 @Composable
-private fun StampActions(s: TodaySnapshot, onStamp: (StampSlot?) -> Unit) {
-    val next = s.record.nextSlot ?: return
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        AnimatedContent(
-            targetState = next,
-            transitionSpec = {
-                (fadeIn(tween(250)) + scaleIn(spring(dampingRatio = 0.6f, stiffness = 500f), initialScale = 0.85f)) togetherWith
-                    (fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.9f))
-            },
-            label = "stamp-button",
-        ) { slot ->
-            BigPillButton(
-                text = stringResource(slot.action),
-                icon = slot.icon,
-                trailing = Fmt.time(s.nowMinutes),
-                onClick = { onStamp(slot) },
-                container = if (slot == StampSlot.BREAK_OUT || slot == StampSlot.BREAK_IN) StaccoTheme.colors.lunch else MaterialTheme.colorScheme.primary,
-                content = if (slot == StampSlot.BREAK_OUT || slot == StampSlot.BREAK_IN) Color(0xFF2B1D07) else MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.fillMaxWidth(),
+private fun StampDialCard(s: TodaySnapshot, onStamp: (StampSlot, Int) -> Unit) {
+    val next = s.nextSlot ?: return
+    val c = StaccoTheme.colors
+    StaccoCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp, horizontal = 16.dp)) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            AnimatedContent(
+                targetState = next,
+                transitionSpec = {
+                    (fadeIn(tween(350, delayMillis = 200)) + scaleIn(spring(dampingRatio = 0.6f, stiffness = 300f), initialScale = 0.7f)) togetherWith
+                        (fadeOut(tween(450, delayMillis = 300)) + scaleOut(tween(500, delayMillis = 300), targetScale = 1.08f))
+                },
+                label = "dial-slot",
+            ) { slot ->
+                val lunch = slot == StampSlot.BREAK_OUT || slot == StampSlot.BREAK_IN
+                StampDial(
+                    actionLabel = stringResource(slot.action),
+                    icon = slot.icon,
+                    nowSeconds = s.nowSeconds,
+                    nowLabel = stringResource(R.string.dial_now),
+                    accent = if (lunch) c.lunch else MaterialTheme.colorScheme.primary,
+                    onAccent = if (lunch) Color(0xFF2B1D07) else MaterialTheme.colorScheme.onPrimary,
+                    onStamp = { minutes -> onStamp(slot, minutes) },
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                stringResource(R.string.dial_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
+            val alternative = s.alternativeSlot
+            AnimatedVisibility(alternative != null) {
+                val alt = alternative ?: StampSlot.EXIT
+                TextButton(onClick = { onStamp(alt, s.nowMinutes) }, modifier = Modifier.padding(top = 4.dp)) {
+                    Icon(alt.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(if (alt == StampSlot.EXIT) R.string.stamp_skip_break else R.string.stamp_break_out))
+                }
+            }
         }
-        AnimatedVisibility(next == StampSlot.BREAK_OUT) {
-            TextButton(onClick = { onStamp(StampSlot.EXIT) }, modifier = Modifier.padding(top = 4.dp)) {
-                Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.stamp_skip_break))
+    }
+}
+
+/** Before the first stamp: what the day will look like. */
+@Composable
+private fun ReadyCard(s: TodaySnapshot) {
+    val shift = s.shift
+    val start = s.projection.plannedStart
+    val end = s.projection.plannedEnd
+    val c = StaccoTheme.colors
+    StaccoCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MorphBadge(
+                icon = if (shift != null) Icons.Rounded.Schedule else Icons.Rounded.WbSunny,
+                colors = if (shift != null) listOf(shiftColor(shift.color), MaterialTheme.colorScheme.tertiary) else listOf(MaterialTheme.colorScheme.primary, c.gold),
+                size = 72.dp,
+                periodMillis = 3200,
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                if (shift != null && start != null && end != null) {
+                    Text(
+                        stringResource(R.string.ready_shift, shift.name),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Text(
+                        "${Fmt.time(start)} → ${Fmt.timeDay(end)}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = shiftColor(shift.color),
+                    )
+                    val sub = when {
+                        s.nowMinutes < start -> stringResource(R.string.ready_shift_in, Fmt.duration(start - s.nowMinutes))
+                        s.nowMinutes < end -> stringResource(R.string.ready_shift_running, Fmt.duration(end - s.nowMinutes))
+                        else -> stringResource(R.string.ready_shift_over)
+                    }
+                    Text(sub, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text(stringResource(R.string.hero_ready), style = MaterialTheme.typography.titleLarge)
+                    val preview = io.github.perruzz.stacco.domain.DayCalculator.previewExit(
+                        s.nowMinutes, s.projection.required, io.github.perruzz.stacco.domain.BreakRules(s.projection.breakInfo.deducted),
+                    )
+                    Text(
+                        stringResource(R.string.hero_preview, Fmt.timeDay(preview)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -563,97 +655,120 @@ private fun CalculationCard(s: TodaySnapshot) {
             return@StaccoCard
         }
 
-        InfoRow(
-            icon = Icons.Rounded.Flag,
-            iconTint = MaterialTheme.colorScheme.primary,
-            title = stringResource(R.string.calc_standard),
-            value = Fmt.timeDay(p.standardExit),
-            emphasized = true,
-            supporting = if (p.standardLimitedByMinimum) {
-                stringResource(R.string.calc_standard_limited, Fmt.duration(p.minimum))
-            } else {
-                stringResource(R.string.calc_standard_sub, Fmt.duration(p.required), Fmt.duration(b.counted))
-            },
-        )
-        InfoRow(
-            icon = Icons.Rounded.Restaurant,
-            iconTint = c.lunch,
-            title = stringResource(R.string.calc_break),
-            value = Fmt.duration(b.counted),
-            supporting = when {
-                b.ongoing -> stringResource(R.string.calc_break_ongoing, Fmt.duration(b.actual ?: 0))
-                b.assumed -> stringResource(R.string.calc_break_assumed)
-                b.excess > 0 -> stringResource(R.string.calc_break_long, Fmt.duration(b.actual ?: 0), Fmt.duration(b.excess))
-                b.shortfall > 0 -> stringResource(R.string.calc_break_short, Fmt.duration(b.actual ?: 0), Fmt.duration(b.deducted))
-                else -> stringResource(R.string.calc_break_ok)
-            },
-        )
-
-        val bankBefore = p.bankBefore
-        val bankExit = p.bankExit
-        val standard = p.standardExit
-        if (bankExit != null && standard != null) {
-            when {
-                bankBefore > 0 && bankExit < standard -> {
-                    val flex = p.required - p.minimum
-                    val capped = p.bankUsage >= flex && bankBefore > flex
-                    InfoRow(
-                        icon = Icons.Rounded.Savings,
-                        iconTint = c.positive,
-                        title = stringResource(R.string.calc_bank_early),
-                        value = Fmt.timeDay(bankExit),
-                        valueColor = c.positive,
-                        supporting = stringResource(
-                            R.string.calc_bank_early_sub,
-                            Fmt.duration(p.bankUsage),
-                            Fmt.duration(bankBefore - p.bankUsage),
-                        ) + if (capped) stringResource(R.string.calc_bank_capped, Fmt.duration(flex)) else "",
-                    )
-                }
-                bankBefore > 0 && bankExit > standard -> InfoRow(
-                    icon = Icons.Rounded.Savings,
-                    iconTint = c.negative,
-                    title = stringResource(R.string.calc_bank_cover),
-                    value = Fmt.timeDay(bankExit),
-                    valueColor = c.negative,
-                    supporting = stringResource(R.string.calc_bank_cover_sub),
-                )
-                bankBefore > 0 -> Hint(icon = Icons.Rounded.Info, text = stringResource(R.string.calc_bank_no_flex))
-                bankBefore < 0 -> {
-                    val plan = s.alerts.filterIsInstance<BankAlert.Negative>().firstOrNull()
-                    InfoRow(
-                        icon = Icons.AutoMirrored.Rounded.TrendingUp,
-                        iconTint = c.negative,
-                        title = stringResource(R.string.calc_bank_recover),
-                        value = Fmt.timeDay(bankExit),
-                        valueColor = c.negative,
-                        supporting = if (plan != null && plan.officeDaysLeft > 1) {
-                            stringResource(R.string.calc_bank_recover_plan, Fmt.duration(-bankBefore), Fmt.duration(plan.perDay))
-                        } else {
-                            stringResource(R.string.calc_bank_recover_sub, Fmt.duration(-bankBefore))
-                        },
-                    )
-                }
-                else -> Unit
-            }
-        }
-        if (p.minimum < p.required && p.minimumExit != null && p.minimumExit != bankExit) {
+        val entry = s.record.entry ?: return@StaccoCard
+        if (p.isShift) {
+            val shift = s.shift
+            val end = p.plannedEnd ?: 0
             InfoRow(
-                icon = Icons.Rounded.HourglassBottom,
-                iconTint = MaterialTheme.colorScheme.tertiary,
-                title = stringResource(R.string.calc_minimum),
-                value = Fmt.timeDay(p.minimumExit),
-                supporting = stringResource(R.string.calc_minimum_sub, Fmt.duration(p.minimum)),
+                icon = Icons.Rounded.Flag,
+                iconTint = shift?.let { shiftColor(it.color) } ?: MaterialTheme.colorScheme.primary,
+                title = stringResource(R.string.calc_shift_end),
+                value = Fmt.timeDay(end),
+                emphasized = true,
+                supporting = shift?.let { stringResource(R.string.calc_shift_sub, it.name, Fmt.time(it.start), Fmt.duration(p.required)) },
             )
+            val projected = (end - entry - b.deducted) - p.required
+            InfoRow(
+                icon = Icons.Rounded.Savings,
+                iconTint = deltaColor(projected),
+                title = stringResource(R.string.calc_shift_delta),
+                value = Fmt.duration(projected, signed = true),
+                valueColor = deltaColor(projected),
+                supporting = stringResource(R.string.calc_shift_delta_sub, Fmt.time(entry)),
+            )
+            if (b.deducted > 0 || !b.assumed) {
+                InfoRow(
+                    icon = Icons.Rounded.Restaurant,
+                    iconTint = c.lunch,
+                    title = stringResource(R.string.calc_break),
+                    value = Fmt.duration(b.deducted),
+                    supporting = breakSupport(b),
+                )
+            }
+        } else {
+            InfoRow(
+                icon = Icons.Rounded.Flag,
+                iconTint = MaterialTheme.colorScheme.primary,
+                title = stringResource(R.string.calc_standard),
+                value = Fmt.timeDay(p.standardExit),
+                emphasized = true,
+                supporting = stringResource(R.string.calc_standard_sub, Fmt.duration(p.required), Fmt.duration(b.deducted)),
+            )
+            InfoRow(
+                icon = Icons.Rounded.Restaurant,
+                iconTint = c.lunch,
+                title = stringResource(R.string.calc_break),
+                value = Fmt.duration(b.deducted),
+                supporting = breakSupport(b),
+            )
+
+            val bankBefore = p.bankBefore
+            val bankExit = p.bankExit
+            val standard = p.standardExit
+            if (bankExit != null && standard != null) {
+                when {
+                    bankBefore > 0 && bankExit < standard -> {
+                        val flex = p.required - p.minimum
+                        val capped = p.bankUsage >= flex && bankBefore > flex
+                        InfoRow(
+                            icon = Icons.Rounded.Savings,
+                            iconTint = c.positive,
+                            title = stringResource(R.string.calc_bank_early),
+                            value = Fmt.timeDay(bankExit),
+                            valueColor = c.positive,
+                            supporting = stringResource(
+                                R.string.calc_bank_early_sub,
+                                Fmt.duration(p.bankUsage),
+                                Fmt.duration(bankBefore - p.bankUsage),
+                            ) + if (capped) stringResource(R.string.calc_bank_capped, Fmt.duration(flex)) else "",
+                        )
+                    }
+                    bankBefore > 0 -> Hint(icon = Icons.Rounded.Info, text = stringResource(R.string.calc_bank_no_flex))
+                    bankBefore < 0 -> {
+                        val plan = s.alerts.filterIsInstance<BankAlert.Negative>().firstOrNull()
+                        InfoRow(
+                            icon = Icons.AutoMirrored.Rounded.TrendingUp,
+                            iconTint = c.negative,
+                            title = stringResource(R.string.calc_bank_recover),
+                            value = Fmt.timeDay(bankExit),
+                            valueColor = c.negative,
+                            supporting = if (plan != null && plan.officeDaysLeft > 1) {
+                                stringResource(R.string.calc_bank_recover_plan, Fmt.duration(-bankBefore), Fmt.duration(plan.perDay))
+                            } else {
+                                stringResource(R.string.calc_bank_recover_sub, Fmt.duration(-bankBefore))
+                            },
+                        )
+                    }
+                    else -> Unit
+                }
+            }
+            val minimumExit = p.minimumExit
+            if (p.minimum < p.required && minimumExit != null && minimumExit != bankExit) {
+                InfoRow(
+                    icon = Icons.Rounded.HourglassBottom,
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    title = stringResource(R.string.calc_minimum),
+                    value = Fmt.timeDay(minimumExit),
+                    supporting = stringResource(R.string.calc_minimum_sub, Fmt.duration(p.minimum)),
+                )
+            }
         }
         Spacer(Modifier.height(12.dp))
         DayTimelineBar(
             record = s.record,
             now = s.nowMinutes,
-            standardExit = standard,
-            bankExit = bankExit,
+            standardExit = p.standardExit,
+            bankExit = p.bankExit,
         )
     }
+}
+
+@Composable
+private fun breakSupport(b: io.github.perruzz.stacco.domain.BreakInfo): String = when {
+    b.ongoing -> stringResource(R.string.calc_break_ongoing, Fmt.duration(b.actual ?: 0))
+    b.assumed -> stringResource(R.string.calc_break_assumed)
+    b.shortfall > 0 -> stringResource(R.string.calc_break_short, Fmt.duration(b.actual ?: 0), Fmt.duration(b.deducted))
+    else -> stringResource(R.string.calc_break_ok)
 }
 
 @Composable
@@ -774,6 +889,27 @@ private fun SmartDayCard(s: TodaySnapshot, onOffice: () -> Unit) {
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.smart_switch))
             }
+        }
+    }
+}
+
+@Composable
+private fun TravelCard(@Suppress("UNUSED_PARAMETER") s: TodaySnapshot, onChange: () -> Unit) {
+    val c = StaccoTheme.colors
+    StaccoCard(color = c.travelContainer.copy(alpha = 0.6f)) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            MorphBadge(icon = DayType.TRAVEL.icon, colors = listOf(c.travel, MaterialTheme.colorScheme.primary), size = 132.dp)
+            Spacer(Modifier.height(18.dp))
+            Text(stringResource(R.string.travel_title), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                stringResource(R.string.travel_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(10.dp))
+            TextButton(onClick = onChange) { Text(stringResource(R.string.away_change)) }
         }
     }
 }

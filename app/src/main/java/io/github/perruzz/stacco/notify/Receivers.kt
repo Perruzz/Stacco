@@ -9,7 +9,6 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 import io.github.perruzz.stacco.R
-import io.github.perruzz.stacco.domain.BreakRules
 import io.github.perruzz.stacco.domain.DayCalculator
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.Engine
@@ -138,19 +137,89 @@ class ExitAlarmReceiver : BroadcastReceiver() {
     }
 }
 
+/** Shift mode: a reminder before the next planned shift starts. */
+object ShiftStartScheduler {
+
+    private fun pendingIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        2,
+        Intent(context, ShiftStartReceiver::class.java),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    /** The next shift (today or tomorrow) not stamped yet, with its date. */
+    fun nextShift(data: io.github.perruzz.stacco.domain.StaccoData, now: LocalDateTime): Pair<java.time.LocalDate, io.github.perruzz.stacco.domain.ShiftTemplate>? {
+        val calendar = WorkCalendar.from(data)
+        val nowMinutes = now.hour * 60 + now.minute
+        for (offset in 0..1L) {
+            val date = now.toLocalDate().plusDays(offset)
+            val shift = calendar.shift(date) ?: continue
+            if (calendar.plannedStart(date) == null) continue
+            if (data.days[date.toString()]?.entry != null) continue
+            if (offset == 0L && shift.start <= nowMinutes) continue
+            return date to shift
+        }
+        return null
+    }
+
+    fun schedule(context: Context, data: io.github.perruzz.stacco.domain.StaccoData, now: LocalDateTime = LocalDateTime.now()) {
+        val alarms = context.getSystemService(AlarmManager::class.java) ?: return
+        val pi = pendingIntent(context)
+        val settings = data.notifications
+        val next = if (data.work.mode == io.github.perruzz.stacco.domain.WorkMode.SHIFTS && settings.shiftStartReminder) nextShift(data, now) else null
+        if (next == null) {
+            alarms.cancel(pi)
+            return
+        }
+        val (date, shift) = next
+        val triggerAt = Notifications.epochMillis(date, shift.start - settings.shiftStartLeadMinutes)
+        if (triggerAt <= System.currentTimeMillis()) {
+            alarms.cancel(pi)
+            return
+        }
+        val exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarms.canScheduleExactAlarms()
+        runCatching {
+            if (exact) {
+                alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+            } else {
+                alarms.setWindow(AlarmManager.RTC_WAKEUP, triggerAt, 5 * 60_000L, pi)
+            }
+        }
+    }
+}
+
+class ShiftStartReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) = async {
+        val data = context.stacco.repository.current()
+        val now = LocalDateTime.now()
+        val (date, shift) = ShiftStartScheduler.nextShift(data, now) ?: return@async
+        val minutesLeft = (Notifications.epochMillis(date, shift.start) - System.currentTimeMillis()) / 60_000L
+        if (minutesLeft in 0..120) {
+            val builder = Notifications.base(context, Notifications.CHANNEL_EXIT)
+                .setContentTitle(context.getString(R.string.notif_shift_title, shift.name, Fmt.time(shift.start)))
+                .setContentText(context.getString(R.string.notif_shift_text, minutesLeft.toInt().coerceAtLeast(1)))
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+            Notifications.post(context, Notifications.ID_SHIFT_START, builder)
+        }
+        ShiftStartScheduler.schedule(context, data)
+    }
+}
+
 /** Handles the "Stamp" buttons of notifications. */
 class StampActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) = async {
         val slot = intent?.getStringExtra(EXTRA_SLOT)?.let { runCatching { StampSlot.valueOf(it) }.getOrNull() }
         val repository = context.stacco.repository
         val now = LocalDateTime.now()
-        val stamped = repository.stampNow(now, slot)
+        val stamp = repository.stampAt(now, slot)
         Notifications.cancel(context, Notifications.ID_EXIT)
         val data = repository.current()
-        if (stamped == StampSlot.EXIT) {
+        if (stamp?.slot == StampSlot.EXIT) {
             val calendar = WorkCalendar.from(data)
-            val record = data.days[now.toLocalDate().toString()]
-            val result = record?.let { DayCalculator.result(it, BreakRules.from(data.work), calendar.required(now.toLocalDate())) }
+            val record = data.days[stamp.date.toString()]
+            val result = record?.let { DayCalculator.result(it, calendar.breakRules(stamp.date), calendar.required(stamp.date)) }
             if (result != null) {
                 val builder = Notifications.base(context, Notifications.CHANNEL_BANK)
                     .setContentTitle(context.getString(R.string.notif_day_done_title))

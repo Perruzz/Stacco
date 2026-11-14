@@ -74,23 +74,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _events.tryEmit(UiEvent.Info(message))
     }
 
-    fun stampNow(slot: StampSlot? = null) {
+    /** Stamps now, or at [minutes] of the working day (the time picked on the dial). */
+    fun stampAt(slot: StampSlot? = null, minutes: Int? = null) {
         viewModelScope.launch {
-            val now = LocalDateTime.now()
-            val before = repo.current()
-            val previous = before.day(now.toLocalDate())
-            val stamped = repo.stampNow(now, slot) ?: return@launch
-            val minutes = now.hour * 60 + now.minute
-            _events.emit(UiEvent.Stamped(stamped, minutes, now.toLocalDate(), previous))
-            if (stamped == StampSlot.EXIT) emitCompletion(now.toLocalDate())
+            val stamp = repo.stampAt(LocalDateTime.now(), slot, minutes) ?: return@launch
+            _events.emit(UiEvent.Stamped(stamp.slot, stamp.minutes, stamp.date, stamp.previous))
+            if (stamp.slot == StampSlot.EXIT) emitCompletion(stamp.date)
         }
     }
+
+    fun stampNow(slot: StampSlot? = null) = stampAt(slot, null)
 
     private suspend fun emitCompletion(date: LocalDate) {
         val data = repo.current()
         val calendar = WorkCalendar.from(data)
         val record = data.day(date)
-        val result = DayCalculator.result(record, io.github.perruzz.stacco.domain.BreakRules.from(data.work), calendar.required(date))
+        val result = DayCalculator.result(record, calendar.breakRules(date), calendar.required(date))
         if (result != null) _events.emit(UiEvent.DayCompleted(result.delta, result.worked))
     }
 
@@ -98,8 +97,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val wasComplete = repo.current().day(date).exit != null
             repo.setStamp(date, slot, minutes)
-            if (slot == StampSlot.EXIT && minutes != null && !wasComplete && date == LocalDate.now()) emitCompletion(date)
+            if (slot == StampSlot.EXIT && minutes != null && !wasComplete && date >= LocalDate.now().minusDays(1)) emitCompletion(date)
         }
+    }
+
+    fun setShift(date: LocalDate, shiftId: String?) {
+        viewModelScope.launch { repo.setShift(date, shiftId) }
+    }
+
+    fun saveShiftTemplate(template: io.github.perruzz.stacco.domain.ShiftTemplate) {
+        viewModelScope.launch { repo.saveShiftTemplate(template) }
+    }
+
+    fun deleteShiftTemplate(id: String) {
+        viewModelScope.launch { repo.deleteShiftTemplate(id) }
     }
 
     fun restoreDay(date: LocalDate, record: DayRecord) {

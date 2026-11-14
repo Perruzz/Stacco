@@ -3,33 +3,23 @@ package io.github.perruzz.stacco.domain
 import kotlin.math.max
 import kotlin.math.min
 
-/** Company rules for the lunch break. */
-data class BreakRules(val min: Int, val max: Int) {
-    val effectiveMax: Int get() = max(max, min)
-
-    companion object {
-        fun from(work: WorkSettings) = BreakRules(work.minBreakMinutes, work.maxBreakMinutes)
-    }
-}
+/** Company rule for the lunch break: a shorter break still counts as [min] minutes. */
+data class BreakRules(val min: Int)
 
 /**
- * How the lunch break is accounted for.
+ * How the break is accounted for.
  *
  * @property actual measured break (live while it is still ongoing), null when not stamped.
  * @property deducted minutes subtracted from the presence time (never less than the minimum).
- * @property counted break used for the "standard" exit (never more than the maximum).
  * @property assumed true when no break was stamped and the default one is applied.
  * @property shortfall minutes lost because the break was shorter than the minimum.
- * @property excess minutes beyond the maximum: they are drawn from the hour bank.
  */
 data class BreakInfo(
     val actual: Int?,
     val deducted: Int,
-    val counted: Int,
     val assumed: Boolean,
     val ongoing: Boolean,
     val shortfall: Int,
-    val excess: Int,
 )
 
 enum class DayPhase { NOT_STARTED, MORNING, ON_BREAK, AFTERNOON, DONE }
@@ -40,19 +30,17 @@ enum class DayIssue { MISSING_ENTRY, OUT_OF_ORDER, BREAK_IN_WITHOUT_OUT, BREAK_N
 data class DayResult(val worked: Int, val required: Int, val delta: Int)
 
 /**
- * Everything the "Today" screen needs. All times are minutes since midnight
- * (they may exceed 1440 when a day would end after midnight).
+ * Everything the "Today" screen needs. All times are minutes since midnight of the day
+ * (they may exceed 1440 when a day ends after midnight).
  */
 data class DayProjection(
     val phase: DayPhase,
     val required: Int,
     val minimum: Int,
     val breakInfo: BreakInfo,
-    /** Exit with a regular day: entry + required + counted break. */
+    /** Exit of a regular day (entry + required + break), or the end of the planned shift. */
     val standardExit: Int?,
-    /** True when a huge break forced the standard exit later to respect the minimum hours. */
-    val standardLimitedByMinimum: Boolean,
-    /** Earliest exit allowed by the minimum daily hours. */
+    /** Earliest exit allowed by the minimum daily hours (fixed schedule only). */
     val minimumExit: Int?,
     /** Exit that uses the hour bank: earlier with a positive balance, later to recover a negative one. */
     val bankExit: Int?,
@@ -62,20 +50,16 @@ data class DayProjection(
     val bankBefore: Int,
     /** Minutes of presence worked so far (live). */
     val workedSoFar: Int,
-    /** While on break: earliest return (minimum break) .. latest return (maximum break). */
-    val returnWindow: IntRange?,
+    /** While on break: from when the minimum break is over. */
+    val earliestReturn: Int?,
+    /** Planned shift, if any. */
+    val plannedStart: Int?,
+    val plannedEnd: Int?,
     val result: DayResult?,
     val issues: Set<DayIssue>,
 ) {
     val isValid: Boolean get() = issues.isEmpty()
-
-    /** Bank delta if leaving exactly at the standard exit (negative when the break was too long). */
-    val standardDelta: Int
-        get() = when {
-            standardExit == null -> 0
-            standardLimitedByMinimum -> minimum - required
-            else -> -breakInfo.excess
-        }
+    val isShift: Boolean get() = plannedEnd != null
 
     fun targetExit(target: ExitTarget): Int? = when (target) {
         ExitTarget.STANDARD -> standardExit
@@ -112,25 +96,19 @@ object DayCalculator {
                 // No break stamped: the company deducts the minimum break anyway.
                 // On extra (non-working) days nothing is assumed.
                 val assumed = if (required > 0) rules.min else 0
-                BreakInfo(
-                    actual = null, deducted = assumed, counted = assumed, assumed = true,
-                    ongoing = false, shortfall = 0, excess = 0,
-                )
+                BreakInfo(actual = null, deducted = assumed, assumed = true, ongoing = false, shortfall = 0)
             }
         }
     }
 
     private fun measured(rawActual: Int, rules: BreakRules, ongoing: Boolean): BreakInfo {
         val actual = max(0, rawActual)
-        val deducted = max(actual, rules.min)
         return BreakInfo(
             actual = actual,
-            deducted = deducted,
-            counted = min(deducted, rules.effectiveMax),
+            deducted = max(actual, rules.min),
             assumed = false,
             ongoing = ongoing,
             shortfall = if (ongoing) 0 else max(0, rules.min - actual),
-            excess = max(0, actual - rules.effectiveMax),
         )
     }
 
@@ -170,6 +148,10 @@ object DayCalculator {
         }
     }
 
+    /**
+     * @param plannedStart / [plannedEnd] the planned shift (shift mode). With a shift the target exit
+     * is simply the end of the shift and the hour bank cannot shorten the day.
+     */
     fun project(
         r: DayRecord,
         rules: BreakRules,
@@ -177,34 +159,45 @@ object DayCalculator {
         minimum: Int,
         bankBefore: Int,
         now: Int,
+        plannedStart: Int? = null,
+        plannedEnd: Int? = null,
     ): DayProjection {
         val issues = issues(r)
         val b = breakInfo(r, rules, required, now)
         val phase = phase(r, now)
         val entry = r.entry
+        val out = r.breakOut
+        val earliestReturn = if (phase == DayPhase.ON_BREAK && out != null && r.breakIn == null && rules.min > 0) {
+            out + rules.min
+        } else {
+            null
+        }
+
         if (entry == null) {
             return DayProjection(
                 phase = DayPhase.NOT_STARTED, required = required, minimum = minimum, breakInfo = b,
-                standardExit = null, standardLimitedByMinimum = false, minimumExit = null,
-                bankExit = null, bankUsage = 0, bankBefore = bankBefore, workedSoFar = 0,
-                returnWindow = null, result = null, issues = issues,
+                standardExit = plannedEnd, minimumExit = null, bankExit = null, bankUsage = 0,
+                bankBefore = bankBefore, workedSoFar = 0, earliestReturn = null,
+                plannedStart = plannedStart, plannedEnd = plannedEnd, result = null, issues = issues,
             )
         }
 
-        val minimumExit = entry + minimum + b.deducted
-        val workedAtStandard = required - b.excess
-        val limited = required > 0 && workedAtStandard < minimum
-        val standardExit = if (limited) minimumExit else entry + required + b.counted
-
-        // Target worked minutes to bring the bank to zero, never below the daily minimum.
-        val bankTargetWorked = max(minimum, required - bankBefore)
-        val bankExit = entry + b.deducted + bankTargetWorked
-
-        val out = r.breakOut
-        val returnWindow = if (phase == DayPhase.ON_BREAK && out != null && r.breakIn == null) {
-            (out + rules.min)..(out + rules.effectiveMax)
+        val standardExit: Int
+        val minimumExit: Int?
+        val bankExit: Int?
+        val bankUsage: Int
+        if (plannedEnd != null) {
+            standardExit = plannedEnd
+            minimumExit = null
+            bankExit = null
+            bankUsage = 0
         } else {
-            null
+            standardExit = entry + required + b.deducted
+            minimumExit = entry + minimum + b.deducted
+            // Worked minutes that bring the bank back to zero, never below the daily minimum.
+            val bankTargetWorked = max(minimum, required - bankBefore)
+            bankExit = entry + b.deducted + bankTargetWorked
+            bankUsage = required - bankTargetWorked
         }
 
         return DayProjection(
@@ -213,13 +206,14 @@ object DayCalculator {
             minimum = minimum,
             breakInfo = b,
             standardExit = standardExit,
-            standardLimitedByMinimum = limited,
             minimumExit = minimumExit,
             bankExit = bankExit,
-            bankUsage = required - bankTargetWorked,
+            bankUsage = bankUsage,
             bankBefore = bankBefore,
             workedSoFar = workedAt(r, now),
-            returnWindow = returnWindow,
+            earliestReturn = earliestReturn,
+            plannedStart = plannedStart,
+            plannedEnd = plannedEnd,
             result = if (phase == DayPhase.DONE) result(r, rules, required) else null,
             issues = issues,
         )

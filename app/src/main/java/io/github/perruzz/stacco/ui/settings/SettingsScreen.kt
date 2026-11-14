@@ -12,6 +12,15 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import io.github.perruzz.stacco.domain.WorkMode
+import io.github.perruzz.stacco.domain.ShiftTemplate
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -64,7 +73,6 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Timer
@@ -98,6 +106,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -134,7 +143,7 @@ import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-private enum class DurationField { DAILY, MINIMUM, MIN_BREAK, MAX_BREAK, BALANCE }
+private enum class DurationField { DAILY, MINIMUM, MIN_BREAK, BALANCE }
 
 @Composable
 fun SettingsScreen(viewModel: MainViewModel) {
@@ -148,6 +157,8 @@ fun SettingsScreen(viewModel: MainViewModel) {
     var editingName by remember { mutableStateOf(false) }
     var choosingExpiry by remember { mutableStateOf(false) }
     var confirmImport by remember { mutableStateOf<String?>(null) }
+    var editingShift by remember { mutableStateOf<ShiftTemplate?>(null) }
+    var addingShift by remember { mutableStateOf(false) }
     var refresh by remember { mutableIntStateOf(0) }
     LifecycleResumeEffect(Unit) {
         refresh++
@@ -208,66 +219,97 @@ fun SettingsScreen(viewModel: MainViewModel) {
         }
 
         Appear(i++) {
-            StaccoCard {
-                SectionLabel(stringResource(R.string.settings_work))
-                SettingRow(
-                    icon = Icons.Rounded.Schedule,
-                    title = stringResource(R.string.settings_daily),
-                    subtitle = stringResource(R.string.settings_daily_sub),
-                    value = Fmt.duration(work.dailyMinutes),
-                    onClick = { editingDuration = DurationField.DAILY },
-                )
-                SettingRow(
-                    icon = Icons.Rounded.HourglassBottom,
-                    title = stringResource(R.string.settings_minimum),
-                    subtitle = stringResource(R.string.settings_minimum_sub, Fmt.duration((work.dailyMinutes - work.minDailyMinutes).coerceAtLeast(0))),
-                    value = Fmt.duration(work.minDailyMinutes),
-                    onClick = { editingDuration = DurationField.MINIMUM },
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.settings_workdays), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
-                val first = remember { io.github.perruzz.stacco.domain.Engine.firstDayOfWeek() }
-                WeekdayToggles(
-                    selected = work.workDays,
-                    order = (0 until 7).map { first.plus(it.toLong()).value },
-                    labels = { Fmt.weekdayNarrow(DayOfWeek.of(it)).take(2) },
-                    onToggle = { day ->
-                        update {
-                            val days = it.work.workDays.toMutableSet().apply { if (!add(day)) remove(day) }
-                            it.copy(work = it.work.copy(workDays = days))
-                        }
-                    },
-                )
-                Spacer(Modifier.height(8.dp))
-                SwitchRow(
-                    icon = Icons.Rounded.Celebration,
-                    title = stringResource(R.string.settings_holidays),
-                    subtitle = stringResource(R.string.settings_holidays_sub),
-                    checked = work.italianHolidays,
-                    onCheckedChange = { on -> update { it.copy(work = it.work.copy(italianHolidays = on)) } },
-                )
-            }
+            val defaults = defaultShifts()
+            WorkModeCard(
+                mode = work.mode,
+                onChange = { mode ->
+                    update {
+                        val shifts = if (mode == WorkMode.SHIFTS && it.work.shifts.isEmpty()) defaults else it.work.shifts
+                        it.copy(work = it.work.copy(mode = mode, shifts = shifts))
+                    }
+                },
+            )
         }
 
         Appear(i++) {
-            StaccoCard {
-                SectionLabel(stringResource(R.string.settings_break))
-                SettingRow(
-                    icon = Icons.Rounded.Coffee,
-                    title = stringResource(R.string.settings_min_break),
-                    subtitle = stringResource(R.string.settings_min_break_sub),
-                    value = Fmt.duration(work.minBreakMinutes),
-                    tint = StaccoTheme.colors.lunch,
-                    onClick = { editingDuration = DurationField.MIN_BREAK },
-                )
-                SettingRow(
-                    icon = Icons.Rounded.Restaurant,
-                    title = stringResource(R.string.settings_max_break),
-                    subtitle = stringResource(R.string.settings_max_break_sub),
-                    value = Fmt.duration(work.maxBreakMinutes),
-                    tint = StaccoTheme.colors.lunch,
-                    onClick = { editingDuration = DurationField.MAX_BREAK },
-                )
+            AnimatedContent(
+                targetState = work.mode,
+                transitionSpec = {
+                    (fadeIn(tween(300, delayMillis = 120)) + slideInVertically(spring(dampingRatio = 0.85f, stiffness = 300f)) { it / 6 }) togetherWith
+                        (fadeOut(tween(150)) + slideOutVertically(tween(200)) { -it / 8 }) using
+                        SizeTransform(clip = false)
+                },
+                label = "work-mode",
+            ) { mode ->
+                if (mode == WorkMode.SHIFTS) {
+                    StaccoCard {
+                        SectionLabel(stringResource(R.string.settings_shifts))
+                        Text(
+                            stringResource(R.string.settings_shifts_sub),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                        )
+                        ShiftList(
+                            shifts = work.shifts,
+                            onEdit = { editingShift = it },
+                            onAdd = { addingShift = true },
+                        )
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        StaccoCard {
+                            SectionLabel(stringResource(R.string.settings_work))
+                            SettingRow(
+                                icon = Icons.Rounded.Schedule,
+                                title = stringResource(R.string.settings_daily),
+                                subtitle = stringResource(R.string.settings_daily_sub),
+                                value = Fmt.duration(work.dailyMinutes),
+                                onClick = { editingDuration = DurationField.DAILY },
+                            )
+                            SettingRow(
+                                icon = Icons.Rounded.HourglassBottom,
+                                title = stringResource(R.string.settings_minimum),
+                                subtitle = stringResource(R.string.settings_minimum_sub, Fmt.duration((work.dailyMinutes - work.minDailyMinutes).coerceAtLeast(0))),
+                                value = Fmt.duration(work.minDailyMinutes),
+                                onClick = { editingDuration = DurationField.MINIMUM },
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(stringResource(R.string.settings_workdays), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+                            val first = remember { io.github.perruzz.stacco.domain.Engine.firstDayOfWeek() }
+                            WeekdayToggles(
+                                selected = work.workDays,
+                                order = (0 until 7).map { first.plus(it.toLong()).value },
+                                labels = { Fmt.weekdayNarrow(DayOfWeek.of(it)).take(2) },
+                                onToggle = { day ->
+                                    update {
+                                        val days = it.work.workDays.toMutableSet().apply { if (!add(day)) remove(day) }
+                                        it.copy(work = it.work.copy(workDays = days))
+                                    }
+                                },
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            SwitchRow(
+                                icon = Icons.Rounded.Celebration,
+                                title = stringResource(R.string.settings_holidays),
+                                subtitle = stringResource(R.string.settings_holidays_sub),
+                                checked = work.italianHolidays,
+                                onCheckedChange = { on -> update { it.copy(work = it.work.copy(italianHolidays = on)) } },
+                            )
+                        }
+                        StaccoCard {
+                            SectionLabel(stringResource(R.string.settings_break))
+                            SettingRow(
+                                icon = Icons.Rounded.Coffee,
+                                title = stringResource(R.string.settings_min_break),
+                                subtitle = stringResource(R.string.settings_min_break_sub),
+                                value = Fmt.duration(work.minBreakMinutes),
+                                tint = StaccoTheme.colors.lunch,
+                                onClick = { editingDuration = DurationField.MIN_BREAK },
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -323,6 +365,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     range = 0..15,
                     onValueChange = { v -> update { it.copy(bank = it.bank.copy(alertLeadDays = v)) } },
                 )
+                LeadExample(work = work, lead = data.bank.alertLeadDays)
             }
         }
 
@@ -391,7 +434,14 @@ fun SettingsScreen(viewModel: MainViewModel) {
                                     onClick = { update { it.copy(notifications = it.notifications.copy(exitReminderLeadMinutes = minutes)) } },
                                     shape = SegmentedButtonDefaults.itemShape(index, options.size),
                                     icon = {},
-                                ) { Text(if (minutes == 0) stringResource(R.string.settings_exit_lead_now) else "${minutes}m") }
+                                ) {
+                                    Text(
+                                        if (minutes == 0) stringResource(R.string.settings_exit_lead_now) else "${minutes}m",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
+                                }
                             }
                         }
                         Text(stringResource(R.string.settings_exit_target), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -416,6 +466,15 @@ fun SettingsScreen(viewModel: MainViewModel) {
                             )
                         }
                     }
+                }
+                AnimatedVisibility(work.mode == WorkMode.SHIFTS, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                    SwitchRow(
+                        icon = Icons.Rounded.AlarmOn,
+                        title = stringResource(R.string.settings_shift_reminder),
+                        subtitle = stringResource(R.string.settings_shift_reminder_sub, data.notifications.shiftStartLeadMinutes),
+                        checked = data.notifications.shiftStartReminder,
+                        onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(shiftStartReminder = on)) } },
+                    )
                 }
                 SwitchRow(
                     icon = Icons.Rounded.Timer,
@@ -472,7 +531,6 @@ fun SettingsScreen(viewModel: MainViewModel) {
             DurationField.DAILY -> Triple(R.string.settings_daily, work.dailyMinutes, 16)
             DurationField.MINIMUM -> Triple(R.string.settings_minimum, work.minDailyMinutes, 16)
             DurationField.MIN_BREAK -> Triple(R.string.settings_min_break, work.minBreakMinutes, 4)
-            DurationField.MAX_BREAK -> Triple(R.string.settings_max_break, work.maxBreakMinutes, 6)
             DurationField.BALANCE -> Triple(R.string.settings_balance, ledger.balance, 300)
         }
         DurationPickerDialog(
@@ -485,7 +543,6 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 DurationField.DAILY -> Icons.Rounded.Schedule
                 DurationField.MINIMUM -> Icons.Rounded.HourglassBottom
                 DurationField.MIN_BREAK -> Icons.Rounded.Coffee
-                DurationField.MAX_BREAK -> Icons.Rounded.Restaurant
                 DurationField.BALANCE -> Icons.Rounded.Savings
             },
             onDismiss = { editingDuration = null },
@@ -495,6 +552,30 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     else -> update { it.copy(work = it.work.withDuration(field, value)) }
                 }
                 editingDuration = null
+            },
+        )
+    }
+
+    if (addingShift || editingShift != null) {
+        val initial = editingShift
+        ShiftEditorDialog(
+            initial = initial,
+            onDismiss = {
+                addingShift = false
+                editingShift = null
+            },
+            onSave = { shift ->
+                viewModel.saveShiftTemplate(shift)
+                addingShift = false
+                editingShift = null
+            },
+            onDelete = if (initial != null && work.shifts.size > 1) {
+                {
+                    viewModel.deleteShiftTemplate(initial.id)
+                    editingShift = null
+                }
+            } else {
+                null
             },
         )
     }
@@ -561,8 +642,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
 private fun WorkSettings.withDuration(field: DurationField, value: Int): WorkSettings = when (field) {
     DurationField.DAILY -> copy(dailyMinutes = value.coerceAtLeast(0), minDailyMinutes = minDailyMinutes.coerceAtMost(value.coerceAtLeast(0)))
     DurationField.MINIMUM -> copy(minDailyMinutes = value.coerceIn(0, dailyMinutes))
-    DurationField.MIN_BREAK -> copy(minBreakMinutes = value, maxBreakMinutes = maxBreakMinutes.coerceAtLeast(value))
-    DurationField.MAX_BREAK -> copy(maxBreakMinutes = value.coerceAtLeast(minBreakMinutes))
+    DurationField.MIN_BREAK -> copy(minBreakMinutes = value)
     DurationField.BALANCE -> this
 }
 
@@ -814,5 +894,62 @@ private fun openAppNotificationSettings(context: Context) {
 fun openUrl(context: Context, url: String) {
     runCatching {
         context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+}
+
+
+@Composable
+private fun WorkModeCard(mode: WorkMode, onChange: (WorkMode) -> Unit) {
+    StaccoCard {
+        SectionLabel(stringResource(R.string.settings_mode))
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OptionCard(
+                title = stringResource(R.string.mode_fixed),
+                icon = Icons.Rounded.Schedule,
+                selected = mode == WorkMode.FIXED,
+                onClick = { onChange(WorkMode.FIXED) },
+                modifier = Modifier.weight(1f),
+            )
+            OptionCard(
+                title = stringResource(R.string.mode_shifts),
+                icon = Icons.Rounded.Bedtime,
+                selected = mode == WorkMode.SHIFTS,
+                onClick = { onChange(WorkMode.SHIFTS) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        AnimatedContent(targetState = mode, label = "mode-desc") { m ->
+            Text(
+                stringResource(if (m == WorkMode.SHIFTS) R.string.mode_shifts_desc else R.string.mode_fixed_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Turns the abstract "alert margin" into a concrete example. */
+@Composable
+private fun LeadExample(work: io.github.perruzz.stacco.domain.WorkSettings, lead: Int) {
+    val flex = if (work.mode == WorkMode.SHIFTS) 0 else (work.dailyMinutes - work.minDailyMinutes).coerceAtLeast(0)
+    val text = if (flex > 0) {
+        val hours = 5 * flex
+        stringResource(R.string.settings_lead_example, Fmt.duration(hours), Fmt.duration(flex), 5, 5 + lead)
+    } else if (lead == 0) {
+        stringResource(R.string.settings_lead_example_zero)
+    } else {
+        pluralStringResource(R.plurals.settings_lead_example_simple, lead, lead)
+    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 54.dp, top = 2.dp, bottom = 8.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+            .padding(12.dp),
+    ) {
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
     }
 }

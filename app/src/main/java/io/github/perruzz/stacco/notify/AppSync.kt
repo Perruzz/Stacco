@@ -46,6 +46,7 @@ object AppSync {
 
     fun refresh(context: Context, snapshot: TodaySnapshot, updateWidget: Boolean = true) {
         runCatching { ExitAlarmScheduler.schedule(context, snapshot) }
+        runCatching { ShiftStartScheduler.schedule(context, snapshot.data) }
         runCatching { LiveDayNotifier.update(context, snapshot) }
         if (updateWidget) {
             runCatching { StaccoWidget.refresh(context) }

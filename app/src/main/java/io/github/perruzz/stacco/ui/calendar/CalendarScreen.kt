@@ -62,7 +62,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.perruzz.stacco.R
-import io.github.perruzz.stacco.domain.BreakRules
 import io.github.perruzz.stacco.domain.DayCalculator
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
@@ -78,6 +77,8 @@ import io.github.perruzz.stacco.ui.components.bouncyClickable
 import io.github.perruzz.stacco.ui.theme.StaccoTheme
 import io.github.perruzz.stacco.ui.theme.container
 import io.github.perruzz.stacco.ui.theme.deltaColor
+import io.github.perruzz.stacco.ui.theme.shiftColor
+import io.github.perruzz.stacco.ui.theme.shiftContainer
 import io.github.perruzz.stacco.ui.theme.tint
 import io.github.perruzz.stacco.ui.today.Appear
 import io.github.perruzz.stacco.ui.today.SmartQuota
@@ -104,6 +105,10 @@ fun CalendarScreen(viewModel: MainViewModel) {
     val pager = rememberPagerState(initialPage = CENTER) { PAGES }
     val scope = rememberCoroutineScope()
     var selected by remember { mutableStateOf<LocalDate?>(null) }
+    // Shift planning: when a shift (or rest) is picked, tapping days assigns it.
+    var painting by remember { mutableStateOf(false) }
+    var paintShift by remember { mutableStateOf<String?>(null) }
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     val month = baseMonth.plusMonths((pager.currentPage - CENTER).toLong())
 
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -158,6 +163,24 @@ fun CalendarScreen(viewModel: MainViewModel) {
             }
         }
 
+        if (calendar.isShiftMode && data.work.shifts.isNotEmpty()) {
+            Appear(1) {
+                ShiftPlanner(
+                    data = data,
+                    painting = painting,
+                    selected = paintShift,
+                    onPick = { id ->
+                        if (painting && paintShift == id) {
+                            painting = false
+                        } else {
+                            painting = true
+                            paintShift = id
+                        }
+                    },
+                )
+            }
+        }
+
         Appear(1) {
             StaccoCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 16.dp)) {
                 WeekdayHeader(firstDow)
@@ -170,11 +193,19 @@ fun CalendarScreen(viewModel: MainViewModel) {
                         calendar = calendar,
                         today = today,
                         firstDow = firstDow,
-                        onDayClick = { selected = it },
+                        onDayClick = { date ->
+                            if (painting) {
+                                haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.SegmentTick)
+                                val current = data.days[date.toString()]?.shiftId
+                                viewModel.setShift(date, if (current == paintShift) null else paintShift)
+                            } else {
+                                selected = date
+                            }
+                        },
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                Legend()
+                if (calendar.isShiftMode) ShiftLegend(data) else Legend()
             }
         }
 
@@ -256,8 +287,10 @@ private fun DayCell(
     val scheduled = calendar.isScheduled(date)
     val holiday = calendar.holiday(date)
 
+    val shift = calendar.shift(date)
     val background = when {
         !inMonth -> Color.Transparent
+        shift != null && type == DayType.OFFICE -> shiftContainer(shift.color)
         type == DayType.OFFICE && explicitOrWorked -> type.container()
         type != null && type != DayType.OFFICE -> type.container()
         scheduled -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f)
@@ -268,6 +301,14 @@ private fun DayCell(
         delay(index * 9L)
         appear.animateTo(1f, spring(dampingRatio = 0.6f, stiffness = 380f))
     }
+    // A little pop when a shift is (re)assigned while planning.
+    val pop = remember(date) { Animatable(1f) }
+    LaunchedEffect(shift?.id) {
+        if (appear.value >= 0.99f) {
+            pop.snapTo(0.8f)
+            pop.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 500f))
+        }
+    }
 
     Box(
         modifier = modifier
@@ -275,7 +316,7 @@ private fun DayCell(
             .graphicsLayer {
                 val v = appear.value
                 alpha = (if (inMonth) 1f else 0.32f) * v.coerceIn(0f, 1f)
-                scaleX = 0.6f + 0.4f * v
+                scaleX = (0.6f + 0.4f * v) * pop.value
                 scaleY = scaleX
             }
             .clip(RoundedCornerShape(16.dp))
@@ -296,6 +337,12 @@ private fun DayCell(
                 },
             )
             when {
+                shift != null && type == DayType.OFFICE -> Text(
+                    if (delta != null && delta != 0) Fmt.compact(delta) else shift.code,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (delta != null && delta != 0) deltaColor(delta) else shiftColor(shift.color),
+                    maxLines = 1,
+                )
                 delta != null -> Text(
                     Fmt.compact(delta),
                     style = MaterialTheme.typography.labelSmall,
@@ -319,9 +366,9 @@ private fun DayCell(
 private fun Legend() {
     Row(
         Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally),
     ) {
-        listOf(DayType.OFFICE, DayType.SMART, DayType.VACATION, DayType.SICK, DayType.HOLIDAY).forEach { type ->
+        listOf(DayType.OFFICE, DayType.SMART, DayType.TRAVEL, DayType.VACATION, DayType.SICK, DayType.HOLIDAY).forEach { type ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier
@@ -339,6 +386,7 @@ private val DayType.shortLabel: Int
     get() = when (this) {
         DayType.OFFICE -> R.string.type_office_short
         DayType.SMART -> R.string.type_smart_short
+        DayType.TRAVEL -> R.string.type_travel_short
         DayType.VACATION -> R.string.type_vacation
         DayType.SICK -> R.string.type_sick
         DayType.HOLIDAY -> R.string.type_holiday_short
@@ -350,27 +398,38 @@ private fun MonthSummary(month: YearMonth, data: StaccoData, calendar: WorkCalen
     val inMonth = days.filterKeys { YearMonth.from(it) == month }
     val office = inMonth.count { (date, record) -> calendar.effectiveType(date) == DayType.OFFICE && record.hasStamps }
     val smart = inMonth.count { it.value.type == DayType.SMART }
+    val travel = inMonth.count { it.value.type == DayType.TRAVEL }
     val vacation = inMonth.count { it.value.type == DayType.VACATION }
     val sick = inMonth.count { it.value.type == DayType.SICK }
     val bank = inMonth.keys.sumOf { calendar.delta(it) ?: 0 }
-    val rules = BreakRules.from(data.work)
     val worked = inMonth.entries.sumOf { (date, record) ->
-        if (calendar.effectiveType(date) == DayType.OFFICE) DayCalculator.result(record, rules, calendar.required(date))?.worked ?: 0 else 0
+        if (calendar.effectiveType(date) == DayType.OFFICE) DayCalculator.result(record, calendar.breakRules(date), calendar.required(date))?.worked ?: 0 else 0
     }
+    val planned = inMonth.keys.sumOf { calendar.required(it) }
     val c = StaccoTheme.colors
 
     StaccoCard {
         SectionLabel(stringResource(R.string.calendar_summary, Fmt.monthName(month)))
         Spacer(Modifier.height(12.dp))
+        if (calendar.isShiftMode) {
+            ShiftCounts(month, data, calendar)
+            Spacer(Modifier.height(10.dp))
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatTile(DayType.OFFICE.icon, c.office, stringResource(R.string.type_office), office.toString(), Modifier.weight(1f))
-            StatTile(DayType.SMART.icon, c.smart, stringResource(R.string.type_smart_short), smart.toString(), Modifier.weight(1f))
+            StatTile(DayType.OFFICE.icon, c.office, stringResource(if (calendar.isShiftMode) R.string.calendar_shifts_worked else R.string.type_office), office.toString(), Modifier.weight(1f))
+            if (calendar.isShiftMode) {
+                StatTile(Icons.Rounded.Today, MaterialTheme.colorScheme.tertiary, stringResource(R.string.calendar_planned_hours), Fmt.duration(planned), Modifier.weight(1f))
+            } else {
+                StatTile(DayType.SMART.icon, c.smart, stringResource(R.string.type_smart_short), smart.toString(), Modifier.weight(1f))
+            }
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StatTile(DayType.TRAVEL.icon, c.travel, stringResource(R.string.type_travel), travel.toString(), Modifier.weight(1f))
             StatTile(DayType.VACATION.icon, c.vacation, stringResource(R.string.calendar_absences), (vacation + sick).toString(), Modifier.weight(1f))
-            StatTile(Icons.Rounded.Savings, deltaColor(bank), stringResource(R.string.calendar_bank_month), Fmt.duration(bank, signed = true), Modifier.weight(1f))
         }
+        Spacer(Modifier.height(10.dp))
+        StatTile(Icons.Rounded.Savings, deltaColor(bank), stringResource(R.string.calendar_bank_month), Fmt.duration(bank, signed = true), Modifier.fillMaxWidth())
         if (worked > 0) {
             Spacer(Modifier.height(12.dp))
             Text(
@@ -379,7 +438,9 @@ private fun MonthSummary(month: YearMonth, data: StaccoData, calendar: WorkCalen
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (data.smart.period == SmartPeriod.MONTH && data.smart.allowance > 0) {
+        if (calendar.isShiftMode && data.smart.allowance == 0) {
+            // Shift workers usually have no remote days: nothing to show.
+        } else if (data.smart.period == SmartPeriod.MONTH && data.smart.allowance > 0) {
             Spacer(Modifier.height(14.dp))
             SmartQuota(used = smart, allowance = data.smart.allowance, period = SmartPeriod.MONTH, month = month)
         } else if (data.smart.period == SmartPeriod.WEEK) {
@@ -417,12 +478,12 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
     val entries = days.filter { (date, record) -> YearMonth.from(date) == month && record.hasStamps }
         .toSortedMap()
     if (entries.isEmpty()) return
-    val rules = BreakRules.from(data.work)
     StaccoCard {
         SectionLabel(stringResource(R.string.calendar_office_list))
         Spacer(Modifier.height(6.dp))
         entries.forEach { (date, record) ->
             val required = calendar.required(date)
+            val rules = calendar.breakRules(date)
             val result = DayCalculator.result(record, rules, required)
             val b = DayCalculator.breakInfo(record, rules, required, null)
             Row(
@@ -439,10 +500,13 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "${Fmt.time(record.entry)} → ${Fmt.time(record.exit)}",
+                        "${Fmt.time(record.entry)} → ${Fmt.timeDay(record.exit)}",
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    val breakText = if (b.assumed) {
+                    val shiftName = calendar.shift(date)?.name
+                    val breakText = if (shiftName != null && b.deducted == 0) {
+                        stringResource(R.string.calendar_shift_line, shiftName)
+                    } else if (b.assumed) {
                         stringResource(R.string.calendar_break_assumed, Fmt.duration(b.deducted))
                     } else {
                         stringResource(R.string.calendar_break, Fmt.time(record.breakOut), Fmt.time(record.breakIn))
@@ -464,6 +528,77 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
                 } else {
                     Text(stringResource(R.string.calendar_incomplete), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
                 }
+            }
+        }
+    }
+}
+
+
+/** Pick a shift, then tap the days of the month to plan it. */
+@Composable
+private fun ShiftPlanner(data: StaccoData, painting: Boolean, selected: String?, onPick: (String?) -> Unit) {
+    StaccoCard(color = if (painting) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.92f)) {
+        SectionLabel(stringResource(R.string.calendar_plan_title))
+        Spacer(Modifier.height(4.dp))
+        AnimatedContent(targetState = painting, label = "plan-hint") { active ->
+            Text(
+                stringResource(if (active) R.string.calendar_plan_active else R.string.calendar_plan_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        io.github.perruzz.stacco.ui.today.ShiftSelector(
+            shifts = data.work.shifts,
+            selected = if (painting) selected else "__none__",
+            onSelect = onPick,
+        )
+    }
+}
+
+@Composable
+private fun ShiftLegend(data: StaccoData) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+    ) {
+        data.work.shifts.take(5).forEach { shift ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(10.dp)
+                        .background(shiftColor(shift.color), CircleShape),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(shift.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
+        }
+    }
+}
+
+/** How many of each shift in the month. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun ShiftCounts(month: YearMonth, data: StaccoData, calendar: WorkCalendar) {
+    val days = remember(data) { data.parsedDays() }
+    val counts = data.work.shifts.map { shift ->
+        shift to days.count { (date, record) -> YearMonth.from(date) == month && record.shiftId == shift.id && calendar.effectiveType(date) == DayType.OFFICE }
+    }
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        counts.forEach { (shift, count) ->
+            Row(
+                Modifier
+                    .clip(CircleShape)
+                    .background(shiftContainer(shift.color))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(shift.name, style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.width(8.dp))
+                RollingText(count.toString(), style = MaterialTheme.typography.titleMedium, color = shiftColor(shift.color))
             }
         }
     }

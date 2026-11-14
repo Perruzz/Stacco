@@ -27,6 +27,7 @@ object Notifications {
     const val ID_NEGATIVE = 1003
     const val ID_EXPIRY = 1004
     const val ID_DAY_DONE = 1005
+    const val ID_SHIFT_START = 1006
 
     const val COLOR = 0xFF1F6E52.toInt()
 

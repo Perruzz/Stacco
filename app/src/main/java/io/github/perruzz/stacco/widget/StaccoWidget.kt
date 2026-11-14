@@ -131,14 +131,17 @@ private fun WidgetBody(s: TodaySnapshot?, ready: Boolean) {
         val (label, big) = when {
             s == null -> (if (ready) context.getString(R.string.widget_setup) else "") to "Stacco"
             s.type == DayType.SMART -> context.getString(R.string.widget_today) to context.getString(R.string.type_smart)
+            s.type == DayType.TRAVEL -> context.getString(R.string.widget_today) to context.getString(R.string.type_travel)
             s.isAway -> context.getString(R.string.widget_today) to context.getString(s.type.label)
             s.isRestDay && !s.record.hasStamps -> context.getString(R.string.widget_today) to context.getString(R.string.type_rest)
             s.projection.phase == DayPhase.NOT_STARTED -> context.getString(R.string.hero_ready) to Fmt.time(null)
             s.projection.phase == DayPhase.DONE -> context.getString(R.string.hero_done) to
                 (s.projection.result?.delta?.let { Fmt.duration(it, signed = true) } ?: "✓")
             s.projection.phase == DayPhase.ON_BREAK -> context.getString(R.string.widget_break) to
-                Fmt.time(s.projection.returnWindow?.first ?: s.targetExit)
-            else -> context.getString(R.string.widget_exit) to Fmt.time(s.targetExit)
+                Fmt.time(s.projection.earliestReturn ?: s.targetExit)
+            s.projection.phase == DayPhase.NOT_STARTED && s.shift != null -> s.shift.name to
+                "${Fmt.time(s.shift.start)}–${Fmt.time(s.shift.end)}"
+            else -> context.getString(R.string.widget_exit) to Fmt.timeDay(s.targetExit)
         }
         if (label.isNotEmpty()) {
             Text(label, style = TextStyle(color = colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1)
@@ -152,8 +155,8 @@ private fun WidgetBody(s: TodaySnapshot?, ready: Boolean) {
             )
         }
 
-        val next = s?.record?.nextSlot
-        val canStamp = s != null && next != null && !s.isSmart && !s.isAway
+        val next = s?.nextSlot
+        val canStamp = s != null && next != null && !s.isSmart && !s.isAway && !s.isTravel
         if (canStamp) {
             Spacer(GlanceModifier.height(8.dp))
             Button(

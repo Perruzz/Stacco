@@ -68,13 +68,13 @@ object LiveDayNotifier {
         when {
             p.phase == DayPhase.ON_BREAK -> {
                 val out = s.record.breakOut ?: s.nowMinutes
-                val window = p.returnWindow
+                val back = p.earliestReturn
                 builder.setContentTitle(context.getString(R.string.live_break_title))
                     .setContentText(
-                        if (window != null) {
-                            context.getString(R.string.live_break_text, Fmt.time(window.first), Fmt.time(window.last), Fmt.time(target))
+                        if (back != null) {
+                            context.getString(R.string.live_break_text, Fmt.time(back), Fmt.timeDay(target))
                         } else {
-                            context.getString(R.string.live_exit_at, Fmt.time(target))
+                            context.getString(R.string.live_exit_at, Fmt.timeDay(target))
                         },
                     )
                     .setWhen(Notifications.epochMillis(s.date, out))
@@ -86,7 +86,7 @@ object LiveDayNotifier {
             }
             overtime -> {
                 builder.setContentTitle(context.getString(R.string.live_overtime_title))
-                    .setContentText(context.getString(R.string.live_overtime_text, Fmt.time(target)))
+                    .setContentText(context.getString(R.string.live_overtime_text, Fmt.timeDay(target)))
                     .setWhen(targetMillis)
                     .setShowWhen(true)
                     .setUsesChronometer(true)
@@ -95,19 +95,20 @@ object LiveDayNotifier {
                     .addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_exit), Notifications.stampAction(context, StampSlot.EXIT))
             }
             else -> {
-                builder.setContentTitle(context.getString(R.string.live_exit_at, Fmt.time(target)))
+                val shift = s.shift
+                builder.setContentTitle(context.getString(R.string.live_exit_at, Fmt.timeDay(target)))
                     .setContentText(
-                        if (s.record.breakIn != null) {
-                            context.getString(R.string.live_text_back, Fmt.time(s.record.breakIn))
-                        } else {
-                            context.getString(R.string.live_text_working, Fmt.time(entry), Fmt.duration(p.breakInfo.counted))
+                        when {
+                            shift != null -> context.getString(R.string.live_text_shift, shift.name, Fmt.time(entry))
+                            s.record.breakIn != null -> context.getString(R.string.live_text_back, Fmt.time(s.record.breakIn))
+                            else -> context.getString(R.string.live_text_working, Fmt.time(entry), Fmt.duration(p.breakInfo.deducted))
                         },
                     )
                     .setWhen(targetMillis)
                     .setShowWhen(true)
                     .setUsesChronometer(true)
                     .setChronometerCountDown(true)
-                if (s.record.breakOut == null && p.breakInfo.deducted > 0) {
+                if (s.record.breakOut == null && s.expectsBreak) {
                     builder.addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_break_out), Notifications.stampAction(context, StampSlot.BREAK_OUT))
                 }
                 builder.addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_exit), Notifications.stampAction(context, StampSlot.EXIT))
@@ -121,7 +122,7 @@ object LiveDayNotifier {
             .setProgressTrackerIcon(IconCompat.createWithResource(context, R.drawable.ic_stat_stacco))
         val out = s.record.breakOut
         if (out != null && out in (entry + 1) until target) {
-            val back = (s.record.breakIn ?: maxOf(s.nowMinutes, out + p.breakInfo.deducted.coerceAtMost(p.breakInfo.counted))).coerceIn(out, target)
+            val back = (s.record.breakIn ?: maxOf(s.nowMinutes, out + p.breakInfo.deducted)).coerceIn(out, target)
             style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(out - entry).setColor(WORK_COLOR))
             if (back > out) style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(back - out).setColor(BREAK_COLOR))
             if (target > back) style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(target - back).setColor(WORK_COLOR))

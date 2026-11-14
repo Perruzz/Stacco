@@ -48,9 +48,9 @@ class StampTileService : TileService() {
                 return@launch
             }
             val s = Engine.snapshot(data)
-            val next = s.record.nextSlot
+            val next = s.nextSlot
             when {
-                s.isSmart || s.isAway -> {
+                s.isSmart || s.isAway || s.isTravel -> {
                     tile.state = Tile.STATE_UNAVAILABLE
                     tile.label = getString(R.string.tile_label)
                     tile.setSubtitleCompat(getString(R.string.type_smart).takeIf { s.isSmart } ?: getString(R.string.widget_today))
@@ -65,7 +65,11 @@ class StampTileService : TileService() {
                     tile.state = if (running) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
                     tile.label = getString(next.action)
                     tile.setSubtitleCompat(
-                        if (running) getString(R.string.live_exit_at, Fmt.time(s.targetExit)) else getString(R.string.hero_ready),
+                        when {
+                            running -> getString(R.string.live_exit_at, Fmt.timeDay(s.targetExit))
+                            s.shift != null -> "${s.shift.name} ${Fmt.time(s.shift.start)}"
+                            else -> getString(R.string.hero_ready)
+                        },
                     )
                 }
             }

@@ -45,7 +45,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.data.day
-import io.github.perruzz.stacco.domain.BreakRules
 import io.github.perruzz.stacco.domain.DayCalculator
 import io.github.perruzz.stacco.domain.DayIssue
 import io.github.perruzz.stacco.domain.DayType
@@ -63,7 +62,9 @@ import io.github.perruzz.stacco.ui.components.TimePickerDialog
 import io.github.perruzz.stacco.ui.components.bouncyClickable
 import io.github.perruzz.stacco.ui.theme.StaccoTheme
 import io.github.perruzz.stacco.ui.theme.deltaColor
+import io.github.perruzz.stacco.ui.theme.shiftContainer
 import io.github.perruzz.stacco.ui.today.DayTypeSelector
+import io.github.perruzz.stacco.ui.today.ShiftSelector
 import io.github.perruzz.stacco.ui.today.Hint
 import io.github.perruzz.stacco.ui.today.StampTimeline
 import io.github.perruzz.stacco.ui.today.icon
@@ -79,8 +80,9 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
     val record = data.day(date)
     val type = calendar.effectiveType(date)
     val today = LocalDate.now()
-    val rules = BreakRules.from(data.work)
+    val rules = calendar.breakRules(date)
     val required = calendar.required(date)
+    val shift = calendar.shift(date)
     val result = DayCalculator.result(record, rules, required)
     val breakInfo = DayCalculator.breakInfo(record, rules, required, null)
     val issues = DayCalculator.issues(record)
@@ -127,7 +129,20 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
                         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Pill(stringResource(type.label), icon = type.icon)
+                if (shift != null && type == DayType.OFFICE) {
+                    Pill(shift.name, icon = DayType.OFFICE.icon, color = shiftContainer(shift.color), contentColor = MaterialTheme.colorScheme.onSurface)
+                } else {
+                    Pill(stringResource(type.label), icon = type.icon)
+                }
+            }
+
+            if (calendar.isShiftMode && data.work.shifts.isNotEmpty()) {
+                SectionLabel(stringResource(R.string.day_shift))
+                ShiftSelector(
+                    shifts = data.work.shifts,
+                    selected = record.shiftId,
+                    onSelect = { viewModel.setShift(date, it) },
+                )
             }
 
             SectionLabel(stringResource(R.string.day_type))
@@ -154,10 +169,11 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
                     SectionLabel(stringResource(R.string.section_stamps))
                     StampTimeline(
                         record = record,
+                        next = if (date >= today.minusDays(1)) record.nextSlot(calendar.expectsBreak(date)) else null,
                         breakInfo = if (record.entry != null) breakInfo else null,
                         worked = result?.worked,
                         onEdit = { editing = it },
-                        live = date == today,
+                        showBreak = calendar.expectsBreak(date),
                     )
                     if (issues.isNotEmpty()) {
                         Hint(
@@ -226,9 +242,10 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
             title = stringResource(slot.label),
             subtitle = Fmt.longDate(date),
             initialMinutes = current ?: when (slot) {
-                StampSlot.BREAK_IN -> record.breakOut?.let { it + data.work.minBreakMinutes }
-                StampSlot.EXIT -> record.entry?.let { it + data.work.dailyMinutes + data.work.minBreakMinutes }
-                else -> 9 * 60
+                StampSlot.ENTRY -> shift?.start ?: (9 * 60)
+                StampSlot.BREAK_IN -> record.breakOut?.let { it + rules.min.coerceAtLeast(1) }
+                StampSlot.EXIT -> shift?.endAbsolute ?: record.entry?.let { it + required + rules.min }
+                else -> record.entry?.plus(4 * 60) ?: (13 * 60)
             },
             icon = slot.icon,
             onDismiss = { editing = null },

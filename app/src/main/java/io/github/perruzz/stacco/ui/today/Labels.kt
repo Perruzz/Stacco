@@ -9,6 +9,7 @@ import androidx.compose.material.icons.rounded.BeachAccess
 import androidx.compose.material.icons.rounded.Celebration
 import androidx.compose.material.icons.rounded.Healing
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Luggage
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.SelfImprovement
 import androidx.compose.material.icons.rounded.WorkHistory
@@ -54,6 +55,7 @@ val DayType?.icon: ImageVector
     get() = when (this) {
         DayType.OFFICE -> Icons.Rounded.Apartment
         DayType.SMART -> Icons.Rounded.Home
+        DayType.TRAVEL -> Icons.Rounded.Luggage
         DayType.VACATION -> Icons.Rounded.BeachAccess
         DayType.SICK -> Icons.Rounded.Healing
         DayType.HOLIDAY -> Icons.Rounded.Celebration
@@ -64,6 +66,7 @@ val DayType?.label: Int
     get() = when (this) {
         DayType.OFFICE -> R.string.type_office
         DayType.SMART -> R.string.type_smart
+        DayType.TRAVEL -> R.string.type_travel
         DayType.VACATION -> R.string.type_vacation
         DayType.SICK -> R.string.type_sick
         DayType.HOLIDAY -> R.string.type_holiday

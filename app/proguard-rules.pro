@@ -10,3 +10,9 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 -keep,includedescriptorclasses class io.github.perruzz.stacco.**$$serializer { *; }
+
+# Glance instantiates widget actions by class name: keep their no-arg constructor
+# (R8 full mode would otherwise strip it and the widget buttons would do nothing).
+-keep class * implements androidx.glance.appwidget.action.ActionCallback {
+    <init>();
+}

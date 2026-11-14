@@ -6,9 +6,18 @@ import java.time.LocalDateTime
 import java.time.temporal.WeekFields
 import java.util.Locale
 
-/** Everything about "today", computed from the persisted data at a given instant. */
+/**
+ * The "working day" we are living right now. Usually it is today, but during a night shift
+ * that started yesterday it is still yesterday: [minutes] then goes beyond 1440.
+ */
+data class ActiveDay(val date: LocalDate, val minutes: Int, val seconds: Int)
+
+/** Everything about the current working day, computed from the persisted data at a given instant. */
 data class TodaySnapshot(
+    /** The working day shown (yesterday during a night shift that crosses midnight). */
     val date: LocalDate,
+    /** The real calendar date. */
+    val calendarDate: LocalDate,
     val nowMinutes: Int,
     val nowSeconds: Int,
     val record: DayRecord,
@@ -16,6 +25,8 @@ data class TodaySnapshot(
     val type: DayType?,
     val scheduled: Boolean,
     val holiday: Holiday?,
+    val shift: ShiftTemplate?,
+    val expectsBreak: Boolean,
     val projection: DayProjection,
     val ledger: BankLedger,
     val alerts: List<BankAlert>,
@@ -23,37 +34,70 @@ data class TodaySnapshot(
     val data: StaccoData,
 ) {
     val work: WorkSettings get() = data.work
+    val isShiftMode: Boolean get() = data.work.mode == WorkMode.SHIFTS
     val isSmart: Boolean get() = type == DayType.SMART
+    val isTravel: Boolean get() = type == DayType.TRAVEL
     val isOffice: Boolean get() = type == DayType.OFFICE
     val isRestDay: Boolean get() = type == null
     val isAway: Boolean get() = type == DayType.VACATION || type == DayType.SICK || type == DayType.HOLIDAY
+    val fromYesterday: Boolean get() = date != calendarDate
+
+    val nextSlot: StampSlot? get() = record.nextSlot(expectsBreak)
+    val alternativeSlot: StampSlot? get() = record.alternativeSlot(expectsBreak)
 
     /** Exit time chosen by the user as reference for countdown and reminders. */
     val targetExit: Int? get() = projection.targetExit(data.notifications.exitTarget)
 
-    /** Seconds left to [targetExit] (negative once it has passed). */
-    fun secondsTo(exit: Int): Int = exit * 60 - nowSeconds
+    /** Seconds left to [minutes] of the working day (negative once it has passed). */
+    fun secondsTo(minutes: Int): Int = minutes * 60 - nowSeconds
 }
 
 object Engine {
+
+    /** How long after the end of a night shift it still counts as "current". */
+    private const val NIGHT_GRACE_MINUTES = 4 * 60
 
     fun firstDayOfWeek(locale: Locale = Locale.getDefault()): DayOfWeek = WeekFields.of(locale).firstDayOfWeek
 
     fun ledger(data: StaccoData, today: LocalDate): BankLedger = BankCalculator.compute(data, today)
 
+    /**
+     * Today, unless yesterday's working day crosses midnight and is not over yet
+     * (a night shift, or a day whose exit is projected after midnight).
+     */
+    fun activeDay(data: StaccoData, now: LocalDateTime): ActiveDay {
+        val today = now.toLocalDate()
+        val minutes = now.hour * 60 + now.minute
+        val yesterday = today.minusDays(1)
+        val calendar = WorkCalendar.from(data)
+        val record = data.days[yesterday.toString()]
+        if (record?.exit == null) {
+            val end = calendar.plannedEnd(yesterday) ?: record?.entry?.let { entry ->
+                val b = DayCalculator.breakInfo(record, calendar.breakRules(yesterday), calendar.required(yesterday), null)
+                entry + calendar.required(yesterday) + b.deducted
+            }
+            if (end != null && end > 1440 && minutes + 1440 < end + NIGHT_GRACE_MINUTES) {
+                return ActiveDay(yesterday, minutes + 1440, now.second)
+            }
+        }
+        return ActiveDay(today, minutes, now.second)
+    }
+
     fun today(data: StaccoData, ledger: BankLedger, now: LocalDateTime): TodaySnapshot {
-        val date = now.toLocalDate()
+        val active = activeDay(data, now)
+        val date = active.date
         val calendar = WorkCalendar.from(data)
         val record = data.days[date.toString()] ?: DayRecord.EMPTY
-        val nowMinutes = now.hour * 60 + now.minute
         val required = calendar.required(date)
         val projection = DayCalculator.project(
             r = record,
-            rules = BreakRules.from(data.work),
+            rules = calendar.breakRules(date),
             required = required,
             minimum = calendar.minimum(date),
             bankBefore = ledger.balanceBeforeToday,
-            now = nowMinutes,
+            now = active.minutes,
+            plannedStart = calendar.plannedStart(date),
+            plannedEnd = calendar.plannedEnd(date),
         )
         val alerts = AlertPlanner.plan(
             balance = ledger.balance,
@@ -66,12 +110,15 @@ object Engine {
         val smartRange = calendar.smartRange(date, data.smart.period, firstDayOfWeek())
         return TodaySnapshot(
             date = date,
-            nowMinutes = nowMinutes,
-            nowSeconds = nowMinutes * 60 + now.second,
+            calendarDate = now.toLocalDate(),
+            nowMinutes = active.minutes,
+            nowSeconds = active.minutes * 60 + active.seconds,
             record = record,
             type = calendar.effectiveType(date),
             scheduled = calendar.isScheduled(date),
             holiday = calendar.holiday(date),
+            shift = calendar.shift(date),
+            expectsBreak = calendar.expectsBreak(date),
             projection = projection,
             ledger = ledger,
             alerts = alerts,
@@ -82,4 +129,13 @@ object Engine {
 
     fun snapshot(data: StaccoData, now: LocalDateTime = LocalDateTime.now()): TodaySnapshot =
         today(data, ledger(data, now.toLocalDate()), now)
+
+    /**
+     * Normalizes a stamp typed or picked as a clock time: a stamp earlier than the entry
+     * must belong to the following day (night shifts).
+     */
+    fun normalizeStamp(record: DayRecord, slot: StampSlot, minutes: Int): Int {
+        val entry = record.entry
+        return if (slot != StampSlot.ENTRY && entry != null && minutes < entry) minutes + 1440 else minutes
+    }
 }
