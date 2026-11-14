@@ -10,7 +10,7 @@ Timbrature, pausa pranzo e banca ore in un'unica app Android, calma e piena di a
 Sai sempre a che ora puoi *staccare*.
 
 <a href="https://github.com/Perruzz/Stacco/releases/latest/download/Stacco.apk">
-  <img src="https://img.shields.io/badge/Scarica%20l'APK-Android%208%2B-1F6E52?style=for-the-badge&logo=android&logoColor=white" alt="Scarica l'APK" height="56" />
+  <img src="docs/download.svg" alt="Scarica l'APK" width="360" />
 </a>
 
 <br/><br/>
