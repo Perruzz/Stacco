@@ -1,0 +1,23 @@
+# Gradle / build
+.gradle/
+build/
+/app/build/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Local configuration & secrets (never commit!)
+local.properties
+keystore.properties
+keystore/
+*.jks
+*.keystore
+
+# Release outputs
+/release/

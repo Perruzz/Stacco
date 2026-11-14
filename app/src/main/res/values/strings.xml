@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name" translatable="false">Stacco</string>
+
+    <!-- Tabs -->
+    <string name="tab_today">Today</string>
+    <string name="tab_calendar">Calendar</string>
+    <string name="tab_bank">Hour bank</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_now">Now</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_save">Save</string>
+    <string name="action_undo">Undo</string>
+
+    <!-- Greetings -->
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_night">Good night</string>
+    <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="today_date">%1$s</string>
+
+    <!-- Day types -->
+    <string name="type_office">At the office</string>
+    <string name="type_office_short">Office</string>
+    <string name="type_smart">Remote work</string>
+    <string name="type_smart_short">Remote</string>
+    <string name="type_vacation">Vacation</string>
+    <string name="type_sick">Sick leave</string>
+    <string name="type_holiday">Holiday</string>
+    <string name="type_holiday_short">Holiday</string>
+    <string name="type_rest">Day off</string>
+    <string name="type_auto">Automatic</string>
+    <string name="daytype_dialog_title">What kind of day is it?</string>
+
+    <!-- Stamps -->
+    <string name="slot_entry">Clock in</string>
+    <string name="slot_break_out">Break start</string>
+    <string name="slot_break_in">Break end</string>
+    <string name="slot_exit">Clock out</string>
+    <string name="stamp_entry">Clock in</string>
+    <string name="stamp_break_out">Start lunch break</string>
+    <string name="stamp_break_in">Back from break</string>
+    <string name="stamp_exit">Clock out</string>
+    <string name="stamp_skip_break">Leave without a break</string>
+    <string name="stamps_break_actual">%1$s break</string>
+    <string name="stamps_break_live">ongoing · %1$s</string>
+    <string name="stamps_worked">worked %1$s</string>
+    <string name="stamps_break_assumed">No break stamped: the %1$s minimum break is counted.</string>
+    <string name="section_stamps">Badge stamps</string>
+
+    <!-- Toasts -->
+    <string name="toast_stamped_entry">Clocked in at %1$s</string>
+    <string name="toast_stamped_break_out">Enjoy your lunch! Break from %1$s</string>
+    <string name="toast_stamped_break_in">Back at work at %1$s</string>
+    <string name="toast_stamped_exit">Clocked out at %1$s: have a nice evening!</string>
+    <string name="toast_day_done">Day done: %1$s worked (%2$s)</string>
+
+    <!-- Hero -->
+    <string name="hero_ready">Ready to start the day?</string>
+    <string name="hero_preview">Clocking in now, you leave at %1$s</string>
+    <string name="hero_left">You leave in</string>
+    <string name="hero_at">at %1$s</string>
+    <string name="hero_break">On break for</string>
+    <string name="hero_return_window">Come back between %1$s and %2$s</string>
+    <string name="hero_overtime">You can leave!</string>
+    <string name="hero_overtime_since">Past your time since %1$s</string>
+    <string name="hero_done">Day done</string>
+    <string name="hero_delta">%1$s to the hour bank</string>
+    <string name="target_standard">Standard</string>
+    <string name="target_bank">With hour bank</string>
+    <string name="target_bank_long">Using the hour bank</string>
+    <string name="target_recover">To recover</string>
+
+    <!-- Calculation -->
+    <string name="section_calc">Today\'s numbers</string>
+    <string name="calc_standard">Standard exit</string>
+    <string name="calc_standard_sub">%1$s of work + %2$s break</string>
+    <string name="calc_standard_limited">Moved to respect the %1$s minimum</string>
+    <string name="calc_break">Counted break</string>
+    <string name="calc_break_assumed">No break stamped: the minimum one applies</string>
+    <string name="calc_break_short">%1$s break: %2$s are counted anyway</string>
+    <string name="calc_break_long">%1$s break: %2$s over the maximum come from the hour bank</string>
+    <string name="calc_break_ongoing">Ongoing: %1$s so far</string>
+    <string name="calc_break_ok">Actual break, within the limits</string>
+    <string name="calc_bank_early">With the hour bank</string>
+    <string name="calc_bank_early_sub">You use %1$s · %2$s left</string>
+    <string name="calc_bank_capped">" · up to %1$s per day"</string>
+    <string name="calc_bank_no_flex">Minimum and daily hours are the same: the hour bank can\'t shorten your day.</string>
+    <string name="calc_bank_cover">To avoid going negative</string>
+    <string name="calc_bank_cover_sub">The extra break is larger than your balance</string>
+    <string name="calc_bank_recover">To recover the balance</string>
+    <string name="calc_bank_recover_sub">You recover %1$s and break even</string>
+    <string name="calc_bank_recover_plan">Recover %1$s today, or %2$s a day until the end of the month</string>
+    <string name="calc_minimum">Earliest exit</string>
+    <string name="calc_minimum_sub">%1$s minimum work</string>
+    <string name="calc_extra_day">Extra day: every minute worked goes to the hour bank.</string>
+    <string name="calc_issue_order">The times are not in order: please check your stamps.</string>
+    <string name="calc_issue_order_short">Check the times</string>
+    <string name="calc_issue_break">The end of the break is missing: add it to close the day.</string>
+
+    <!-- Bank card & alerts -->
+    <string name="bank_card_title">Hour bank</string>
+    <string name="bank_card_today">Today %1$s</string>
+    <string name="alert_expiry">%1$s expire on %2$s</string>
+    <string name="alert_expiry_no_flex">Minimum and daily hours are the same: you need a leave request to use them.</string>
+    <plurals name="alert_expiry_plan">
+        <item quantity="one">Leaving up to %2$s early, %1$d office day is enough (%3$d left).</item>
+        <item quantity="other">Leaving up to %2$s early, you need %1$d office days (%3$d left).</item>
+    </plurals>
+    <plurals name="alert_expiry_risk">
+        <item quantity="one">Only %1$d office day left: even leaving %2$s early you won\'t use them all.</item>
+        <item quantity="other">%1$d office days left: even leaving %2$s early every day you won\'t use them all.</item>
+    </plurals>
+    <string name="alert_negative">Recover %1$s by %2$s</string>
+    <plurals name="alert_negative_plan">
+        <item quantity="one">Just stay %1$s longer on your last office day.</item>
+        <item quantity="other">About %1$s extra per day over the next %2$d office days.</item>
+    </plurals>
+    <string name="alert_negative_last">The month is ending: recover today or talk to HR.</string>
+
+    <!-- Smart / away / rest -->
+    <string name="smart_title">Working from home today</string>
+    <string name="smart_body">No badge to stamp: your hour bank stays still. Enjoy the quiet.</string>
+    <string name="smart_quota_month" tools:ignore="PluralsCandidate">%1$d of %2$d remote days in %3$s</string>
+    <string name="smart_quota_week" tools:ignore="PluralsCandidate">%1$d of %2$d remote days this week</string>
+    <string name="smart_left" tools:ignore="PluralsCandidate">%1$d left</string>
+    <string name="smart_switch">I\'m at the office today</string>
+    <string name="away_vacation_title">Enjoy your vacation!</string>
+    <string name="away_vacation_body">Really switch off: nothing to stamp today.</string>
+    <string name="away_sick_title">Take care</string>
+    <string name="away_sick_body">Just focus on getting better: your hour bank stays still.</string>
+    <string name="away_holiday_title">Happy holiday!</string>
+    <string name="away_holiday_body">It\'s a public holiday: no badge today.</string>
+    <string name="away_holiday_named">Today we celebrate: %1$s.</string>
+    <string name="away_change">Change day type</string>
+    <string name="rest_title">Day off</string>
+    <string name="rest_body">It\'s %1$s: your hour bank stays still. If you work, every minute goes to the hour bank.</string>
+    <string name="rest_work">Working anyway: clock in</string>
+
+    <!-- Holidays -->
+    <string name="holiday_new_year">New Year\'s Day</string>
+    <string name="holiday_epiphany">Epiphany</string>
+    <string name="holiday_easter">Easter</string>
+    <string name="holiday_easter_monday">Easter Monday</string>
+    <string name="holiday_liberation">Liberation Day</string>
+    <string name="holiday_labour">Labour Day</string>
+    <string name="holiday_republic">Republic Day</string>
+    <string name="holiday_assumption">Assumption Day</string>
+    <string name="holiday_st_francis">Saint Francis of Assisi</string>
+    <string name="holiday_all_saints">All Saints\' Day</string>
+    <string name="holiday_immaculate">Immaculate Conception</string>
+    <string name="holiday_christmas">Christmas</string>
+    <string name="holiday_st_stephen">Saint Stephen\'s Day</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Calendar</string>
+    <string name="calendar_prev">Previous month</string>
+    <string name="calendar_next">Next month</string>
+    <string name="calendar_back_today">Back to today</string>
+    <string name="calendar_summary">%1$s summary</string>
+    <string name="calendar_absences">Absences</string>
+    <string name="calendar_bank_month">Hour bank</string>
+    <string name="calendar_worked_month">You worked %1$s at the office this month.</string>
+    <string name="calendar_smart_week_rule" tools:ignore="PluralsCandidate">Remote work limit: %1$d days per week</string>
+    <string name="calendar_office_list">Office days</string>
+    <string name="calendar_break">break %1$s – %2$s</string>
+    <string name="calendar_break_assumed">%1$s minimum break (not stamped)</string>
+    <string name="calendar_incomplete">In progress</string>
+    <string name="relative_today">Today</string>
+    <string name="relative_yesterday">Yesterday</string>
+    <string name="relative_tomorrow">Tomorrow</string>
+
+    <!-- Day sheet -->
+    <string name="day_type">Day type</string>
+    <string name="day_smart_over" tools:ignore="PluralsCandidate">You are over your remote work limit (%1$d of %2$d).</string>
+    <string name="day_worked">Worked</string>
+    <string name="day_break">Break</string>
+    <string name="day_bank">Hour bank</string>
+    <string name="day_leave">Leave hours</string>
+    <string name="day_leave_sub">Reduces the hours due without touching the hour bank</string>
+    <string name="day_rest_hint">Day off. If you work, every minute goes to the hour bank.</string>
+    <string name="day_note">Notes</string>
+    <string name="day_clear">Clear day</string>
+    <string name="day_clear_title">Clear this day?</string>
+    <string name="day_clear_text">Stamps, type and notes of this day will be deleted.</string>
+
+    <!-- Bank screen -->
+    <string name="bank_title">Hour bank</string>
+    <string name="bank_balance">Current balance</string>
+    <string name="bank_today_delta">of which today %1$s</string>
+    <string name="bank_set">Set balance</string>
+    <string name="bank_add">Adjust</string>
+    <string name="bank_trend">Trend</string>
+    <string name="bank_days" tools:ignore="PluralsCandidate">%1$d d</string>
+    <string name="bank_chart_empty">The chart will take shape over the next few days.</string>
+    <string name="bank_deadlines">Deadlines</string>
+    <string name="bank_all_good">No deadlines ahead: everything under control.</string>
+    <string name="bank_all_good_zero">Balance at zero: you\'re perfectly even.</string>
+    <string name="bank_movements">Movements</string>
+    <string name="bank_no_movements">No movements yet. Stamp your first day!</string>
+    <string name="bank_set_title">Set the balance</string>
+    <string name="bank_set_sub">Your balance right now, as your company shows it</string>
+    <string name="bank_add_title">New adjustment</string>
+    <string name="bank_add_sub">Add or remove time from the hour bank</string>
+    <string name="bank_add_note">Note (e.g. approved overtime)</string>
+    <string name="bank_delete_title">Delete the adjustment?</string>
+    <string name="bank_delete_text">The %1$s adjustment will be deleted and the balance recalculated.</string>
+    <string name="bank_positive">Positive</string>
+    <string name="bank_negative">Negative</string>
+    <string name="movement_day">Office day</string>
+    <string name="movement_manual">Manual adjustment</string>
+    <string name="movement_set">Balance set to %1$s</string>
+    <string name="movement_expiry">Balance expired at the end of the period</string>
+    <string name="movement_negative_reset">Negative balance reset at month end</string>
+    <string name="movement_meta">%1$s · balance %2$s</string>
+    <string name="rules_expiry">%1$s expiry of the positive balance</string>
+    <string name="rules_expiry_never">The positive balance never expires</string>
+    <string name="rules_negative_monthly">a negative balance must be recovered by month end</string>
+    <string name="rules_negative_free">a negative balance can carry over</string>
+
+    <!-- Expiry periods -->
+    <string name="expiry_never">Never</string>
+    <string name="expiry_monthly">Monthly</string>
+    <string name="expiry_bimonthly">Every two months</string>
+    <string name="expiry_quarterly">Quarterly</string>
+    <string name="expiry_four_monthly">Every four months</string>
+    <string name="expiry_semiannual">Every six months</string>
+    <string name="expiry_annual">Yearly</string>
+    <string name="expiry_never_short">Never</string>
+    <string name="expiry_monthly_short">Month</string>
+    <string name="expiry_quarterly_short">Quarter</string>
+    <string name="expiry_semiannual_short">Half</string>
+    <string name="expiry_annual_short">Year</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_profile">Profile</string>
+    <string name="settings_name">Your name</string>
+    <string name="settings_name_label">Name</string>
+    <string name="settings_name_empty">Not set</string>
+    <string name="settings_work">Working hours</string>
+    <string name="settings_daily">Daily hours</string>
+    <string name="settings_daily_sub">Time to work on a regular day</string>
+    <string name="settings_minimum">Minimum hours</string>
+    <string name="settings_minimum_sub">You can use up to %1$s a day from the hour bank</string>
+    <string name="settings_workdays">Working days</string>
+    <string name="settings_holidays">Italian public holidays</string>
+    <string name="settings_holidays_sub">National holidays are not working days</string>
+    <string name="settings_break">Lunch break</string>
+    <string name="settings_min_break">Minimum break</string>
+    <string name="settings_min_break_sub">A shorter break still counts as this long</string>
+    <string name="settings_max_break">Maximum break</string>
+    <string name="settings_max_break_sub">Beyond it, extra minutes come from the hour bank</string>
+    <string name="settings_bank">Hour bank</string>
+    <string name="settings_balance">Hour bank balance</string>
+    <string name="settings_balance_sub">Edit it to match your company\'s balance</string>
+    <string name="settings_expiry">Positive balance expiry</string>
+    <string name="settings_expiry_sub">Extra hours are wiped at the end of each period</string>
+    <string name="settings_expiry_dialog">When does the accumulated positive balance expire?</string>
+    <string name="settings_negative">Negative must be recovered</string>
+    <string name="settings_negative_sub">A month can\'t close with a negative balance</string>
+    <string name="settings_negative_close">If the month still closes negative, the balance:</string>
+    <string name="settings_negative_reset">Resets</string>
+    <string name="settings_negative_carry">Carries over</string>
+    <string name="settings_lead">Alert margin</string>
+    <string name="settings_lead_sub">Extra office days of notice, on top of the ones needed</string>
+    <string name="settings_smart">Remote work</string>
+    <string name="settings_smart_days">Days allowed</string>
+    <string name="settings_smart_days_sub">How many remote days your contract allows</string>
+    <string name="settings_smart_month">Per month</string>
+    <string name="settings_smart_week">Per week</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notif_denied">Notifications are off: we can\'t tell you when it\'s time to leave.</string>
+    <string name="settings_notif_grant">Enable notifications</string>
+    <string name="settings_exit_reminder">Leave reminder</string>
+    <string name="settings_exit_reminder_sub">A notification when it\'s time to go</string>
+    <string name="settings_exit_lead">Remind me</string>
+    <string name="settings_exit_lead_now">On time</string>
+    <string name="settings_exit_target">Reference time</string>
+    <string name="settings_exact_denied">For to-the-minute reminders, allow Stacco to use alarms and reminders.</string>
+    <string name="settings_exact_grant">Allow</string>
+    <string name="settings_live">Countdown</string>
+    <string name="settings_live_sub">Ongoing notification with the time left until you leave</string>
+    <string name="settings_bank_alerts">Hour bank alerts</string>
+    <string name="settings_bank_alerts_sub">Negative recovery and expiring hours</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_sub">Stacco can speak a different language than your phone</string>
+    <string name="settings_dynamic">Dynamic colors</string>
+    <string name="settings_dynamic_sub">Use your wallpaper colors (Material You)</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_export">Export backup</string>
+    <string name="settings_export_sub">Save all your data to a JSON file</string>
+    <string name="settings_import">Import backup</string>
+    <string name="settings_import_sub">Restore your data from a file</string>
+    <string name="settings_import_action">Import</string>
+    <string name="settings_reset_info">Reset deletes stamps, hour bank and settings and brings Stacco back to its first launch. It can\'t be undone.</string>
+    <string name="settings_reset">Hold to erase everything</string>
+    <string name="settings_reset_holding">Keep holding…</string>
+    <string name="backup_export_ok">Backup saved</string>
+    <string name="backup_import_ok">Backup restored</string>
+    <string name="backup_import_confirm">Your current data will be replaced by the backup. Continue?</string>
+    <string name="backup_error">Something went wrong with the file</string>
+
+    <!-- Donate & about -->
+    <string name="donate_title">Support Stacco</string>
+    <string name="donate_body">If Stacco gets you out on time, buy me a coffee on PayPal ☕</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_tagline">Made calmly, in Italy. Free and open source.</string>
+    <string name="about_github">Source code on GitHub</string>
+    <string name="about_fonts">Fonts</string>
+    <string name="about_fonts_sub">Outfit and Manrope · SIL Open Font License</string>
+    <string name="about_privacy">Privacy</string>
+    <string name="about_privacy_sub">All data stays on your phone. No account, no tracking.</string>
+
+    <!-- Onboarding -->
+    <string name="ob_tagline">Your time, finally clear.</string>
+    <string name="ob_welcome_body">Badge stamps, lunch break and hour bank in one place. Always know when you can leave.</string>
+    <string name="ob_start">Let\'s start</string>
+    <string name="ob_next">Next</string>
+    <string name="ob_skip">Not now</string>
+    <string name="ob_enter">Enter Stacco</string>
+    <string name="ob_changeable">You can change everything later in Settings.</string>
+    <string name="ob_name_title">What\'s your name?</string>
+    <string name="ob_name_body">So we can greet you properly. It\'s optional.</string>
+    <string name="ob_work_title">Your schedule</string>
+    <string name="ob_work_body">How many hours do you work per day, and how many at least?</string>
+    <string name="ob_work_explainer">With %1$s a day and a %2$s minimum you can use up to %3$s a day from the hour bank.</string>
+    <string name="ob_break_title">Lunch break</string>
+    <string name="ob_break_body">Stacco applies your company\'s lunch break rules.</string>
+    <string name="ob_break_explainer">A break shorter than %1$s still counts as %1$s. Beyond %2$s, the extra minutes come from the hour bank.</string>
+    <string name="ob_bank_title">Your hour bank</string>
+    <string name="ob_bank_body">How much do you have in your hour bank right now? And what are your company\'s rules?</string>
+    <string name="ob_smart_title">Remote work</string>
+    <string name="ob_smart_body">How many remote days can you take? No badge to stamp when working remotely.</string>
+    <string name="ob_notif_title">At the right moment</string>
+    <string name="ob_notif_body">We\'ll tell you when it\'s time to leave and before your hour bank expires.</string>
+    <string name="ob_notif_explainer">No spam: just your exit time, a discreet countdown and hour bank deadlines.</string>
+    <string name="ob_enable_notifications">Enable notifications</string>
+    <string name="ob_done_title">All set!</string>
+    <string name="ob_done_title_name">All set, %1$s!</string>
+    <string name="ob_done_body">Clock in and Stacco takes care of the rest: exit time, break and hour bank.</string>
+
+    <!-- Notifications -->
+    <string name="channel_exit">Leave reminder</string>
+    <string name="channel_exit_desc">Tells you when it\'s time to go</string>
+    <string name="channel_live">Workday in progress</string>
+    <string name="channel_live_desc">Countdown until you leave</string>
+    <string name="channel_bank">Hour bank</string>
+    <string name="channel_bank_desc">Hour bank deadlines and recovery</string>
+    <string name="notif_exit_soon">You can leave in %1$d min</string>
+    <string name="notif_exit_now">Time to clock off! 🎉</string>
+    <string name="notif_exit_text">Exit planned at %1$s · you worked %2$s</string>
+    <string name="notif_action_exit">Clock out</string>
+    <string name="notif_day_done_title">Day done 🎉</string>
+    <string name="notif_day_done_text">%1$s worked · %2$s to the hour bank</string>
+    <string name="notif_negative_title">Negative hour bank: recover %1$s by %2$s</string>
+    <string name="notif_expiry_title">%1$s of hour bank expire on %2$s</string>
+    <string name="live_exit_at">You leave at %1$s</string>
+    <string name="live_text_working">At the office since %1$s · %2$s break included</string>
+    <string name="live_text_back">Back from break at %1$s</string>
+    <string name="live_break_title">On break</string>
+    <string name="live_break_text">Come back between %1$s and %2$s · leave at %3$s</string>
+    <string name="live_overtime_title">You can leave! 🎉</string>
+    <string name="live_overtime_text">Your workday ended at %1$s</string>
+    <string name="live_chip_break">Break</string>
+    <string name="live_chip_go">Go!</string>
+
+    <!-- Widget, tile, shortcuts -->
+    <string name="widget_description">Exit time, hour bank and one-tap stamping</string>
+    <string name="widget_bank">Hour bank %1$s</string>
+    <string name="widget_exit">You leave at</string>
+    <string name="widget_break">On break · back from</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_setup">Open Stacco to get started</string>
+    <string name="tile_label">Stamp</string>
+    <string name="shortcut_stamp_short">Stamp</string>
+    <string name="shortcut_stamp_long">Stamp now</string>
+</resources>

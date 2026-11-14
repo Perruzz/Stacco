@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Tabs -->
+    <string name="tab_today">Oggi</string>
+    <string name="tab_calendar">Calendario</string>
+    <string name="tab_bank">Banca ore</string>
+    <string name="tab_settings">Impostazioni</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Indietro</string>
+    <string name="action_cancel">Annulla</string>
+    <string name="action_confirm">Conferma</string>
+    <string name="action_delete">Elimina</string>
+    <string name="action_now">Adesso</string>
+    <string name="action_remove">Rimuovi</string>
+    <string name="action_save">Salva</string>
+    <string name="action_undo">Annulla</string>
+
+    <!-- Greetings -->
+    <string name="greeting_morning">Buongiorno</string>
+    <string name="greeting_afternoon">Buon pomeriggio</string>
+    <string name="greeting_evening">Buonasera</string>
+    <string name="greeting_night">Buonanotte</string>
+    <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="today_date">%1$s</string>
+
+    <!-- Day types -->
+    <string name="type_office">In sede</string>
+    <string name="type_office_short">Sede</string>
+    <string name="type_smart">Smart working</string>
+    <string name="type_smart_short">Smart</string>
+    <string name="type_vacation">Ferie</string>
+    <string name="type_sick">Malattia</string>
+    <string name="type_holiday">Festività</string>
+    <string name="type_holiday_short">Festa</string>
+    <string name="type_rest">Riposo</string>
+    <string name="type_auto">Automatico</string>
+    <string name="daytype_dialog_title">Che giornata è oggi?</string>
+
+    <!-- Stamps -->
+    <string name="slot_entry">Entrata</string>
+    <string name="slot_break_out">Inizio pausa</string>
+    <string name="slot_break_in">Fine pausa</string>
+    <string name="slot_exit">Uscita</string>
+    <string name="stamp_entry">Timbra entrata</string>
+    <string name="stamp_break_out">Vado in pausa</string>
+    <string name="stamp_break_in">Rientro dalla pausa</string>
+    <string name="stamp_exit">Timbra uscita</string>
+    <string name="stamp_skip_break">Esco senza pausa</string>
+    <string name="stamps_break_actual">pausa di %1$s</string>
+    <string name="stamps_break_live">in corso · %1$s</string>
+    <string name="stamps_worked">lavorato %1$s</string>
+    <string name="stamps_break_assumed">Nessuna pausa timbrata: si contano %1$s di pausa minima.</string>
+    <string name="section_stamps">Timbrature</string>
+
+    <!-- Toasts -->
+    <string name="toast_stamped_entry">Entrata timbrata alle %1$s</string>
+    <string name="toast_stamped_break_out">Buon pranzo! Pausa dalle %1$s</string>
+    <string name="toast_stamped_break_in">Di nuovo al lavoro alle %1$s</string>
+    <string name="toast_stamped_exit">Uscita timbrata alle %1$s: buona serata!</string>
+    <string name="toast_day_done">Giornata conclusa: %1$s lavorate (%2$s)</string>
+
+    <!-- Hero -->
+    <string name="hero_ready">Iniziamo la giornata?</string>
+    <string name="hero_preview">Entrando ora stacchi alle %1$s</string>
+    <string name="hero_left">Stacchi tra</string>
+    <string name="hero_at">alle %1$s</string>
+    <string name="hero_break">In pausa da</string>
+    <string name="hero_return_window">Rientro tra le %1$s e le %2$s</string>
+    <string name="hero_overtime">Puoi staccare!</string>
+    <string name="hero_overtime_since">Sei oltre l\'orario dalle %1$s</string>
+    <string name="hero_done">Giornata conclusa</string>
+    <string name="hero_delta">%1$s in banca ore</string>
+    <string name="target_standard">Standard</string>
+    <string name="target_bank">Con banca ore</string>
+    <string name="target_bank_long">Con la banca ore</string>
+    <string name="target_recover">Per recuperare</string>
+
+    <!-- Calculation -->
+    <string name="section_calc">Il calcolo di oggi</string>
+    <string name="calc_standard">Uscita standard</string>
+    <string name="calc_standard_sub">%1$s di lavoro + %2$s di pausa</string>
+    <string name="calc_standard_limited">Spostata per rispettare le %1$s minime</string>
+    <string name="calc_break">Pausa conteggiata</string>
+    <string name="calc_break_assumed">Nessuna pausa timbrata: si applica la minima</string>
+    <string name="calc_break_short">Pausa di %1$s: si contano comunque %2$s</string>
+    <string name="calc_break_long">Pausa di %1$s: %2$s oltre il massimo dalla banca ore</string>
+    <string name="calc_break_ongoing">In corso: %1$s finora</string>
+    <string name="calc_break_ok">Pausa effettiva, entro i limiti</string>
+    <string name="calc_bank_early">Con la banca ore</string>
+    <string name="calc_bank_early_sub">Usi %1$s · ti restano %2$s</string>
+    <string name="calc_bank_capped">" · massimo %1$s al giorno"</string>
+    <string name="calc_bank_no_flex">Le ore minime coincidono con quelle giornaliere: la banca ore non può accorciare la giornata.</string>
+    <string name="calc_bank_cover">Per non andare in negativo</string>
+    <string name="calc_bank_cover_sub">La pausa extra supera il saldo disponibile</string>
+    <string name="calc_bank_recover">Per recuperare il saldo</string>
+    <string name="calc_bank_recover_sub">Recuperi %1$s e torni in pari</string>
+    <string name="calc_bank_recover_plan">Recuperi %1$s oggi, oppure %2$s al giorno fino a fine mese</string>
+    <string name="calc_minimum">Uscita minima</string>
+    <string name="calc_minimum_sub">%1$s di lavoro minimo</string>
+    <string name="calc_extra_day">Giornata extra: ogni minuto lavorato finisce in banca ore.</string>
+    <string name="calc_issue_order">Gli orari non sono in sequenza: controlla le timbrature.</string>
+    <string name="calc_issue_order_short">Orari da controllare</string>
+    <string name="calc_issue_break">Manca il rientro dalla pausa: aggiungilo per chiudere la giornata.</string>
+
+    <!-- Bank card & alerts -->
+    <string name="bank_card_title">Banca ore</string>
+    <string name="bank_card_today">Oggi %1$s</string>
+    <string name="alert_expiry">%1$s scadono il %2$s</string>
+    <string name="alert_expiry_no_flex">Le ore minime coincidono con quelle giornaliere: per usarle serve un permesso.</string>
+    <plurals name="alert_expiry_plan">
+        <item quantity="one">Uscendo fino a %2$s prima ti basta %1$d giorno in sede (ne restano %3$d).</item>
+        <item quantity="other">Uscendo fino a %2$s prima ti servono %1$d giorni in sede (ne restano %3$d).</item>
+        <item quantity="many">Uscendo fino a %2$s prima ti servono %1$d giorni in sede (ne restano %3$d).</item>
+    </plurals>
+    <plurals name="alert_expiry_risk">
+        <item quantity="one">Resta solo %1$d giorno in sede: anche uscendo %2$s prima non riuscirai a usarle tutte.</item>
+        <item quantity="other">Restano %1$d giorni in sede: anche uscendo %2$s prima ogni giorno non riuscirai a usarle tutte.</item>
+        <item quantity="many">Restano %1$d giorni in sede: anche uscendo %2$s prima ogni giorno non riuscirai a usarle tutte.</item>
+    </plurals>
+    <string name="alert_negative">Recupera %1$s entro il %2$s</string>
+    <plurals name="alert_negative_plan">
+        <item quantity="one">Ti basta fermarti %1$s in più nell\'ultimo giorno in sede.</item>
+        <item quantity="other">Circa %1$s in più al giorno nei prossimi %2$d giorni in sede.</item>
+        <item quantity="many">Circa %1$s in più al giorno nei prossimi %2$d giorni in sede.</item>
+    </plurals>
+    <string name="alert_negative_last">Il mese sta finendo: recupera oggi o parlane con l\'ufficio personale.</string>
+
+    <!-- Smart / away / rest -->
+    <string name="smart_title">Oggi lavori da casa</string>
+    <string name="smart_body">Niente cartellino da timbrare: la banca ore resta ferma. Goditi il silenzio.</string>
+    <string name="smart_quota_month">%1$d di %2$d giorni di smart a %3$s</string>
+    <string name="smart_quota_week">%1$d di %2$d giorni di smart questa settimana</string>
+    <string name="smart_left">%1$d rimasti</string>
+    <string name="smart_switch">Oggi sono in sede</string>
+    <string name="away_vacation_title">Buone ferie!</string>
+    <string name="away_vacation_body">Stacca davvero: oggi non c\'è niente da timbrare.</string>
+    <string name="away_sick_title">Riguardati</string>
+    <string name="away_sick_body">Pensa solo a rimetterti: la banca ore non si muove.</string>
+    <string name="away_holiday_title">Buona festa!</string>
+    <string name="away_holiday_body">Oggi è festa: niente cartellino.</string>
+    <string name="away_holiday_named">Oggi si festeggia: %1$s.</string>
+    <string name="away_change">Cambia tipo di giornata</string>
+    <string name="rest_title">Oggi riposi</string>
+    <string name="rest_body">È %1$s: la banca ore non si muove. Se lavori, ogni minuto finisce in banca ore.</string>
+    <string name="rest_work">Lavoro comunque: timbra entrata</string>
+
+    <!-- Holidays -->
+    <string name="holiday_new_year">Capodanno</string>
+    <string name="holiday_epiphany">Epifania</string>
+    <string name="holiday_easter">Pasqua</string>
+    <string name="holiday_easter_monday">Pasquetta</string>
+    <string name="holiday_liberation">Festa della Liberazione</string>
+    <string name="holiday_labour">Festa dei Lavoratori</string>
+    <string name="holiday_republic">Festa della Repubblica</string>
+    <string name="holiday_assumption">Ferragosto</string>
+    <string name="holiday_st_francis">San Francesco d\'Assisi</string>
+    <string name="holiday_all_saints">Ognissanti</string>
+    <string name="holiday_immaculate">Immacolata</string>
+    <string name="holiday_christmas">Natale</string>
+    <string name="holiday_st_stephen">Santo Stefano</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Calendario</string>
+    <string name="calendar_prev">Mese precedente</string>
+    <string name="calendar_next">Mese successivo</string>
+    <string name="calendar_back_today">Torna a oggi</string>
+    <string name="calendar_summary">Riepilogo di %1$s</string>
+    <string name="calendar_absences">Assenze</string>
+    <string name="calendar_bank_month">Banca ore</string>
+    <string name="calendar_worked_month">Hai lavorato %1$s in sede questo mese.</string>
+    <string name="calendar_smart_week_rule">Limite smart working: %1$d giorni a settimana</string>
+    <string name="calendar_office_list">Giorni in sede</string>
+    <string name="calendar_break">pausa %1$s – %2$s</string>
+    <string name="calendar_break_assumed">pausa minima %1$s (non timbrata)</string>
+    <string name="calendar_incomplete">In corso</string>
+    <string name="relative_today">Oggi</string>
+    <string name="relative_yesterday">Ieri</string>
+    <string name="relative_tomorrow">Domani</string>
+
+    <!-- Day sheet -->
+    <string name="day_type">Tipo di giornata</string>
+    <string name="day_smart_over">Stai superando il limite di smart working (%1$d su %2$d).</string>
+    <string name="day_worked">Lavorato</string>
+    <string name="day_break">Pausa</string>
+    <string name="day_bank">Banca ore</string>
+    <string name="day_leave">Permesso / ROL</string>
+    <string name="day_leave_sub">Riduce le ore da fare senza toccare la banca ore</string>
+    <string name="day_rest_hint">Giorno di riposo. Se lavori, ogni minuto finisce in banca ore.</string>
+    <string name="day_note">Note</string>
+    <string name="day_clear">Cancella giornata</string>
+    <string name="day_clear_title">Cancellare la giornata?</string>
+    <string name="day_clear_text">Timbrature, tipo e note di questo giorno verranno eliminati.</string>
+
+    <!-- Bank screen -->
+    <string name="bank_title">Banca ore</string>
+    <string name="bank_balance">Saldo attuale</string>
+    <string name="bank_today_delta">di cui oggi %1$s</string>
+    <string name="bank_set">Imposta saldo</string>
+    <string name="bank_add">Rettifica</string>
+    <string name="bank_trend">Andamento</string>
+    <string name="bank_days">%1$d gg</string>
+    <string name="bank_chart_empty">Il grafico prenderà forma con le prossime giornate.</string>
+    <string name="bank_deadlines">Scadenze</string>
+    <string name="bank_all_good">Nessuna scadenza in vista: tutto sotto controllo.</string>
+    <string name="bank_all_good_zero">Saldo a zero: sei perfettamente in pari.</string>
+    <string name="bank_movements">Movimenti</string>
+    <string name="bank_no_movements">Ancora nessun movimento. Timbra la tua prima giornata!</string>
+    <string name="bank_set_title">Imposta il saldo</string>
+    <string name="bank_set_sub">Il saldo di adesso, come risulta in azienda</string>
+    <string name="bank_add_title">Nuova rettifica</string>
+    <string name="bank_add_sub">Aggiungi o togli tempo dalla banca ore</string>
+    <string name="bank_add_note">Nota (es. straordinario approvato)</string>
+    <string name="bank_delete_title">Eliminare la rettifica?</string>
+    <string name="bank_delete_text">La rettifica di %1$s verrà eliminata e il saldo ricalcolato.</string>
+    <string name="bank_positive">In positivo</string>
+    <string name="bank_negative">In negativo</string>
+    <string name="movement_day">Giornata in sede</string>
+    <string name="movement_manual">Rettifica manuale</string>
+    <string name="movement_set">Saldo impostato a %1$s</string>
+    <string name="movement_expiry">Saldo scaduto a fine periodo</string>
+    <string name="movement_negative_reset">Negativo azzerato a fine mese</string>
+    <string name="movement_meta">%1$s · saldo %2$s</string>
+    <string name="rules_expiry">Scadenza %1$s del saldo positivo</string>
+    <string name="rules_expiry_never">Il saldo positivo non scade</string>
+    <string name="rules_negative_monthly">il negativo va recuperato entro fine mese</string>
+    <string name="rules_negative_free">il negativo può passare al mese successivo</string>
+
+    <!-- Expiry periods -->
+    <string name="expiry_never">Mai</string>
+    <string name="expiry_monthly">Mensile</string>
+    <string name="expiry_bimonthly">Bimestrale</string>
+    <string name="expiry_quarterly">Trimestrale</string>
+    <string name="expiry_four_monthly">Quadrimestrale</string>
+    <string name="expiry_semiannual">Semestrale</string>
+    <string name="expiry_annual">Annuale</string>
+    <string name="expiry_never_short">Mai</string>
+    <string name="expiry_monthly_short">Mese</string>
+    <string name="expiry_quarterly_short">Trim.</string>
+    <string name="expiry_semiannual_short">Sem.</string>
+    <string name="expiry_annual_short">Anno</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_profile">Profilo</string>
+    <string name="settings_name">Il tuo nome</string>
+    <string name="settings_name_label">Nome</string>
+    <string name="settings_name_empty">Non impostato</string>
+    <string name="settings_work">Orario di lavoro</string>
+    <string name="settings_daily">Ore giornaliere</string>
+    <string name="settings_daily_sub">Il tempo da lavorare in una giornata normale</string>
+    <string name="settings_minimum">Ore minime</string>
+    <string name="settings_minimum_sub">Puoi usare fino a %1$s al giorno dalla banca ore</string>
+    <string name="settings_workdays">Giorni lavorativi</string>
+    <string name="settings_holidays">Festività italiane</string>
+    <string name="settings_holidays_sub">Le feste nazionali non sono giorni lavorativi</string>
+    <string name="settings_break">Pausa pranzo</string>
+    <string name="settings_min_break">Pausa minima</string>
+    <string name="settings_min_break_sub">Una pausa più breve conta comunque così</string>
+    <string name="settings_max_break">Pausa massima</string>
+    <string name="settings_max_break_sub">Oltre, i minuti extra si prendono dalla banca ore</string>
+    <string name="settings_bank">Banca ore</string>
+    <string name="settings_balance">Saldo banca ore</string>
+    <string name="settings_balance_sub">Modificalo per allinearti al saldo aziendale</string>
+    <string name="settings_expiry">Scadenza saldo positivo</string>
+    <string name="settings_expiry_sub">Le ore in più si azzerano a fine periodo</string>
+    <string name="settings_expiry_dialog">Dopo quanto si azzerano le ore positive accumulate?</string>
+    <string name="settings_negative">Negativo da recuperare</string>
+    <string name="settings_negative_sub">Il mese non può chiudersi in negativo</string>
+    <string name="settings_negative_close">Se il mese si chiude comunque in negativo, il saldo:</string>
+    <string name="settings_negative_reset">Si azzera</string>
+    <string name="settings_negative_carry">Si riporta</string>
+    <string name="settings_lead">Margine avvisi</string>
+    <string name="settings_lead_sub">Giorni in sede di anticipo, oltre a quelli necessari</string>
+    <string name="settings_smart">Smart working</string>
+    <string name="settings_smart_days">Giorni disponibili</string>
+    <string name="settings_smart_days_sub">Quanti giorni di smart working prevede il contratto</string>
+    <string name="settings_smart_month">Al mese</string>
+    <string name="settings_smart_week">A settimana</string>
+    <string name="settings_notifications">Notifiche</string>
+    <string name="settings_notif_denied">Le notifiche sono disattivate: non potremo avvisarti quando è ora di staccare.</string>
+    <string name="settings_notif_grant">Attiva notifiche</string>
+    <string name="settings_exit_reminder">Promemoria stacco</string>
+    <string name="settings_exit_reminder_sub">Una notifica quando è ora di uscire</string>
+    <string name="settings_exit_lead">Avvisami</string>
+    <string name="settings_exit_lead_now">In orario</string>
+    <string name="settings_exit_target">Orario di riferimento</string>
+    <string name="settings_exact_denied">Per avvisi puntuali al minuto, consenti a Stacco di usare sveglie e promemoria.</string>
+    <string name="settings_exact_grant">Consenti</string>
+    <string name="settings_live">Conto alla rovescia</string>
+    <string name="settings_live_sub">Notifica fissa con il tempo che manca allo stacco</string>
+    <string name="settings_bank_alerts">Avvisi banca ore</string>
+    <string name="settings_bank_alerts_sub">Recupero del negativo e ore in scadenza</string>
+    <string name="settings_appearance">Aspetto</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="settings_language">Lingua</string>
+    <string name="settings_language_sub">Puoi usare Stacco in una lingua diversa da quella del telefono</string>
+    <string name="settings_dynamic">Colori dinamici</string>
+    <string name="settings_dynamic_sub">Usa i colori del tuo sfondo (Material You)</string>
+    <string name="settings_data">Dati</string>
+    <string name="settings_export">Esporta backup</string>
+    <string name="settings_export_sub">Salva tutti i dati in un file JSON</string>
+    <string name="settings_import">Importa backup</string>
+    <string name="settings_import_sub">Ripristina i dati da un file</string>
+    <string name="settings_import_action">Importa</string>
+    <string name="settings_reset_info">Il reset cancella timbrature, banca ore e impostazioni e riporta Stacco al primo avvio. Non si può annullare.</string>
+    <string name="settings_reset">Tieni premuto per cancellare tutto</string>
+    <string name="settings_reset_holding">Continua a tenere premuto…</string>
+    <string name="backup_export_ok">Backup salvato</string>
+    <string name="backup_import_ok">Backup ripristinato</string>
+    <string name="backup_import_confirm">I dati attuali verranno sostituiti con quelli del backup. Vuoi continuare?</string>
+    <string name="backup_error">Qualcosa è andato storto con il file</string>
+
+    <!-- Donate & about -->
+    <string name="donate_title">Supporta Stacco</string>
+    <string name="donate_body">Se Stacco ti fa uscire in orario, offrimi un caffè su PayPal ☕</string>
+    <string name="about_version">Versione %1$s</string>
+    <string name="about_tagline">Fatta con calma, in Italia. Libera e open source.</string>
+    <string name="about_github">Codice sorgente su GitHub</string>
+    <string name="about_fonts">Caratteri</string>
+    <string name="about_fonts_sub">Outfit e Manrope · SIL Open Font License</string>
+    <string name="about_privacy">Privacy</string>
+    <string name="about_privacy_sub">Tutti i dati restano sul tuo telefono. Nessun account, nessun tracciamento.</string>
+
+    <!-- Onboarding -->
+    <string name="ob_tagline">Il tuo tempo, finalmente chiaro.</string>
+    <string name="ob_welcome_body">Timbrature, pausa pranzo e banca ore in un solo posto. Sai sempre a che ora puoi staccare.</string>
+    <string name="ob_start">Iniziamo</string>
+    <string name="ob_next">Avanti</string>
+    <string name="ob_skip">Non ora</string>
+    <string name="ob_enter">Entra in Stacco</string>
+    <string name="ob_changeable">Potrai cambiare tutto in seguito dalle Impostazioni.</string>
+    <string name="ob_name_title">Come ti chiami?</string>
+    <string name="ob_name_body">Così possiamo salutarti come si deve. È facoltativo.</string>
+    <string name="ob_work_title">Il tuo orario</string>
+    <string name="ob_work_body">Quante ore devi lavorare al giorno, e quante come minimo?</string>
+    <string name="ob_work_explainer">Con %1$s al giorno e %2$s minime potrai usare fino a %3$s al giorno dalla banca ore.</string>
+    <string name="ob_break_title">Pausa pranzo</string>
+    <string name="ob_break_body">Stacco applica le regole della tua azienda sulla pausa.</string>
+    <string name="ob_break_explainer">Una pausa più corta di %1$s conta comunque %1$s. Oltre %2$s, i minuti in più vengono presi dalla banca ore.</string>
+    <string name="ob_bank_title">La tua banca ore</string>
+    <string name="ob_bank_body">Quanto hai adesso in banca ore? E quali sono le regole della tua azienda?</string>
+    <string name="ob_smart_title">Smart working</string>
+    <string name="ob_smart_body">Quanti giorni di smart working puoi fare? In smart non si timbra il cartellino.</string>
+    <string name="ob_notif_title">Al momento giusto</string>
+    <string name="ob_notif_body">Ti avvisiamo quando è ora di staccare e prima che la banca ore scada.</string>
+    <string name="ob_notif_explainer">Niente spam: solo l\'orario di uscita, un conto alla rovescia discreto e gli avvisi sulle scadenze della banca ore.</string>
+    <string name="ob_enable_notifications">Attiva le notifiche</string>
+    <string name="ob_done_title">Tutto pronto!</string>
+    <string name="ob_done_title_name">Tutto pronto, %1$s!</string>
+    <string name="ob_done_body">Timbra l\'entrata e Stacco penserà al resto: orario di uscita, pausa e banca ore.</string>
+
+    <!-- Notifications -->
+    <string name="channel_exit">Promemoria stacco</string>
+    <string name="channel_exit_desc">Ti avvisa quando è ora di uscire</string>
+    <string name="channel_live">Giornata in corso</string>
+    <string name="channel_live_desc">Conto alla rovescia fino allo stacco</string>
+    <string name="channel_bank">Banca ore</string>
+    <string name="channel_bank_desc">Scadenze e recuperi della banca ore</string>
+    <string name="notif_exit_soon">Stacchi tra %1$d min</string>
+    <string name="notif_exit_now">È ora di staccare! 🎉</string>
+    <string name="notif_exit_text">Uscita prevista alle %1$s · hai lavorato %2$s</string>
+    <string name="notif_action_exit">Timbra uscita</string>
+    <string name="notif_day_done_title">Giornata conclusa 🎉</string>
+    <string name="notif_day_done_text">%1$s lavorate · %2$s in banca ore</string>
+    <string name="notif_negative_title">Banca ore in negativo: recupera %1$s entro il %2$s</string>
+    <string name="notif_expiry_title">%1$s di banca ore scadono il %2$s</string>
+    <string name="live_exit_at">Stacchi alle %1$s</string>
+    <string name="live_text_working">In sede dalle %1$s · pausa %2$s inclusa</string>
+    <string name="live_text_back">Rientro dalla pausa alle %1$s</string>
+    <string name="live_break_title">In pausa</string>
+    <string name="live_break_text">Rientro tra le %1$s e le %2$s · stacco alle %3$s</string>
+    <string name="live_overtime_title">Puoi staccare! 🎉</string>
+    <string name="live_overtime_text">Il tuo orario è finito alle %1$s</string>
+    <string name="live_chip_break">Pausa</string>
+    <string name="live_chip_go">Stacca!</string>
+
+    <!-- Widget, tile, shortcuts -->
+    <string name="widget_description">Orario di uscita, banca ore e timbratura al volo</string>
+    <string name="widget_bank">Banca ore %1$s</string>
+    <string name="widget_exit">Stacchi alle</string>
+    <string name="widget_break">In pausa · rientro dalle</string>
+    <string name="widget_today">Oggi</string>
+    <string name="widget_setup">Apri Stacco per iniziare</string>
+    <string name="tile_label">Timbra</string>
+    <string name="shortcut_stamp_short">Timbra</string>
+    <string name="shortcut_stamp_long">Timbra adesso</string>
+</resources>

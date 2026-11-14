@@ -1,0 +1,158 @@
+package io.github.perruzz.stacco.notify
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
+import androidx.core.graphics.drawable.IconCompat
+import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.domain.DayPhase
+import io.github.perruzz.stacco.domain.StampSlot
+import io.github.perruzz.stacco.domain.TodaySnapshot
+import io.github.perruzz.stacco.ui.util.Fmt
+import java.time.LocalDate
+
+/**
+ * The ongoing "workday" notification: a countdown to the exit, a segmented progress bar
+ * (work / lunch / work) and quick stamp actions. On Android 16+ it is promoted to a Live Update,
+ * so the countdown also lives in the status bar.
+ */
+object LiveDayNotifier {
+
+    private const val PREFS = "live_notification"
+    private const val KEY_DISMISSED = "dismissed_on"
+    private const val WORK_COLOR = 0xFF2A8460.toInt()
+    private const val BREAK_COLOR = 0xFFC8954C.toInt()
+    private const val POINT_COLOR = 0xFFE9B53F.toInt()
+
+    fun markDismissed(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
+            putString(KEY_DISMISSED, LocalDate.now().toString())
+        }
+    }
+
+    private fun dismissedToday(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DISMISSED, null) == LocalDate.now().toString()
+
+    fun update(context: Context, s: TodaySnapshot) {
+        val p = s.projection
+        val target = s.targetExit
+        val entry = s.record.entry
+        val running = p.phase in setOf(DayPhase.MORNING, DayPhase.ON_BREAK, DayPhase.AFTERNOON)
+        val active = s.data.notifications.liveNotification && s.isOffice && running && p.isValid &&
+            target != null && entry != null && !dismissedToday(context)
+        if (!active) {
+            Notifications.cancel(context, Notifications.ID_LIVE)
+            cancelRefresh(context)
+            return
+        }
+
+        val overtime = s.nowMinutes >= target && p.phase != DayPhase.ON_BREAK
+        val targetMillis = Notifications.epochMillis(s.date, target)
+        val builder = Notifications.base(context, Notifications.CHANNEL_LIVE)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setColorized(false)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setDeleteIntent(
+                PendingIntent.getBroadcast(
+                    context, 3, Intent(context, LiveDismissReceiver::class.java),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                ),
+            )
+            .setRequestPromotedOngoing(true)
+
+        when {
+            p.phase == DayPhase.ON_BREAK -> {
+                val out = s.record.breakOut ?: s.nowMinutes
+                val window = p.returnWindow
+                builder.setContentTitle(context.getString(R.string.live_break_title))
+                    .setContentText(
+                        if (window != null) {
+                            context.getString(R.string.live_break_text, Fmt.time(window.first), Fmt.time(window.last), Fmt.time(target))
+                        } else {
+                            context.getString(R.string.live_exit_at, Fmt.time(target))
+                        },
+                    )
+                    .setWhen(Notifications.epochMillis(s.date, out))
+                    .setShowWhen(true)
+                    .setUsesChronometer(true)
+                    .setChronometerCountDown(false)
+                    .setShortCriticalText(context.getString(R.string.live_chip_break))
+                    .addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_break_in), Notifications.stampAction(context, StampSlot.BREAK_IN))
+            }
+            overtime -> {
+                builder.setContentTitle(context.getString(R.string.live_overtime_title))
+                    .setContentText(context.getString(R.string.live_overtime_text, Fmt.time(target)))
+                    .setWhen(targetMillis)
+                    .setShowWhen(true)
+                    .setUsesChronometer(true)
+                    .setChronometerCountDown(false)
+                    .setShortCriticalText(context.getString(R.string.live_chip_go))
+                    .addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_exit), Notifications.stampAction(context, StampSlot.EXIT))
+            }
+            else -> {
+                builder.setContentTitle(context.getString(R.string.live_exit_at, Fmt.time(target)))
+                    .setContentText(
+                        if (s.record.breakIn != null) {
+                            context.getString(R.string.live_text_back, Fmt.time(s.record.breakIn))
+                        } else {
+                            context.getString(R.string.live_text_working, Fmt.time(entry), Fmt.duration(p.breakInfo.counted))
+                        },
+                    )
+                    .setWhen(targetMillis)
+                    .setShowWhen(true)
+                    .setUsesChronometer(true)
+                    .setChronometerCountDown(true)
+                if (s.record.breakOut == null && p.breakInfo.deducted > 0) {
+                    builder.addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_break_out), Notifications.stampAction(context, StampSlot.BREAK_OUT))
+                }
+                builder.addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_exit), Notifications.stampAction(context, StampSlot.EXIT))
+            }
+        }
+
+        // Segmented progress: morning work, lunch, afternoon work.
+        val total = (target - entry).coerceAtLeast(1)
+        val style = NotificationCompat.ProgressStyle()
+            .setStyledByProgress(true)
+            .setProgressTrackerIcon(IconCompat.createWithResource(context, R.drawable.ic_stat_stacco))
+        val out = s.record.breakOut
+        if (out != null && out in (entry + 1) until target) {
+            val back = (s.record.breakIn ?: maxOf(s.nowMinutes, out + p.breakInfo.deducted.coerceAtMost(p.breakInfo.counted))).coerceIn(out, target)
+            style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(out - entry).setColor(WORK_COLOR))
+            if (back > out) style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(back - out).setColor(BREAK_COLOR))
+            if (target > back) style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(target - back).setColor(WORK_COLOR))
+        } else {
+            style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(total).setColor(WORK_COLOR))
+        }
+        val other = if (target == p.standardExit) p.bankExit else p.standardExit
+        if (other != null && other in (entry + 1) until target) {
+            style.addProgressPoint(NotificationCompat.ProgressStyle.Point(other - entry).setColor(POINT_COLOR))
+        }
+        style.setProgress((s.nowMinutes - entry).coerceIn(0, total))
+        builder.setStyle(style)
+
+        Notifications.post(context, Notifications.ID_LIVE, builder)
+        scheduleRefresh(context)
+    }
+
+    private fun refreshIntent(context: Context) = PendingIntent.getBroadcast(
+        context, 4, Intent(context, LiveRefreshReceiver::class.java),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    /** Light, inexact refresh so the progress bar keeps moving when the app is closed. */
+    private fun scheduleRefresh(context: Context) {
+        val alarms = context.getSystemService(AlarmManager::class.java) ?: return
+        runCatching {
+            alarms.set(AlarmManager.RTC, System.currentTimeMillis() + 10 * 60_000L, refreshIntent(context))
+        }
+    }
+
+    private fun cancelRefresh(context: Context) {
+        context.getSystemService(AlarmManager::class.java)?.cancel(refreshIntent(context))
+    }
+}

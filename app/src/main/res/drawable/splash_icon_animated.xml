@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash (Android 12+): the ring draws itself, the hand sweeps around and the leaf pops out. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="288dp"
+            android:height="288dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <path
+                android:name="ring"
+                android:pathData="M54,33 A21,21 0 1,1 35.813,43.5"
+                android:strokeWidth="7"
+                android:strokeColor="@color/splash_ring"
+                android:strokeLineCap="round"
+                android:trimPathEnd="0" />
+            <group
+                android:name="leaf"
+                android:pivotX="44.5"
+                android:pivotY="37.5"
+                android:scaleX="0"
+                android:scaleY="0">
+                <path
+                    android:fillColor="@color/splash_leaf"
+                    android:pathData="M44.5,37.546 Q46.08,30.283 39,28.02 Q37.42,35.283 44.5,37.546 Z" />
+            </group>
+            <group
+                android:name="hand"
+                android:pivotX="54"
+                android:pivotY="54"
+                android:rotation="-330">
+                <path
+                    android:pathData="M54,54 L48.5,44.474"
+                    android:strokeWidth="5"
+                    android:strokeColor="@color/splash_ring"
+                    android:strokeLineCap="round" />
+            </group>
+            <path
+                android:fillColor="@color/splash_ring"
+                android:pathData="M50.4,54 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+        </vector>
+    </aapt:attr>
+    <target android:name="ring">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="720"
+                android:interpolator="@android:interpolator/fast_out_slow_in"
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+    <target android:name="hand">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="760"
+                android:interpolator="@android:interpolator/fast_out_slow_in"
+                android:propertyName="rotation"
+                android:valueFrom="-330"
+                android:valueTo="0"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+    <target android:name="leaf">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:duration="380"
+                    android:interpolator="@android:interpolator/overshoot"
+                    android:propertyName="scaleX"
+                    android:startOffset="620"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType" />
+                <objectAnimator
+                    android:duration="380"
+                    android:interpolator="@android:interpolator/overshoot"
+                    android:propertyName="scaleY"
+                    android:startOffset="620"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType" />
+            </set>
+        </aapt:attr>
+    </target>
+</animated-vector>

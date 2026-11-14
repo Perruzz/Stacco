@@ -1,0 +1,82 @@
+package io.github.perruzz.stacco.domain
+
+import java.time.LocalDate
+import kotlin.math.max
+
+sealed interface BankAlert {
+    /** Whether the deadline is close enough to deserve a push notification. */
+    val inWindow: Boolean
+
+    /** Negative balance that must be recovered before [monthEnd]. */
+    data class Negative(
+        val balance: Int,
+        val monthEnd: LocalDate,
+        val officeDaysLeft: Int,
+        val perDay: Int,
+        override val inWindow: Boolean,
+    ) : BankAlert
+
+    /** Positive balance that will be wiped on [expiry]. */
+    data class Expiry(
+        val balance: Int,
+        val expiry: LocalDate,
+        val officeDaysLeft: Int,
+        val daysNeeded: Int,
+        val maxPerDay: Int,
+        val atRisk: Boolean,
+        override val inWindow: Boolean,
+    ) : BankAlert
+}
+
+/**
+ * Decides which hour-bank warnings apply. The warning window adapts to the balance:
+ * the more hours you have to recover (or to use), the earlier Stacco warns you.
+ */
+object AlertPlanner {
+
+    /** Assumed sustainable recovery per day when the company has no flexibility margin. */
+    private const val DEFAULT_DAILY_FLEX = 30
+
+    fun plan(
+        balance: Int,
+        today: LocalDate,
+        todayDone: Boolean,
+        calendar: WorkCalendar,
+        work: WorkSettings,
+        bank: BankSettings,
+    ): List<BankAlert> {
+        val start = if (todayDone) today.plusDays(1) else today
+        val flex = max(0, work.dailyMinutes - work.minDailyMinutes)
+        val alerts = mutableListOf<BankAlert>()
+
+        if (balance < 0 && bank.negativeMustBeRecovered) {
+            val monthEnd = Periods.monthEnd(today)
+            val left = calendar.officeDays(start, monthEnd)
+            val deficit = -balance
+            val needed = ceilDiv(deficit, max(flex, DEFAULT_DAILY_FLEX))
+            alerts += BankAlert.Negative(
+                balance = balance,
+                monthEnd = monthEnd,
+                officeDaysLeft = left,
+                perDay = if (left > 0) ceilDiv(deficit, left) else deficit,
+                inWindow = left <= needed + bank.alertLeadDays,
+            )
+        }
+
+        val expiry = Periods.expiryEnd(today, bank.positiveExpiry)
+        if (balance > 0 && expiry != null) {
+            val left = calendar.officeDays(start, expiry)
+            val needed = if (flex > 0) ceilDiv(balance, flex) else 0
+            alerts += BankAlert.Expiry(
+                balance = balance,
+                expiry = expiry,
+                officeDaysLeft = left,
+                daysNeeded = needed,
+                maxPerDay = flex,
+                atRisk = flex == 0 || needed > left,
+                inWindow = left <= needed + bank.alertLeadDays,
+            )
+        }
+        return alerts
+    }
+}

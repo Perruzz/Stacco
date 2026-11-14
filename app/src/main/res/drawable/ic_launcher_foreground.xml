@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stacco mark: the day ring with a gap where a leaf sprouts, and the hand pointing at it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,33 A21,21 0 1,1 35.813,43.5"
+        android:strokeWidth="7"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#FFC9F2DD"
+        android:pathData="M44.5,37.546 Q46.08,30.283 39,28.02 Q37.42,35.283 44.5,37.546 Z" />
+    <path
+        android:pathData="M54,54 L48.5,44.474"
+        android:strokeWidth="5"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M50.4,54 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+</vector>
