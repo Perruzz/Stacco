@@ -7,6 +7,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -55,6 +56,7 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.rounded.WbTwilight
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -86,8 +88,10 @@ import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.ExitTarget
 import io.github.perruzz.stacco.domain.SmartPeriod
+import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.StampSlot
 import io.github.perruzz.stacco.domain.TodaySnapshot
+import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.ui.MainTab
 import io.github.perruzz.stacco.ui.MainViewModel
 import io.github.perruzz.stacco.ui.components.DayRing
@@ -111,6 +115,7 @@ import io.github.perruzz.stacco.ui.theme.shiftContainer
 import io.github.perruzz.stacco.ui.theme.tint
 import io.github.perruzz.stacco.ui.util.Fmt
 import kotlinx.coroutines.delay
+import java.time.LocalDate
 import java.time.YearMonth
 
 @Composable
@@ -119,6 +124,7 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
     val s = snapshot ?: return
     var editing by remember { mutableStateOf<StampSlot?>(null) }
     var choosingType by remember { mutableStateOf(false) }
+    var fixingExit by remember { mutableStateOf<LocalDate?>(null) }
 
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -132,6 +138,20 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
     ) {
         var index = 0
         Appear(index++) { Header(s, onTypeClick = { choosingType = true }) }
+
+        val missingExit = s.missingExit
+        // Keeps the last date while the card animates away after the fix.
+        var lastMissing by remember { mutableStateOf(missingExit) }
+        if (missingExit != null) lastMissing = missingExit
+        Appear(index++) {
+            AnimatedVisibility(
+                visible = missingExit != null,
+                enter = fadeIn(tween(400)) + expandVertically(spring(dampingRatio = 0.8f, stiffness = 300f)),
+                exit = fadeOut(tween(300)) + shrinkVertically(tween(450, delayMillis = 150)),
+            ) {
+                lastMissing?.let { date -> MissingExitCard(date, onFix = { fixingExit = date }) }
+            }
+        }
 
         val working = s.isOffice || s.record.hasStamps
         when {
@@ -211,6 +231,19 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
         )
     }
 
+    fixingExit?.let { date ->
+        TimePickerDialog(
+            title = stringResource(R.string.missing_exit_pick, Fmt.longDateInline(date)),
+            initialMinutes = suggestedExit(s.data, date),
+            icon = StampSlot.EXIT.icon,
+            onDismiss = { fixingExit = null },
+            onConfirm = {
+                viewModel.setStamp(date, StampSlot.EXIT, it)
+                fixingExit = null
+            },
+        )
+    }
+
     if (choosingType) {
         StaccoDialog(onDismiss = { choosingType = false }) {
             Text(stringResource(R.string.daytype_dialog_title), style = MaterialTheme.typography.headlineSmall)
@@ -226,6 +259,63 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
                     choosingType = false
                 },
             )
+        }
+    }
+}
+
+/** Where a forgotten exit most likely was: the planned end, or entry + hours + break. */
+private fun suggestedExit(data: StaccoData, date: LocalDate): Int? {
+    val record = data.days[date.toString()] ?: return null
+    val entry = record.entry ?: return null
+    val calendar = WorkCalendar.from(data)
+    calendar.plannedEnd(date)?.let { return it }
+    val out = record.breakOut
+    val back = record.breakIn
+    val min = calendar.breakRules(date).min
+    val pause = when {
+        out != null && back != null -> maxOf(back - out, min)
+        calendar.expectsBreak(date) -> min
+        else -> 0
+    }
+    return entry + calendar.required(date) + pause
+}
+
+/** A gentle nudge about a day whose exit was never stamped. */
+@Composable
+private fun MissingExitCard(date: LocalDate, onFix: () -> Unit) {
+    val c = StaccoTheme.colors
+    val pulse = rememberInfiniteTransition(label = "missing-exit")
+    val scale by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "missing-exit-scale",
+    )
+    StaccoCard(color = c.vacationContainer.copy(alpha = 0.55f)) {
+        Row(verticalAlignment = Alignment.Top) {
+            IconBubble(
+                StampSlot.EXIT.icon,
+                tint = c.vacation,
+                container = c.vacation.copy(alpha = 0.16f),
+                size = 44.dp,
+                modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale },
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.missing_exit_title, Fmt.longDateInline(date)), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.missing_exit_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+                FilledTonalButton(onClick = onFix) {
+                    Icon(StampSlot.EXIT.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.missing_exit_action))
+                }
+            }
         }
     }
 }

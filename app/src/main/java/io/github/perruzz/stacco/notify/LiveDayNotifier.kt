@@ -5,44 +5,35 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import androidx.core.content.edit
 import androidx.core.graphics.drawable.IconCompat
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.localized
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.StampSlot
 import io.github.perruzz.stacco.domain.TodaySnapshot
 import io.github.perruzz.stacco.ui.util.Fmt
-import java.time.LocalDate
 
 /**
  * The ongoing "workday" notification: a countdown to the exit, a segmented progress bar
  * (work / lunch / work) and quick stamp actions. On Android 16+ it is promoted to a Live Update,
- * so the countdown also lives in the status bar.
+ * so the countdown also lives in the status bar. It is shown on the lock screen too and, since
+ * Android 14+ lets users swipe away even ongoing notifications, it comes straight back if
+ * dismissed by mistake (it can be turned off in the app settings).
  */
 object LiveDayNotifier {
 
-    private const val PREFS = "live_notification"
-    private const val KEY_DISMISSED = "dismissed_on"
     private const val WORK_COLOR = 0xFF2A8460.toInt()
     private const val BREAK_COLOR = 0xFFC8954C.toInt()
     private const val POINT_COLOR = 0xFFE9B53F.toInt()
 
-    fun markDismissed(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
-            putString(KEY_DISMISSED, LocalDate.now().toString())
-        }
-    }
-
-    private fun dismissedToday(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DISMISSED, null) == LocalDate.now().toString()
-
-    fun update(context: Context, s: TodaySnapshot) {
+    fun update(base: Context, s: TodaySnapshot) {
+        val context = base.localized()
         val p = s.projection
         val target = s.targetExit
         val entry = s.record.entry
         val running = p.phase in setOf(DayPhase.MORNING, DayPhase.ON_BREAK, DayPhase.AFTERNOON)
         val active = s.data.notifications.liveNotification && s.isOffice && running && p.isValid &&
-            target != null && entry != null && !dismissedToday(context)
+            target != null && entry != null
         if (!active) {
             Notifications.cancel(context, Notifications.ID_LIVE)
             cancelRefresh(context)
@@ -57,6 +48,7 @@ object LiveDayNotifier {
             .setSilent(true)
             .setColorized(false)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setDeleteIntent(
                 PendingIntent.getBroadcast(
                     context, 3, Intent(context, LiveDismissReceiver::class.java),

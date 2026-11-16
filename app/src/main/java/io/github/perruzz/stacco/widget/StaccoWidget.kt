@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.Button
@@ -14,7 +15,6 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
-import androidx.glance.LocalContext
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -44,6 +44,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import io.github.perruzz.stacco.MainActivity
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.localized
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
@@ -72,8 +73,10 @@ class StaccoWidget : GlanceAppWidget() {
         provideContent {
             val data by repository.data.collectAsState(initial = null)
             val snapshot = data?.takeIf { it.onboardingDone }?.let { Engine.snapshot(it) }
+            // Glance hands us a context in the phone's language, not necessarily Stacco's.
+            val localized = remember(data) { context.localized() }
             GlanceTheme(colors = WidgetColors) {
-                WidgetBody(snapshot, ready = data != null)
+                WidgetBody(snapshot, ready = data != null, context = localized)
             }
         }
     }
@@ -100,8 +103,7 @@ class StampWidgetAction : ActionCallback {
 }
 
 @Composable
-private fun WidgetBody(s: TodaySnapshot?, ready: Boolean) {
-    val context = LocalContext.current
+private fun WidgetBody(s: TodaySnapshot?, ready: Boolean, context: Context) {
     val colors = GlanceTheme.colors
     Column(
         modifier = GlanceModifier

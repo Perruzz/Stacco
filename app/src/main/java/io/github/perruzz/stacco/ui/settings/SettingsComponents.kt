@@ -1,6 +1,12 @@
 package io.github.perruzz.stacco.ui.settings
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.spring
@@ -78,7 +84,16 @@ fun SettingRow(
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AnimatedContent(
+                    targetState = subtitle,
+                    transitionSpec = {
+                        (fadeIn(tween(220, delayMillis = 60)) + slideInVertically(tween(260)) { it / 3 }) togetherWith
+                            fadeOut(tween(120)) using SizeTransform(clip = false)
+                    },
+                    label = "setting-subtitle",
+                ) { text ->
+                    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         if (value != null) {

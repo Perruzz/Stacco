@@ -80,6 +80,10 @@ object Fmt {
     fun longDate(date: LocalDate, locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofPattern("EEEE d MMMM", locale).format(date).capitalized(locale)
 
+    /** "martedì 10 novembre": the long date as it reads inside a sentence. */
+    fun longDateInline(date: LocalDate, locale: Locale = Locale.getDefault()): String =
+        DateTimeFormatter.ofPattern("EEEE d MMMM", locale).format(date)
+
     fun shortDate(date: LocalDate, locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofPattern("EEE d MMM", locale).format(date).capitalized(locale)
 

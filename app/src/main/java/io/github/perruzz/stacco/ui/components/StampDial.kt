@@ -112,6 +112,7 @@ fun StampDial(
     val burst = remember { Animatable(0f) }
     val countdown = remember { Animatable(0f) }
     var dragging by remember { mutableStateOf(false) }
+    var returning by remember { mutableStateOf(false) }
     var lastTouch by remember { mutableLongStateOf(0L) }
     var lastAngle by remember { mutableFloatStateOf(0f) }
     val currentStamp by rememberUpdatedState(onStamp)
@@ -127,16 +128,42 @@ fun StampDial(
             .collect { haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) }
     }
 
+    /**
+     * Turns the bezel back exactly to "now". It runs in [scope], not in the countdown effect below:
+     * that effect restarts as soon as the offset reads 0 (less than half a detent away), and
+     * running the animation there cancelled it a few degrees short of home.
+     */
+    fun returnHome(stiffness: Float = 140f) {
+        returning = true
+        scope.launch {
+            try {
+                // Damped enough not to overshoot past the previous minute.
+                rotation.animateTo(0f, spring(dampingRatio = 0.9f, stiffness = stiffness))
+            } finally {
+                returning = false
+            }
+        }
+    }
+
+    /** Snaps to the nearest detent once the finger lifts. */
+    fun settle() {
+        dragging = false
+        lastTouch = System.nanoTime()
+        val settled = ((rotation.value / DEG_PER_MINUTE).roundToInt().coerceIn(MIN_OFFSET, MAX_OFFSET)) * DEG_PER_MINUTE
+        scope.launch { rotation.animateTo(settled, spring(dampingRatio = 0.6f, stiffness = 420f)) }
+    }
+
     // Left alone, the bezel goes back to "now" after 10 seconds.
     LaunchedEffect(lastTouch, dragging, offset == 0) {
         countdown.snapTo(0f)
-        if (dragging || offset == 0) return@LaunchedEffect
+        if (dragging || offset == 0 || returning) return@LaunchedEffect
         countdown.animateTo(1f, tween(RETURN_AFTER_MS, easing = LinearEasing))
         countdown.snapTo(0f)
-        rotation.animateTo(0f, spring(dampingRatio = 0.55f, stiffness = 120f))
+        returnHome()
     }
 
     fun nudge(minutes: Int) {
+        returning = false
         lastTouch = System.nanoTime()
         val target = ((offset + minutes).coerceIn(MIN_OFFSET, MAX_OFFSET)) * DEG_PER_MINUTE
         scope.launch { rotation.animateTo(target, spring(dampingRatio = 0.7f, stiffness = 500f)) }
@@ -165,16 +192,12 @@ fun StampDial(
                     detectDragGestures(
                         onDragStart = { start ->
                             dragging = true
+                            returning = false
                             lastAngle = angleOf(start)
                             scope.launch { rotation.stop() }
                         },
-                        onDragEnd = {
-                            dragging = false
-                            lastTouch = System.nanoTime()
-                            val settled = ((rotation.value / DEG_PER_MINUTE).roundToInt().coerceIn(MIN_OFFSET, MAX_OFFSET)) * DEG_PER_MINUTE
-                            scope.launch { rotation.animateTo(settled, spring(dampingRatio = 0.6f, stiffness = 420f)) }
-                        },
-                        onDragCancel = { dragging = false },
+                        onDragEnd = { settle() },
+                        onDragCancel = { settle() },
                         onDrag = { change, _ ->
                             val angle = angleOf(change.position)
                             var delta = angle - lastAngle
@@ -318,7 +341,7 @@ fun StampDial(
                         spin.animateTo(-360f, tween(900, easing = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)))
                         spin.snapTo(0f)
                     }
-                    scope.launch { rotation.animateTo(0f, spring(dampingRatio = 0.7f, stiffness = 200f)) }
+                    returnHome(stiffness = 200f)
                 },
             contentAlignment = Alignment.Center,
         ) {

@@ -6,6 +6,7 @@ import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.localized
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.stacco
@@ -41,9 +42,10 @@ class StampTileService : TileService() {
         scope.launch {
             val data = withContext(Dispatchers.Default) { applicationContext.stacco.repository.current() }
             val tile = qsTile ?: return@launch
+            val res = localized()
             if (!data.onboardingDone) {
                 tile.state = Tile.STATE_UNAVAILABLE
-                tile.label = getString(R.string.tile_label)
+                tile.label = res.getString(R.string.tile_label)
                 tile.updateTile()
                 return@launch
             }
@@ -52,23 +54,23 @@ class StampTileService : TileService() {
             when {
                 s.isSmart || s.isAway || s.isTravel -> {
                     tile.state = Tile.STATE_UNAVAILABLE
-                    tile.label = getString(R.string.tile_label)
-                    tile.setSubtitleCompat(getString(R.string.type_smart).takeIf { s.isSmart } ?: getString(R.string.widget_today))
+                    tile.label = res.getString(R.string.tile_label)
+                    tile.setSubtitleCompat(res.getString(R.string.type_smart).takeIf { s.isSmart } ?: res.getString(R.string.widget_today))
                 }
                 next == null -> {
                     tile.state = Tile.STATE_INACTIVE
-                    tile.label = getString(R.string.tile_label)
-                    tile.setSubtitleCompat(getString(R.string.hero_done))
+                    tile.label = res.getString(R.string.tile_label)
+                    tile.setSubtitleCompat(res.getString(R.string.hero_done))
                 }
                 else -> {
                     val running = s.projection.phase in setOf(DayPhase.MORNING, DayPhase.ON_BREAK, DayPhase.AFTERNOON)
                     tile.state = if (running) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-                    tile.label = getString(next.action)
+                    tile.label = res.getString(next.action)
                     tile.setSubtitleCompat(
                         when {
-                            running -> getString(R.string.live_exit_at, Fmt.timeDay(s.targetExit))
+                            running -> res.getString(R.string.live_exit_at, Fmt.timeDay(s.targetExit))
                             s.shift != null -> "${s.shift.name} ${Fmt.time(s.shift.start)}"
-                            else -> getString(R.string.hero_ready)
+                            else -> res.getString(R.string.hero_ready)
                         },
                     )
                 }

@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.localized
 import io.github.perruzz.stacco.domain.DayCalculator
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.Engine
@@ -102,7 +103,8 @@ object ExitAlarmScheduler {
     }
 
     /** Posts the reminder if it still makes sense. */
-    fun show(context: Context, s: TodaySnapshot) {
+    fun show(base: Context, s: TodaySnapshot) {
+        val context = base.localized()
         val key = key(s) ?: return
         val target = s.targetExit ?: return
         if (!active(s) || alreadyShown(context, key)) return
@@ -189,7 +191,8 @@ object ShiftStartScheduler {
 }
 
 class ShiftStartReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) = async {
+    override fun onReceive(base: Context, intent: Intent?) = async {
+        val context = base.localized()
         val data = context.stacco.repository.current()
         val now = LocalDateTime.now()
         val (date, shift) = ShiftStartScheduler.nextShift(data, now) ?: return@async
@@ -209,7 +212,8 @@ class ShiftStartReceiver : BroadcastReceiver() {
 
 /** Handles the "Stamp" buttons of notifications. */
 class StampActionReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) = async {
+    override fun onReceive(base: Context, intent: Intent?) = async {
+        val context = base.localized()
         val slot = intent?.getStringExtra(EXTRA_SLOT)?.let { runCatching { StampSlot.valueOf(it) }.getOrNull() }
         val repository = context.stacco.repository
         val now = LocalDateTime.now()
@@ -237,10 +241,11 @@ class StampActionReceiver : BroadcastReceiver() {
     }
 }
 
-/** Remembers that the user swiped away today's live notification. */
+/** The live notification was swiped away (Android 14+ allows it): put it straight back. */
 class LiveDismissReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
-        LiveDayNotifier.markDismissed(context)
+    override fun onReceive(context: Context, intent: Intent?) = async {
+        val data = context.stacco.repository.current()
+        if (data.onboardingDone) LiveDayNotifier.update(context, Engine.snapshot(data))
     }
 }
 

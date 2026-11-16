@@ -9,6 +9,9 @@ import kotlin.math.max
 enum class Holiday {
     NEW_YEAR, EPIPHANY, EASTER, EASTER_MONDAY, LIBERATION, LABOUR, REPUBLIC,
     ASSUMPTION, ST_FRANCIS, ALL_SAINTS, IMMACULATE, CHRISTMAS, ST_STEPHEN,
+
+    /** The local patron saint's day, when the user set one. */
+    PATRON,
 }
 
 /** Italian national public holidays (including Easter Monday and, since 2026, 4 October). */
@@ -104,8 +107,10 @@ class WorkCalendar(
 
     fun record(date: LocalDate): DayRecord? = days[date]
 
-    fun holiday(date: LocalDate): Holiday? =
-        if (work.italianHolidays) ItalianHolidays.holiday(date) else null
+    fun holiday(date: LocalDate): Holiday? {
+        if (work.italianHolidays) ItalianHolidays.holiday(date)?.let { return it }
+        return if (work.patronDay != 0 && date.monthValue * 100 + date.dayOfMonth == work.patronDay) Holiday.PATRON else null
+    }
 
     /** Planned shift of the day (shift mode only). */
     fun shift(date: LocalDate): ShiftTemplate? =

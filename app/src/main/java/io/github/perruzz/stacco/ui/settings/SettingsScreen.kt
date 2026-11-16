@@ -71,10 +71,13 @@ import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.LocationCity
+import androidx.compose.material.icons.rounded.NewReleases
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.rounded.Upload
@@ -83,6 +86,7 @@ import androidx.compose.material.icons.rounded.WorkHistory
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
@@ -116,6 +120,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.perruzz.stacco.BuildConfig
 import io.github.perruzz.stacco.Links
+import io.github.perruzz.stacco.notify.UpdateChecker
+import io.github.perruzz.stacco.notify.UpdateResult
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.domain.ExitTarget
 import io.github.perruzz.stacco.domain.ExpiryPeriod
@@ -126,6 +132,7 @@ import io.github.perruzz.stacco.domain.WorkSettings
 import io.github.perruzz.stacco.ui.LocalThemeSwitcher
 import io.github.perruzz.stacco.ui.MainViewModel
 import io.github.perruzz.stacco.ui.components.ConfirmDialog
+import io.github.perruzz.stacco.ui.components.DayOfYearPickerDialog
 import io.github.perruzz.stacco.ui.components.DurationPickerDialog
 import io.github.perruzz.stacco.ui.components.MorphBadge
 import io.github.perruzz.stacco.ui.components.SectionLabel
@@ -155,6 +162,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
     var editingDuration by remember { mutableStateOf<DurationField?>(null) }
     var editingName by remember { mutableStateOf(false) }
+    var editingPatron by remember { mutableStateOf(false) }
     var choosingExpiry by remember { mutableStateOf(false) }
     var confirmImport by remember { mutableStateOf<String?>(null) }
     var editingShift by remember { mutableStateOf<ShiftTemplate?>(null) }
@@ -295,6 +303,17 @@ fun SettingsScreen(viewModel: MainViewModel) {
                                 subtitle = stringResource(R.string.settings_holidays_sub),
                                 checked = work.italianHolidays,
                                 onCheckedChange = { on -> update { it.copy(work = it.work.copy(italianHolidays = on)) } },
+                            )
+                            SettingRow(
+                                icon = Icons.Rounded.LocationCity,
+                                title = stringResource(R.string.settings_patron),
+                                subtitle = stringResource(R.string.settings_patron_sub),
+                                value = if (work.patronDay > 0) {
+                                    Fmt.dayMonth(LocalDate.of(2024, work.patronDay / 100, work.patronDay % 100))
+                                } else {
+                                    stringResource(R.string.settings_patron_none)
+                                },
+                                onClick = { editingPatron = true },
                             )
                         }
                         StaccoCard {
@@ -490,6 +509,13 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     checked = data.notifications.bankAlerts,
                     onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(bankAlerts = on)) } },
                 )
+                SwitchRow(
+                    icon = Icons.Rounded.SystemUpdate,
+                    title = stringResource(R.string.settings_updates),
+                    subtitle = stringResource(R.string.settings_updates_sub),
+                    checked = data.notifications.updateCheck,
+                    onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(updateCheck = on)) } },
+                )
             }
         }
 
@@ -524,6 +550,28 @@ fun SettingsScreen(viewModel: MainViewModel) {
         }
 
         Appear(i++) { AboutCard(onGithub = { openUrl(context, Links.GITHUB) }) }
+    }
+
+    if (editingPatron) {
+        DayOfYearPickerDialog(
+            title = stringResource(R.string.settings_patron),
+            initial = data.work.patronDay,
+            icon = Icons.Rounded.LocationCity,
+            subtitle = stringResource(R.string.settings_patron_sub),
+            onDismiss = { editingPatron = false },
+            onConfirm = { value ->
+                update { it.copy(work = it.work.copy(patronDay = value)) }
+                editingPatron = false
+            },
+            onClear = if (data.work.patronDay > 0) {
+                {
+                    update { it.copy(work = it.work.copy(patronDay = 0)) }
+                    editingPatron = false
+                }
+            } else {
+                null
+            },
+        )
     }
 
     editingDuration?.let { field ->
@@ -852,11 +900,54 @@ private fun AboutCard(onGithub: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
+            UpdateRow()
             SettingRow(icon = Icons.Rounded.Code, title = stringResource(R.string.about_github), subtitle = "github.com/Perruzz/Stacco", onClick = onGithub)
             SettingRow(icon = Icons.Rounded.AutoAwesome, title = stringResource(R.string.about_fonts), subtitle = stringResource(R.string.about_fonts_sub))
             SettingRow(icon = Icons.Rounded.DateRange, title = stringResource(R.string.about_privacy), subtitle = stringResource(R.string.about_privacy_sub))
         }
     }
+}
+
+/** "Check for updates" — or, once a newer version is known, a shortcut to it. */
+@Composable
+private fun UpdateRow() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var available by remember { mutableStateOf(UpdateChecker.cached(context)) }
+    var result by remember { mutableStateOf<UpdateResult?>(null) }
+    var checking by remember { mutableStateOf(false) }
+    val update = available
+    SettingRow(
+        icon = if (update != null) Icons.Rounded.NewReleases else Icons.Rounded.SystemUpdate,
+        title = if (update != null) stringResource(R.string.update_available, update.version) else stringResource(R.string.update_check),
+        subtitle = when {
+            update != null -> stringResource(R.string.update_available_sub)
+            checking -> stringResource(R.string.update_checking)
+            result == UpdateResult.UpToDate -> stringResource(R.string.update_latest)
+            result == UpdateResult.Failed -> stringResource(R.string.update_failed)
+            else -> stringResource(R.string.update_check_sub)
+        },
+        tint = if (update != null) StaccoTheme.colors.gold else MaterialTheme.colorScheme.primary,
+        onClick = {
+            when {
+                update != null -> openUrl(context, update.pageUrl)
+                !checking -> {
+                    checking = true
+                    scope.launch {
+                        val outcome = UpdateChecker.check(context, notify = false)
+                        if (outcome is UpdateResult.Available) available = outcome.update
+                        result = outcome
+                        checking = false
+                    }
+                }
+            }
+        },
+        trailing = if (checking) {
+            { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) }
+        } else {
+            null
+        },
+    )
 }
 
 private fun notificationsAllowed(context: Context): Boolean {

@@ -42,6 +42,8 @@ data class WorkSettings(
     val workDays: Set<Int> = setOf(1, 2, 3, 4, 5),
     /** Treat Italian national holidays as non-working days (fixed schedule only). */
     val italianHolidays: Boolean = true,
+    /** Patron saint's day of the office's town, as month * 100 + day (e.g. 1207); 0 if none. */
+    val patronDay: Int = 0,
     /** Shift templates (shift mode). */
     val shifts: List<ShiftTemplate> = emptyList(),
 )
@@ -105,6 +107,8 @@ data class NotificationSettings(
     /** Shift mode: remind before the shift starts. */
     val shiftStartReminder: Boolean = true,
     val shiftStartLeadMinutes: Int = 30,
+    /** Once a day, look on GitHub for a newer version. */
+    val updateCheck: Boolean = true,
 )
 
 @Serializable

@@ -89,6 +89,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 
 private const val PAGES = 241
@@ -98,8 +99,8 @@ private const val CENTER = 120
 fun CalendarScreen(viewModel: MainViewModel) {
     val dataState by viewModel.data.collectAsStateWithLifecycle()
     val data = dataState ?: return
-    val today = remember { LocalDate.now() }
-    val baseMonth = remember { YearMonth.from(today) }
+    val today by viewModel.currentDate.collectAsStateWithLifecycle()
+    val baseMonth = remember { YearMonth.now() }
     val calendar = remember(data) { WorkCalendar.from(data) }
     val firstDow = remember { Engine.firstDayOfWeek() }
     val pager = rememberPagerState(initialPage = CENTER) { PAGES }
@@ -478,6 +479,8 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
     val entries = days.filter { (date, record) -> YearMonth.from(date) == month && record.hasStamps }
         .toSortedMap()
     if (entries.isEmpty()) return
+    // Days before the one in progress (a night shift may still be running from yesterday).
+    val activeDate = Engine.activeDay(data, LocalDateTime.now()).date
     StaccoCard {
         SectionLabel(stringResource(R.string.calendar_office_list))
         Spacer(Modifier.height(6.dp))
@@ -525,6 +528,8 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
                                 .padding(horizontal = 8.dp, vertical = 2.dp),
                         )
                     }
+                } else if (record.exit == null && date < activeDate) {
+                    Text(stringResource(R.string.calendar_missing_exit), style = MaterialTheme.typography.labelMedium, color = StaccoTheme.colors.vacation)
                 } else {
                     Text(stringResource(R.string.calendar_incomplete), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
                 }

@@ -90,4 +90,5 @@ val Holiday.label: Int
         Holiday.IMMACULATE -> R.string.holiday_immaculate
         Holiday.CHRISTMAS -> R.string.holiday_christmas
         Holiday.ST_STEPHEN -> R.string.holiday_st_stephen
+        Holiday.PATRON -> R.string.holiday_patron
     }

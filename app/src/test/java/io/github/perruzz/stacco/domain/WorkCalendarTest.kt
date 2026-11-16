@@ -30,6 +30,23 @@ class WorkCalendarTest {
     }
 
     @Test
+    fun `patron saint day is a holiday`() {
+        // Milan: Sant'Ambrogio, 7 December (Monday in 2026).
+        val cal = WorkCalendar(WorkSettings(patronDay = 1207), emptyMap())
+        assertEquals(Holiday.PATRON, cal.holiday(d("2026-12-07")))
+        assertFalse(cal.isScheduled(d("2026-12-07")))
+        assertEquals(DayType.HOLIDAY, cal.effectiveType(d("2026-12-07")))
+        assertEquals(0, cal.required(d("2026-12-07")))
+        // National holidays keep their own name; no patron set means no extra holiday.
+        assertEquals(Holiday.IMMACULATE, cal.holiday(d("2026-12-08")))
+        assertNull(WorkCalendar(WorkSettings(), emptyMap()).holiday(d("2026-12-07")))
+        // It still counts when national holidays are turned off.
+        val noNational = WorkCalendar(WorkSettings(italianHolidays = false, patronDay = 1207), emptyMap())
+        assertEquals(Holiday.PATRON, noNational.holiday(d("2026-12-07")))
+        assertNull(noNational.holiday(d("2026-12-08")))
+    }
+
+    @Test
     fun `scheduled days and types`() {
         val days = mapOf(
             d("2026-11-16") to DayRecord(type = DayType.SMART),

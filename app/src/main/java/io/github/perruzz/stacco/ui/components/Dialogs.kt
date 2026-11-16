@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -50,7 +52,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.ui.util.Fmt
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Month
 import kotlin.math.abs
 
 @Composable
@@ -187,6 +191,66 @@ fun TimePickerDialog(
 }
 
 private const val MINUS_SIGN = "−"
+
+/** Day + month picker for a yearly date (e.g. a patron saint's day), as month * 100 + day. */
+@Composable
+fun DayOfYearPickerDialog(
+    title: String,
+    initial: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+    icon: ImageVector? = null,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    subtitle: String? = null,
+    onClear: (() -> Unit)? = null,
+) {
+    var month by remember { mutableIntStateOf(if (initial > 0) (initial / 100).coerceIn(1, 12) else 1) }
+    var day by remember { mutableIntStateOf(if (initial > 0) (initial % 100).coerceIn(1, 31) else 1) }
+    val maxDay = Month.of(month).maxLength()
+    val shown = day.coerceAtMost(maxDay)
+    val locale = LocalConfiguration.current.locales[0]
+
+    StaccoDialog(onDismiss) {
+        DialogHeader(title, icon, tint, subtitle)
+        Spacer(Modifier.height(16.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            // Re-created when the month has a different length, so the drum always fits it.
+            key(maxDay) {
+                WheelPicker(count = maxDay, value = shown - 1, onValueChange = { day = it + 1 }, width = 76.dp, label = { (it + 1).toString() })
+            }
+            Spacer(Modifier.width(8.dp))
+            WheelPicker(
+                count = 12,
+                value = month - 1,
+                onValueChange = {
+                    month = it + 1
+                    day = day.coerceAtMost(Month.of(month).maxLength())
+                },
+                width = 180.dp,
+                textStyle = MaterialTheme.typography.headlineSmall,
+                label = { index ->
+                    Month.of(index + 1).getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, locale)
+                        .replaceFirstChar { it.titlecase(locale) }
+                },
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            stringResource(R.string.patron_every_year, Fmt.dayMonth(LocalDate.of(2024, month, shown), locale)),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(20.dp))
+        DialogButtons(
+            onDismiss = onDismiss,
+            onConfirm = { onConfirm(month * 100 + shown) },
+            onExtra = onClear,
+            extraLabel = if (onClear != null) stringResource(R.string.action_remove) else null,
+        )
+    }
+}
 
 /** Hours + minutes picker, optionally signed (for the hour bank). */
 @Composable

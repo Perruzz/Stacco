@@ -1,6 +1,7 @@
 package io.github.perruzz.stacco.notify
 
 import android.Manifest
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -13,14 +14,23 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import io.github.perruzz.stacco.MainActivity
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.localized
 import io.github.perruzz.stacco.domain.StampSlot
 import java.time.LocalDate
 import java.time.ZoneId
 
 object Notifications {
     const val CHANNEL_EXIT = "stacco_exit"
-    const val CHANNEL_LIVE = "stacco_live"
+
+    /**
+     * Default importance (but without sound or vibration) so the countdown also shows on the lock
+     * screen: Pixels hide "silent" (low importance) notifications there by default. A channel's
+     * importance cannot be raised once created, hence the new id replacing [LEGACY_CHANNEL_LIVE].
+     */
+    const val CHANNEL_LIVE = "stacco_live_v2"
+    private const val LEGACY_CHANNEL_LIVE = "stacco_live"
     const val CHANNEL_BANK = "stacco_bank"
+    const val CHANNEL_UPDATES = "stacco_updates"
 
     const val ID_EXIT = 1001
     const val ID_LIVE = 1002
@@ -28,10 +38,12 @@ object Notifications {
     const val ID_EXPIRY = 1004
     const val ID_DAY_DONE = 1005
     const val ID_SHIFT_START = 1006
+    const val ID_UPDATE = 1007
 
     const val COLOR = 0xFF1F6E52.toInt()
 
-    fun createChannels(context: Context) {
+    fun createChannels(base: Context) {
+        val context = base.localized()
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannels(
             listOf(
@@ -39,15 +51,22 @@ object Notifications {
                     description = context.getString(R.string.channel_exit_desc)
                     enableVibration(true)
                 },
-                NotificationChannel(CHANNEL_LIVE, context.getString(R.string.channel_live), NotificationManager.IMPORTANCE_LOW).apply {
+                NotificationChannel(CHANNEL_LIVE, context.getString(R.string.channel_live), NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = context.getString(R.string.channel_live_desc)
+                    setSound(null, null)
+                    enableVibration(false)
                     setShowBadge(false)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 },
                 NotificationChannel(CHANNEL_BANK, context.getString(R.string.channel_bank), NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = context.getString(R.string.channel_bank_desc)
                 },
+                NotificationChannel(CHANNEL_UPDATES, context.getString(R.string.channel_updates), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = context.getString(R.string.channel_updates_desc)
+                },
             ),
         )
+        manager.deleteNotificationChannel(LEGACY_CHANNEL_LIVE)
     }
 
     fun canPost(context: Context): Boolean {

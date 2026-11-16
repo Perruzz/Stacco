@@ -50,6 +50,9 @@ data class TodaySnapshot(
 
     /** Seconds left to [minutes] of the working day (negative once it has passed). */
     fun secondsTo(minutes: Int): Int = minutes * 60 - nowSeconds
+
+    /** A recent day whose exit was never stamped (it stays out of the hour bank until fixed). */
+    val missingExit: LocalDate? get() = Engine.missingExit(data, date)
 }
 
 object Engine {
@@ -60,6 +63,15 @@ object Engine {
     fun firstDayOfWeek(locale: Locale = Locale.getDefault()): DayOfWeek = WeekFields.of(locale).firstDayOfWeek
 
     fun ledger(data: StaccoData, today: LocalDate): BankLedger = BankCalculator.compute(data, today)
+
+    /** How far back a forgotten exit is still worth pointing out. */
+    private const val MISSING_EXIT_DAYS = 14L
+
+    /** The most recent day before [date] with an entry but no exit, within two weeks. */
+    fun missingExit(data: StaccoData, date: LocalDate): LocalDate? =
+        (1L..MISSING_EXIT_DAYS).asSequence()
+            .map { date.minusDays(it) }
+            .firstOrNull { day -> data.days[day.toString()]?.let { it.entry != null && it.exit == null } == true }
 
     /**
      * Today, unless yesterday's working day crosses midnight and is not over yet

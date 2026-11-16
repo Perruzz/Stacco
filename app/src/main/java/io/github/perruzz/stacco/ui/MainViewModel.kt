@@ -57,6 +57,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val date: Flow<LocalDate> = clock.map { it.toLocalDate() }.distinctUntilChanged()
 
+    /** Today's date, kept current across midnight. */
+    val currentDate: StateFlow<LocalDate> = date.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LocalDate.now())
+
     private val core: Flow<Core> = combine(repo.data, date) { d, day -> Core(d, Engine.ledger(d, day)) }
         .flowOn(Dispatchers.Default)
 

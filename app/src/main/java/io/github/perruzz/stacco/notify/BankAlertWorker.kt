@@ -8,6 +8,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.localized
 import io.github.perruzz.stacco.domain.AlertsState
 import io.github.perruzz.stacco.domain.BankAlert
 import io.github.perruzz.stacco.domain.Engine
@@ -59,7 +60,9 @@ class BankAlertWorker(context: Context, params: WorkerParameters) : CoroutineWor
 object BankAlertNotifier {
 
     /** Posts the due notifications and returns the updated bookkeeping. */
-    fun notify(context: Context, s: TodaySnapshot): AlertsState {
+    fun notify(base: Context, s: TodaySnapshot): AlertsState {
+        val context = base.localized()
+        val locale = context.resources.configuration.locales[0]
         var state = s.data.alerts
         val today = s.date
         for (alert in s.alerts) {
@@ -74,7 +77,7 @@ object BankAlertNotifier {
                         context.getString(R.string.alert_negative_last)
                     }
                     val builder = Notifications.base(context, Notifications.CHANNEL_BANK)
-                        .setContentTitle(context.getString(R.string.notif_negative_title, Fmt.duration(-alert.balance), Fmt.dayMonth(alert.monthEnd)))
+                        .setContentTitle(context.getString(R.string.notif_negative_title, Fmt.duration(-alert.balance), Fmt.dayMonth(alert.monthEnd, locale)))
                         .setContentText(text)
                         .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                         .setAutoCancel(true)
@@ -90,7 +93,7 @@ object BankAlertNotifier {
                         else -> context.resources.getQuantityString(R.plurals.alert_expiry_plan, alert.daysNeeded, alert.daysNeeded, Fmt.duration(alert.maxPerDay), alert.officeDaysLeft)
                     }
                     val builder = Notifications.base(context, Notifications.CHANNEL_BANK)
-                        .setContentTitle(context.getString(R.string.notif_expiry_title, Fmt.duration(alert.balance), Fmt.dayMonth(alert.expiry)))
+                        .setContentTitle(context.getString(R.string.notif_expiry_title, Fmt.duration(alert.balance), Fmt.dayMonth(alert.expiry, locale)))
                         .setContentText(text)
                         .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                         .setAutoCancel(true)

@@ -6,6 +6,7 @@ import io.github.perruzz.stacco.data.StaccoRepository
 import io.github.perruzz.stacco.notify.AppSync
 import io.github.perruzz.stacco.notify.BankAlertWorker
 import io.github.perruzz.stacco.notify.Notifications
+import io.github.perruzz.stacco.notify.UpdateWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,6 +25,7 @@ class StaccoApp : Application() {
         Notifications.createChannels(this)
         AppSync.start(this, repository, appScope)
         BankAlertWorker.schedule(this)
+        UpdateWorker.schedule(this)
     }
 }
 

@@ -57,6 +57,7 @@ Sai sempre a che ora puoi *staccare*.
   - **Con la banca ore**: con saldo positivo ti dice quanto prima puoi uscire, rispettando le **ore minime** giornaliere; con saldo negativo ti dice fino a che ora restare per recuperare (e quanto recuperare al giorno fino a fine mese).
   - **Uscita minima**: l'orario più presto consentito dalle ore minime.
 - Giornata conclusa? **Coriandoli** 🎉, ore lavorate e saldo della giornata.
+- **Uscita dimenticata?** Se in un giorno recente c'è l'entrata ma manca l'uscita, *Oggi* te lo segnala e ti propone l'orario più probabile. Finché manca, quella giornata resta fuori dalla banca ore.
 
 ### 🩺 Lavoro a turni
 Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo avvio o in *Impostazioni* scegli **Turni** invece di *Orario fisso*.
@@ -67,7 +68,7 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 - **Promemoria di inizio turno** 30 minuti prima, con il nome del turno e l'orario.
 
 ### 📅 Calendario
-- Mese sfogliabile con celle animate: **in sede, smart working, trasferta, ferie, malattia, festività** (feste nazionali italiane incluse, Pasquetta e 4 ottobre compresi).
+- Mese sfogliabile con celle animate: **in sede, smart working, trasferta, ferie, malattia, festività** (feste nazionali italiane incluse, Pasquetta e 4 ottobre compresi, più il **Santo Patrono** della tua città se lo imposti).
 - **Trasferta**: come lo smart working, non serve timbrare; la giornata vale come lavorata e la banca ore resta ferma.
 - Ogni giorno in sede mostra il **saldo della giornata** (+12m, −20m…).
 - Tocca un giorno per vedere/modificare **le timbrature**, aggiungere un **permesso/ROL** o una nota.
@@ -83,10 +84,11 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 ### 🔔 Notifiche, widget e scorciatoie
 - **Promemoria di stacco** (all'orario o 5/10/15 minuti prima), con il pulsante *Timbra uscita* direttamente nella notifica.
 - **Promemoria di inizio turno** in modalità turni.
-- **Notifica live** con conto alla rovescia e barra di avanzamento a segmenti (lavoro / pausa / lavoro); su Android 16+ diventa un *Live Update* con il countdown nella barra di stato.
+- **Notifica live** con conto alla rovescia e barra di avanzamento a segmenti (lavoro / pausa / lavoro); su Android 16+ diventa un *Live Update* con il countdown nella barra di stato. È visibile anche **a schermo bloccato** e, se la scorri via per sbaglio, ricompare subito (la spegni da *Impostazioni → Notifiche*).
 - **Avvisi intelligenti sulla banca ore**: se sei in negativo ti avvisa *prima della fine del mese*; se hai ore positive in scadenza ti avvisa *prima della fine del periodo*. L'anticipo dell'avviso **dipende da quante ore hai**: più ore da recuperare o da usare → prima ti avvisa (vedi l'esempio più sotto).
 - **Widget** per la home con orario di uscita, saldo e pulsante *Timbra*.
 - **Riquadro Impostazioni rapide** "Timbra" e scorciatoia sull'icona (pressione prolungata → *Timbra adesso*).
+- **Avviso aggiornamenti**: una volta al giorno Stacco controlla su GitHub se è uscita una nuova versione e te lo dice con una notifica, con il pulsante *Scarica*. Puoi controllare anche a mano, in fondo alle *Impostazioni*.
 
 ### 🎨 Esperienza
 - Splash animato (l'anello si disegna, la lancetta gira, spunta la foglia), onboarding guidato, aurora verde che "respira" sullo sfondo, forme che si trasformano, numeri che scorrono come un contachilometri, molle e rimbalzi ovunque.
@@ -104,6 +106,7 @@ Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 | Ore minime | 7h | Massimo utilizzo giornaliero della banca ore (8h − 7h = 1h) |
 | Giorni lavorativi | Lun–Ven | Calendario, giorni in sede rimanenti |
 | Festività italiane | Sì | Le feste nazionali non sono lavorative |
+| Santo patrono | 7 dicembre | La festa del patrono della città in cui lavori, ogni anno |
 | Pausa minima | 30m | Una pausa 12:00 → 12:20 conta comunque 30m |
 | Scadenza saldo positivo | Trimestrale | Mai, mensile, bimestrale, trimestrale, quadrimestrale, semestrale, annuale |
 | Negativo da recuperare | Entro fine mese | Avvisi di recupero; a fine mese il negativo si azzera o si riporta |
@@ -119,6 +122,8 @@ Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 2. Aprilo e consenti l'installazione da questa fonte quando Android lo chiede.
 3. Al primo avvio un breve onboarding ti guida nella configurazione (orario fisso o turni).
 
+Quando esce una nuova versione Stacco ti avvisa: scarica l'APK e installalo sopra quello che hai, i dati restano.
+
 Requisiti: Android 8.0 (API 26) o superiore. Ottimizzata per Android 16/17 (Pixel inclusi).
 
 > Per avvisi puntuali al minuto, in *Impostazioni → Notifiche* consenti a Stacco "Sveglie e promemoria".
@@ -126,6 +131,8 @@ Requisiti: Android 8.0 (API 26) o superiore. Ottimizzata per Android 16/17 (Pixe
 ## 🔒 Privacy
 
 Nessun account, nessun server, nessun tracciamento: **tutti i dati restano sul telefono** (e nel backup Android del tuo account, se attivo). Da *Impostazioni → Dati* puoi esportare e importare un backup JSON.
+
+L'unica connessione a Internet è il **controllo degli aggiornamenti**: una volta al giorno Stacco chiede a GitHub qual è l'ultima versione pubblicata, senza inviare nessun dato tuo. Si disattiva da *Impostazioni → Notifiche → Avviso aggiornamenti*.
 
 ## 🛠️ Compilare dal sorgente
 
@@ -191,7 +198,8 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 - **Shift work** mode (nurses, factories…): customizable shifts (morning 7–14, afternoon 14–21, night 21–7 out of the box), monthly planning by tapping days, night shifts across midnight, shift start reminders.
 - Monthly calendar with office / remote / business trip / vacation / sick / holiday days, remote-work quota and per-day details.
 - Hour bank with chart, movements, manual adjustments and configurable rules (positive balance expiry per month/quarter/…; negative balance to recover by month end).
-- Smart alerts whose timing adapts to how many hours you need to use or recover; exit reminders; Android 16 Live Update countdown; home screen widget; Quick Settings tile.
+- Smart alerts whose timing adapts to how many hours you need to use or recover; exit reminders; Android 16 Live Update countdown, also on the lock screen; home screen widget; Quick Settings tile.
+- Forgotten exit stamps are pointed out (with a suggested time), Italian holidays plus your town's patron saint's day, and a daily check for new versions on GitHub (the app's only network access).
 - Light/dark/system theme with a circular reveal, Material You colors, Italian and English.
 - No account, no tracking: everything stays on your device.
 

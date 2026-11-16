@@ -157,6 +157,11 @@
     <string name="holiday_immaculate">Immacolata</string>
     <string name="holiday_christmas">Natale</string>
     <string name="holiday_st_stephen">Santo Stefano</string>
+    <string name="holiday_patron">Santo patrono</string>
+    <string name="settings_patron">Santo patrono</string>
+    <string name="settings_patron_sub">La festa del patrono della città in cui lavori, se in azienda è festivo</string>
+    <string name="settings_patron_none">Nessuno</string>
+    <string name="patron_every_year">Ogni anno il %1$s</string>
 
     <!-- Calendar -->
     <string name="calendar_title">Calendario</string>
@@ -172,6 +177,11 @@
     <string name="calendar_break">pausa %1$s – %2$s</string>
     <string name="calendar_break_assumed">pausa minima %1$s (non timbrata)</string>
     <string name="calendar_incomplete">In corso</string>
+    <string name="missing_exit_title">Manca l\'uscita di %1$s</string>
+    <string name="missing_exit_body">Finché non la aggiungi, quella giornata resta fuori dalla banca ore. Se non eri al lavoro, cambia il tipo di giornata dal Calendario.</string>
+    <string name="missing_exit_action">Aggiungi uscita</string>
+    <string name="missing_exit_pick">Uscita di %1$s</string>
+    <string name="calendar_missing_exit">Uscita mancante</string>
     <string name="relative_today">Oggi</string>
     <string name="relative_yesterday">Ieri</string>
     <string name="relative_tomorrow">Domani</string>
@@ -284,7 +294,7 @@
     <string name="settings_exact_denied">Per avvisi puntuali al minuto, consenti a Stacco di usare sveglie e promemoria.</string>
     <string name="settings_exact_grant">Consenti</string>
     <string name="settings_live">Conto alla rovescia</string>
-    <string name="settings_live_sub">Notifica fissa con il tempo che manca allo stacco</string>
+    <string name="settings_live_sub">Notifica fissa, anche a schermo bloccato, con il tempo che manca allo stacco</string>
     <string name="settings_bank_alerts">Avvisi banca ore</string>
     <string name="settings_bank_alerts_sub">Recupero del negativo e ore in scadenza</string>
     <string name="settings_appearance">Aspetto</string>
@@ -318,7 +328,7 @@
     <string name="about_fonts">Caratteri</string>
     <string name="about_fonts_sub">Outfit e Manrope · SIL Open Font License</string>
     <string name="about_privacy">Privacy</string>
-    <string name="about_privacy_sub">Tutti i dati restano sul tuo telefono. Nessun account, nessun tracciamento.</string>
+    <string name="about_privacy_sub">Tutti i dati restano sul tuo telefono. Nessun account, nessun tracciamento: l\'unica connessione è il controllo degli aggiornamenti su GitHub.</string>
 
     <!-- Onboarding -->
     <string name="ob_tagline">Il tuo tempo, finalmente chiaro.</string>
@@ -355,6 +365,20 @@
     <string name="channel_live_desc">Conto alla rovescia fino allo stacco</string>
     <string name="channel_bank">Banca ore</string>
     <string name="channel_bank_desc">Scadenze e recuperi della banca ore</string>
+    <string name="channel_updates">Aggiornamenti</string>
+    <string name="channel_updates_desc">Nuove versioni di Stacco</string>
+    <string name="notif_update_title">Stacco %1$s è disponibile</string>
+    <string name="notif_update_text">Tocca per vedere le novità, oppure scarica subito l\'aggiornamento.</string>
+    <string name="notif_update_download">Scarica</string>
+    <string name="settings_updates">Avviso aggiornamenti</string>
+    <string name="settings_updates_sub">Una volta al giorno controlla su GitHub se c\'è una nuova versione</string>
+    <string name="update_check">Controlla aggiornamenti</string>
+    <string name="update_check_sub">Tocca per controllare adesso</string>
+    <string name="update_checking">Controllo in corso…</string>
+    <string name="update_latest">Hai già l\'ultima versione</string>
+    <string name="update_failed">Impossibile controllare: sei offline?</string>
+    <string name="update_available">Disponibile la versione %1$s</string>
+    <string name="update_available_sub">Tocca per vedere le novità e scaricarla</string>
     <string name="notif_exit_soon">Stacchi tra %1$d min</string>
     <string name="notif_exit_now">È ora di staccare! 🎉</string>
     <string name="notif_exit_text">Uscita prevista alle %1$s · hai lavorato %2$s</string>
