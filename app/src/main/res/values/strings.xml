@@ -319,7 +319,7 @@
 
     <!-- Donate & about -->
     <string name="donate_title">Support Stacco</string>
-    <string name="donate_body">If Stacco gets you out on time, buy me a coffee on PayPal ☕</string>
+    <string name="donate_body">If Stacco gets you out on time, support it on Buy Me a Coffee ☕</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_tagline">Made calmly, in Italy. Free and open source.</string>
     <string name="about_github">Source code on GitHub</string>

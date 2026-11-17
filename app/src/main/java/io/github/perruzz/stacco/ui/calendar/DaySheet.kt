@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
@@ -64,8 +67,8 @@ import io.github.perruzz.stacco.ui.theme.StaccoTheme
 import io.github.perruzz.stacco.ui.theme.deltaColor
 import io.github.perruzz.stacco.ui.theme.shiftContainer
 import io.github.perruzz.stacco.ui.today.DayTypeSelector
-import io.github.perruzz.stacco.ui.today.ShiftSelector
 import io.github.perruzz.stacco.ui.today.Hint
+import io.github.perruzz.stacco.ui.today.ShiftSelector
 import io.github.perruzz.stacco.ui.today.StampTimeline
 import io.github.perruzz.stacco.ui.today.icon
 import io.github.perruzz.stacco.ui.today.label
@@ -101,6 +104,11 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
         }
     }
 
+    // A sheet tall enough to reach the status bar gets pushed down by it while it moves: its height
+    // then depends on its own position, so it crept up slowly when opening and bounced when
+    // dragged (long office days are taller than the screen). Kept clear of the top it stays stable.
+    val maxHeight = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * 0.86f).toDp() }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -109,6 +117,7 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
         Column(
             Modifier
                 .fillMaxWidth()
+                .heightIn(max = maxHeight)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .navigationBarsPadding()

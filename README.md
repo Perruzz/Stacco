@@ -175,8 +175,8 @@ Il saldo della banca ore non è mai un contatore "fragile": viene **ricalcolato 
 Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un caffè ☕
 
 <p align="center">
-  <a href="https://paypal.me/citrotren">
-    <img src="docs/donate.svg" alt="Dona con PayPal" width="360" />
+  <a href="https://buymeacoffee.com/peruzz">
+    <img src="docs/donate.svg" alt="Offrimi un caffè su Buy Me a Coffee" width="360" />
   </a>
 </p>
 

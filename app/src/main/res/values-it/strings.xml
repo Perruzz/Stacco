@@ -321,7 +321,7 @@
 
     <!-- Donate & about -->
     <string name="donate_title">Supporta Stacco</string>
-    <string name="donate_body">Se Stacco ti fa uscire in orario, offrimi un caffè su PayPal ☕</string>
+    <string name="donate_body">Se Stacco ti fa uscire in orario, offrimi un caffè su Buy Me a Coffee ☕</string>
     <string name="about_version">Versione %1$s</string>
     <string name="about_tagline">Fatta con calma, in Italia. Libera e open source.</string>
     <string name="about_github">Codice sorgente su GitHub</string>

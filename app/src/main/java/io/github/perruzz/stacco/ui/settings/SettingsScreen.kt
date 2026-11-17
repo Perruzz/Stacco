@@ -21,6 +21,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -65,7 +66,6 @@ import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EventRepeat
-import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.HourglassTop
@@ -521,7 +521,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
         Appear(i++) { AppearanceCard(data, onDynamic = { on -> update { it.copy(appearance = it.appearance.copy(dynamicColor = on)) } }) }
 
-        Appear(i++) { DonateCard(onClick = { openUrl(context, Links.PAYPAL) }) }
+        Appear(i++) { DonateCard(onClick = { openUrl(context, Links.DONATE) }) }
 
         Appear(i++) {
             StaccoCard {
@@ -831,12 +831,18 @@ private fun ThemePreview(mode: ThemeMode, icon: androidx.compose.ui.graphics.vec
 
 @Composable
 private fun DonateCard(onClick: () -> Unit) {
-    val beat = rememberInfiniteTransition(label = "heart")
-    val scale by beat.animateFloat(
+    val sway = rememberInfiniteTransition(label = "coffee")
+    val tilt by sway.animateFloat(
+        initialValue = -9f,
+        targetValue = 9f,
+        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "coffee-tilt",
+    )
+    val scale by sway.animateFloat(
         initialValue = 1f,
-        targetValue = 1.18f,
-        animationSpec = infiniteRepeatable(tween(520, easing = LinearEasing), RepeatMode.Reverse),
-        label = "heart-scale",
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(tween(450, easing = LinearEasing), RepeatMode.Reverse),
+        label = "coffee-scale",
     )
     StaccoCard(
         color = Color.Transparent,
@@ -858,12 +864,16 @@ private fun DonateCard(onClick: () -> Unit) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        Icons.Rounded.Favorite,
+                        Icons.Rounded.Coffee,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier
                             .size(28.dp)
-                            .graphicsLayer { scaleX = scale; scaleY = scale },
+                            .graphicsLayer {
+                                rotationZ = tilt
+                                scaleX = scale
+                                scaleY = scale
+                            },
                     )
                 }
                 Spacer(Modifier.width(16.dp))
