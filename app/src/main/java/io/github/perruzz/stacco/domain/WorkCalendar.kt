@@ -2,6 +2,7 @@ package io.github.perruzz.stacco.domain
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.YearMonth
 import java.time.temporal.TemporalAdjusters
 import kotlin.math.max
@@ -184,11 +185,21 @@ class WorkCalendar(
         return count
     }
 
+    /**
+     * Result of a completed day. A night shift on the night the clocks change lasts one hour
+     * less (spring) or more (autumn) than its stamps say: the real elapsed time is counted.
+     */
+    fun result(date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): DayResult? {
+        val record = days[date] ?: return null
+        val entry = record.entry ?: return null
+        val exit = record.exit ?: return null
+        return DayCalculator.result(record, breakRules(date), required(date), clockShift(date, entry, exit, zone))
+    }
+
     /** Hour bank delta of a completed office day, or null when there is nothing to count. */
     fun delta(date: LocalDate): Int? {
-        val record = days[date] ?: return null
         if (effectiveType(date) != DayType.OFFICE) return null
-        return DayCalculator.result(record, breakRules(date), required(date))?.delta
+        return result(date)?.delta
     }
 
     fun smartUsed(range: ClosedRange<LocalDate>): Int =
@@ -201,8 +212,26 @@ class WorkCalendar(
         }
 
     companion object {
-        fun from(data: StaccoData): WorkCalendar = WorkCalendar(data.work, data.parsedDays())
+        /** The last calendar built: the same data comes back every second from the clock. */
+        @Volatile
+        private var cached: Pair<StaccoData, WorkCalendar>? = null
+
+        fun from(data: StaccoData): WorkCalendar {
+            cached?.let { (source, calendar) -> if (source === data) return calendar }
+            return WorkCalendar(data.work, data.parsedDays()).also { cached = data to it }
+        }
     }
+}
+
+/**
+ * Minutes the clocks moved between two clock times of [date]'s working day (minutes may go past
+ * midnight): +60 across the spring-forward night, −60 across the autumn one, 0 otherwise.
+ */
+fun clockShift(date: LocalDate, from: Int, to: Int, zone: ZoneId = ZoneId.systemDefault()): Int {
+    val start = date.atStartOfDay()
+    val a = zone.rules.getOffset(start.plusMinutes(from.toLong())).totalSeconds
+    val b = zone.rules.getOffset(start.plusMinutes(to.toLong())).totalSeconds
+    return (b - a) / 60
 }
 
 fun StaccoData.parsedDays(): Map<LocalDate, DayRecord> =

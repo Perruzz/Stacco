@@ -101,8 +101,12 @@ object Notifications {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
+    /**
+     * The instant of [minutes] (clock time, possibly past midnight) of [date]. Computed on the
+     * local clock: on daylight-saving days midnight + N physical minutes would be an hour off.
+     */
     fun epochMillis(date: LocalDate, minutes: Int): Long =
-        date.atStartOfDay(ZoneId.systemDefault()).plusMinutes(minutes.toLong()).toInstant().toEpochMilli()
+        date.atStartOfDay().plusMinutes(minutes.toLong()).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     fun base(context: Context, channel: String): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channel)

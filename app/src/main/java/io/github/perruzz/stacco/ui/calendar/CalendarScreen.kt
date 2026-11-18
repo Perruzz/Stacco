@@ -24,6 +24,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.EditCalendar
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material3.FilledTonalIconButton
@@ -94,6 +96,7 @@ import io.github.perruzz.stacco.ui.theme.shiftColor
 import io.github.perruzz.stacco.ui.theme.shiftContainer
 import io.github.perruzz.stacco.ui.theme.tint
 import io.github.perruzz.stacco.ui.today.Appear
+import io.github.perruzz.stacco.ui.today.Hint
 import io.github.perruzz.stacco.ui.today.SmartQuota
 import io.github.perruzz.stacco.ui.today.icon
 import io.github.perruzz.stacco.ui.today.label
@@ -194,6 +197,9 @@ fun CalendarScreen(viewModel: MainViewModel) {
                 }
             }
 
+            if (calendar.isShiftMode && data.work.shifts.isEmpty()) {
+                Appear(1) { Hint(icon = Icons.Rounded.Info, text = stringResource(R.string.calendar_no_shifts)) }
+            }
             if (calendar.isShiftMode && data.work.shifts.isNotEmpty()) {
                 Appear(1) {
                     ShiftPlanner(
@@ -504,10 +510,13 @@ private fun DayCell(
 }
 
 @Composable
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 private fun Legend() {
-    Row(
+    // Wraps whole entries onto a second line with large fonts instead of breaking the words.
+    FlowRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         listOf(DayType.OFFICE, DayType.SMART, DayType.TRAVEL, DayType.VACATION, DayType.SICK, DayType.HOLIDAY).forEach { type ->
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -517,7 +526,7 @@ private fun Legend() {
                         .background(type.tint(), CircleShape),
                 )
                 Spacer(Modifier.width(4.dp))
-                Text(stringResource(type.shortLabel), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(type.shortLabel), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
     }
@@ -544,7 +553,7 @@ private fun MonthSummary(month: YearMonth, data: StaccoData, calendar: WorkCalen
     val sick = inMonth.count { it.value.type == DayType.SICK }
     val bank = inMonth.keys.sumOf { calendar.delta(it) ?: 0 }
     val worked = inMonth.entries.sumOf { (date, record) ->
-        if (calendar.effectiveType(date) == DayType.OFFICE) DayCalculator.result(record, calendar.breakRules(date), calendar.required(date))?.worked ?: 0 else 0
+        if (calendar.effectiveType(date) == DayType.OFFICE) calendar.result(date)?.worked ?: 0 else 0
     }
     val planned = inMonth.keys.sumOf { calendar.required(it) }
     val c = StaccoTheme.colors
@@ -627,7 +636,7 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
         entries.forEach { (date, record) ->
             val required = calendar.required(date)
             val rules = calendar.breakRules(date)
-            val result = DayCalculator.result(record, rules, required)
+            val result = calendar.result(date)
             val b = DayCalculator.breakInfo(record, rules, required, null)
             Row(
                 Modifier
@@ -670,6 +679,8 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
                     }
                 } else if (record.exit == null && date < activeDate) {
                     Text(stringResource(R.string.calendar_missing_exit), style = MaterialTheme.typography.labelMedium, color = StaccoTheme.colors.vacation)
+                } else if (date < activeDate && DayCalculator.issues(record).isNotEmpty()) {
+                    Text(stringResource(R.string.calendar_fix), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
                 } else {
                     Text(stringResource(R.string.calendar_incomplete), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
                 }
@@ -702,10 +713,12 @@ private fun ShiftPlanner(data: StaccoData, painting: Boolean, selected: String?,
 }
 
 @Composable
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 private fun ShiftLegend(data: StaccoData) {
-    Row(
+    FlowRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         data.work.shifts.take(5).forEach { shift ->
             Row(verticalAlignment = Alignment.CenterVertically) {

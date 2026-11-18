@@ -182,6 +182,11 @@
     <string name="missing_exit_action">Aggiungi uscita</string>
     <string name="missing_exit_pick">Uscita di %1$s</string>
     <string name="calendar_missing_exit">Uscita mancante</string>
+    <string name="fix_day_title">Le timbrature di %1$s non tornano</string>
+    <string name="fix_day_body">Per esempio una pausa iniziata e mai chiusa: finché non le sistemi, quella giornata resta fuori dalla banca ore.</string>
+    <string name="fix_day_action">Sistema</string>
+    <string name="calendar_fix">Da sistemare</string>
+    <string name="calendar_no_shifts">Aggiungi i tuoi turni in Impostazioni per pianificarli qui sul calendario.</string>
     <string name="relative_today">Oggi</string>
     <string name="relative_yesterday">Ieri</string>
     <string name="relative_tomorrow">Domani</string>

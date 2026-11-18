@@ -180,6 +180,11 @@
     <string name="missing_exit_action">Add exit</string>
     <string name="missing_exit_pick">Exit on %1$s</string>
     <string name="calendar_missing_exit">Missing exit</string>
+    <string name="fix_day_title">The stamps of %1$s don\'t add up</string>
+    <string name="fix_day_body">For example a break that was never closed: until you fix them, that day stays out of the hour bank.</string>
+    <string name="fix_day_action">Fix it</string>
+    <string name="calendar_fix">Needs fixing</string>
+    <string name="calendar_no_shifts">Add your shifts in Settings to plan them here on the calendar.</string>
     <string name="relative_today">Today</string>
     <string name="relative_yesterday">Yesterday</string>
     <string name="relative_tomorrow">Tomorrow</string>

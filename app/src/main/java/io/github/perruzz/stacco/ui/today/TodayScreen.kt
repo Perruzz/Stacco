@@ -84,6 +84,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.domain.BankAlert
 import io.github.perruzz.stacco.domain.DayIssue
+import io.github.perruzz.stacco.domain.DayFix
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.ExitTarget
@@ -97,6 +98,7 @@ import io.github.perruzz.stacco.ui.MainTab
 import io.github.perruzz.stacco.ui.MainViewModel
 import io.github.perruzz.stacco.ui.components.DayRing
 import io.github.perruzz.stacco.ui.bank.vacationHours
+import io.github.perruzz.stacco.ui.calendar.DaySheet
 import io.github.perruzz.stacco.ui.components.IconBubble
 import io.github.perruzz.stacco.ui.components.InfoRow
 import io.github.perruzz.stacco.ui.components.MorphBadge
@@ -127,6 +129,7 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
     var editing by remember { mutableStateOf<StampSlot?>(null) }
     var choosingType by remember { mutableStateOf(false) }
     var fixingExit by remember { mutableStateOf<LocalDate?>(null) }
+    var fixingDay by remember { mutableStateOf<LocalDate?>(null) }
 
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -141,17 +144,23 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
         var index = 0
         Appear(index++) { Header(s, onTypeClick = { choosingType = true }) }
 
-        val missingExit = s.missingExit
-        // Keeps the last date while the card animates away after the fix.
-        var lastMissing by remember { mutableStateOf(missingExit) }
-        if (missingExit != null) lastMissing = missingExit
+        val toFix = s.dayToFix
+        // Keeps the last day while the card animates away after the fix.
+        var lastToFix by remember { mutableStateOf(toFix) }
+        if (toFix != null) lastToFix = toFix
         Appear(index++) {
             AnimatedVisibility(
-                visible = missingExit != null,
+                visible = toFix != null,
                 enter = fadeIn(tween(400)) + expandVertically(spring(dampingRatio = 0.8f, stiffness = 300f)),
                 exit = fadeOut(tween(300)) + shrinkVertically(tween(450, delayMillis = 150)),
             ) {
-                lastMissing?.let { date -> MissingExitCard(date, onFix = { fixingExit = date }) }
+                lastToFix?.let { (date, kind) ->
+                    FixDayCard(
+                        date = date,
+                        kind = kind,
+                        onFix = { if (kind == DayFix.MISSING_EXIT) fixingExit = date else fixingDay = date },
+                    )
+                }
             }
         }
 
@@ -233,6 +242,10 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
         )
     }
 
+    fixingDay?.let { date ->
+        DaySheet(date = date, data = s.data, viewModel = viewModel, onDismiss = { fixingDay = null })
+    }
+
     fixingExit?.let { date ->
         TimePickerDialog(
             title = stringResource(R.string.missing_exit_pick, Fmt.longDateInline(date)),
@@ -282,9 +295,10 @@ private fun suggestedExit(data: StaccoData, date: LocalDate): Int? {
     return entry + calendar.required(date) + pause
 }
 
-/** A gentle nudge about a day whose exit was never stamped. */
+/** A gentle nudge about a day the bank skips: exit never stamped, or stamps that do not add up. */
 @Composable
-private fun MissingExitCard(date: LocalDate, onFix: () -> Unit) {
+private fun FixDayCard(date: LocalDate, kind: DayFix, onFix: () -> Unit) {
+    val missingExit = kind == DayFix.MISSING_EXIT
     val c = StaccoTheme.colors
     val pulse = rememberInfiniteTransition(label = "missing-exit")
     val scale by pulse.animateFloat(
@@ -304,18 +318,21 @@ private fun MissingExitCard(date: LocalDate, onFix: () -> Unit) {
             )
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.missing_exit_title, Fmt.longDateInline(date)), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(if (missingExit) R.string.missing_exit_title else R.string.fix_day_title, Fmt.longDateInline(date)),
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    stringResource(R.string.missing_exit_body),
+                    stringResource(if (missingExit) R.string.missing_exit_body else R.string.fix_day_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(10.dp))
                 FilledTonalButton(onClick = onFix) {
-                    Icon(StampSlot.EXIT.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(if (missingExit) StampSlot.EXIT.icon else Icons.Rounded.Warning, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.missing_exit_action))
+                    Text(stringResource(if (missingExit) R.string.missing_exit_action else R.string.fix_day_action))
                 }
             }
         }

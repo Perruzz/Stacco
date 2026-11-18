@@ -7,7 +7,7 @@ import io.github.perruzz.stacco.StaccoApp
 import io.github.perruzz.stacco.data.Backup
 import io.github.perruzz.stacco.data.day
 import io.github.perruzz.stacco.domain.BankLedger
-import io.github.perruzz.stacco.domain.DayCalculator
+import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
@@ -74,6 +74,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Whether today's working day is over: changes a few times a day, unlike [today]. */
+    val todayDone: StateFlow<Boolean> = today.map { it?.projection?.phase == DayPhase.DONE }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<UiEvent> = _events
 
@@ -94,9 +99,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun emitCompletion(date: LocalDate) {
         val data = repo.current()
-        val calendar = WorkCalendar.from(data)
-        val record = data.day(date)
-        val result = DayCalculator.result(record, calendar.breakRules(date), calendar.required(date))
+        val result = WorkCalendar.from(data).result(date)
         if (result != null) _events.emit(UiEvent.DayCompleted(result.delta, result.worked))
     }
 

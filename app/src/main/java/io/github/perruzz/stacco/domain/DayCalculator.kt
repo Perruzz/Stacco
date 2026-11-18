@@ -112,13 +112,17 @@ object DayCalculator {
         )
     }
 
-    /** Result of a completed day, or null if the day is incomplete or inconsistent. */
-    fun result(r: DayRecord, rules: BreakRules, required: Int): DayResult? {
+    /**
+     * Result of a completed day, or null if the day is incomplete or inconsistent.
+     * [clockShift] is how far the clocks moved during the day (daylight saving, see
+     * [WorkCalendar.result]): the stamps are clock times, the worked time is real time.
+     */
+    fun result(r: DayRecord, rules: BreakRules, required: Int, clockShift: Int = 0): DayResult? {
         val entry = r.entry ?: return null
         val exit = r.exit ?: return null
         if (issues(r).isNotEmpty()) return null
         val b = breakInfo(r, rules, required, now = null)
-        val worked = max(0, exit - entry - b.deducted)
+        val worked = max(0, exit - entry - b.deducted - clockShift)
         // With a permit the day can only cost hours, never add them: time worked beyond the
         // reduced day does not go to the bank (that permit was simply not needed).
         val delta = if (r.leaveMinutes > 0) min(0, worked - required) else worked - required

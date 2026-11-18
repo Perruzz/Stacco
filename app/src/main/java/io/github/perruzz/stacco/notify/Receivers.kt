@@ -10,7 +10,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.localized
-import io.github.perruzz.stacco.domain.DayCalculator
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.domain.StampSlot
@@ -222,8 +221,7 @@ class StampActionReceiver : BroadcastReceiver() {
         val data = repository.current()
         if (stamp?.slot == StampSlot.EXIT) {
             val calendar = WorkCalendar.from(data)
-            val record = data.days[stamp.date.toString()]
-            val result = record?.let { DayCalculator.result(it, calendar.breakRules(stamp.date), calendar.required(stamp.date)) }
+            val result = calendar.result(stamp.date)
             if (result != null) {
                 val builder = Notifications.base(context, Notifications.CHANNEL_BANK)
                     .setContentTitle(context.getString(R.string.notif_day_done_title))

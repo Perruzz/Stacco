@@ -53,7 +53,12 @@ data class TodaySnapshot(
 
     /** A recent day whose exit was never stamped (it stays out of the hour bank until fixed). */
     val missingExit: LocalDate? get() = Engine.missingExit(data, date)
+
+    /** A recent day left out of the hour bank: exit missing or stamps that do not add up. */
+    val dayToFix: Pair<LocalDate, DayFix>? get() = Engine.dayToFix(data, date)
 }
+
+enum class DayFix { MISSING_EXIT, INCONSISTENT }
 
 object Engine {
 
@@ -66,6 +71,20 @@ object Engine {
 
     /** How far back a forgotten exit is still worth pointing out. */
     private const val MISSING_EXIT_DAYS = 14L
+
+    /**
+     * The most recent day before [date] (two weeks) that the bank skips: an entry without exit, or
+     * stamps that do not add up (e.g. a break never closed).
+     */
+    fun dayToFix(data: StaccoData, date: LocalDate): Pair<LocalDate, DayFix>? =
+        (1L..MISSING_EXIT_DAYS).asSequence().map { date.minusDays(it) }.firstNotNullOfOrNull { day ->
+            val record = data.days[day.toString()] ?: return@firstNotNullOfOrNull null
+            when {
+                record.entry != null && record.exit == null -> day to DayFix.MISSING_EXIT
+                record.hasStamps && DayCalculator.issues(record).isNotEmpty() -> day to DayFix.INCONSISTENT
+                else -> null
+            }
+        }
 
     /** The most recent day before [date] with an entry but no exit, within two weeks. */
     fun missingExit(data: StaccoData, date: LocalDate): LocalDate? =
@@ -101,7 +120,7 @@ object Engine {
         val calendar = WorkCalendar.from(data)
         val record = data.days[date.toString()] ?: DayRecord.EMPTY
         val required = calendar.required(date)
-        val projection = DayCalculator.project(
+        val projected = DayCalculator.project(
             r = record,
             rules = calendar.breakRules(date),
             required = required,
@@ -111,6 +130,8 @@ object Engine {
             plannedStart = calendar.plannedStart(date),
             plannedEnd = calendar.plannedEnd(date),
         )
+        // A finished day reads the same as in the calendar and the bank (daylight saving included).
+        val projection = if (projected.result != null) projected.copy(result = calendar.result(date)) else projected
         val alerts = AlertPlanner.plan(
             balance = ledger.balance,
             today = date,

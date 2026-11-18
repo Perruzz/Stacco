@@ -36,4 +36,13 @@ class MissingExitTest {
         val fixed = data.copy(days = data.days + ("2026-11-10" to DayRecord(entry = 540, exit = 1030)))
         assertNull(Engine.missingExit(fixed, d("2026-11-16")))
     }
+
+    @Test
+    fun `days whose stamps do not add up are pointed out too`() {
+        val broken = StaccoData(days = mapOf("2026-11-12" to DayRecord(entry = 540, breakOut = 780, exit = 1050)))
+        assertEquals(d("2026-11-12") to DayFix.INCONSISTENT, Engine.dayToFix(broken, d("2026-11-16")))
+        // A missing exit is reported as such; the most recent day comes first.
+        assertEquals(d("2026-11-10") to DayFix.MISSING_EXIT, Engine.dayToFix(data, d("2026-11-16")))
+        assertNull(Engine.dayToFix(StaccoData(), d("2026-11-16")))
+    }
 }

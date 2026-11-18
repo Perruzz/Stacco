@@ -70,7 +70,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.domain.AlertPlanner
 import io.github.perruzz.stacco.domain.BankLedger
-import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.Movement
 import io.github.perruzz.stacco.domain.MovementKind
 import io.github.perruzz.stacco.domain.VacationCalculator
@@ -97,7 +96,7 @@ import kotlin.math.min
 fun BankScreen(viewModel: MainViewModel) {
     val dataState by viewModel.data.collectAsStateWithLifecycle()
     val ledger by viewModel.ledger.collectAsStateWithLifecycle()
-    val todayState by viewModel.today.collectAsStateWithLifecycle()
+    val todayDone by viewModel.todayDone.collectAsStateWithLifecycle()
     val data = dataState ?: return
     val today = LocalDate.now()
 
@@ -108,11 +107,11 @@ fun BankScreen(viewModel: MainViewModel) {
     var deleting by remember { mutableStateOf<Movement?>(null) }
     var range by remember { mutableIntStateOf(30) }
 
-    val alerts = remember(ledger, data) {
+    val alerts = remember(ledger, data, todayDone) {
         AlertPlanner.plan(
             balance = ledger.balance,
             today = today,
-            todayDone = todayState?.projection?.phase == DayPhase.DONE,
+            todayDone = todayDone,
             calendar = WorkCalendar.from(data),
             work = data.work,
             bank = data.bank,

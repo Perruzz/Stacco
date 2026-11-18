@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
@@ -204,6 +205,14 @@ object Backup {
 
     fun encode(data: StaccoData): String = pretty.encodeToString(StaccoData.serializer(), data)
 
-    fun decode(text: String): StaccoData? =
-        runCatching { StaccoJson.decodeFromString(StaccoData.serializer(), text) }.getOrNull()
+    /**
+     * A Stacco backup, or null. Any JSON object would otherwise decode (unknown keys are ignored)
+     * into empty defaults and an import would wipe every day: a real backup always carries
+     * "schemaVersion" together with the work settings.
+     */
+    fun decode(text: String): StaccoData? = runCatching {
+        val root = StaccoJson.parseToJsonElement(text).jsonObject
+        if ("schemaVersion" !in root || "work" !in root) return null
+        StaccoJson.decodeFromJsonElement(StaccoData.serializer(), root)
+    }.getOrNull()
 }

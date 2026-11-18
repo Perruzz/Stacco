@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import io.github.perruzz.stacco.ui.settings.defaultShifts
 import io.github.perruzz.stacco.ui.settings.ShiftList
 import io.github.perruzz.stacco.ui.settings.ShiftEditorDialog
@@ -88,6 +90,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -108,6 +111,7 @@ import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.domain.ExpiryPeriod
 import io.github.perruzz.stacco.domain.SmartPeriod
+import io.github.perruzz.stacco.data.StaccoJson
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.ui.MainViewModel
 import io.github.perruzz.stacco.ui.components.AuroraBackground
@@ -135,10 +139,17 @@ private fun stepsFor(mode: WorkMode): List<Step> =
 
 private enum class Field { DAILY, MINIMUM, MIN_BREAK, BALANCE }
 
+private val DraftSaver = Saver<StaccoData, String>(
+    save = { StaccoJson.encodeToString(StaccoData.serializer(), it) },
+    restore = { runCatching { StaccoJson.decodeFromString(StaccoData.serializer(), it) }.getOrNull() },
+)
+
 @Composable
 fun OnboardingScreen(viewModel: MainViewModel) {
     var page by rememberSaveable { mutableIntStateOf(0) }
-    var draft by remember { mutableStateOf(StaccoData()) }
+    // Saved with the page: after a rotation or a theme change the choices made so far are kept
+    // (and the page index keeps pointing to the same step of the same flow).
+    var draft by rememberSaveable(stateSaver = DraftSaver) { mutableStateOf(StaccoData()) }
     var name by rememberSaveable { mutableStateOf("") }
     var balance by rememberSaveable { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf<Field?>(null) }
@@ -535,13 +546,15 @@ private fun ProgressDots(count: Int, current: Int) {
 
 @Composable
 private fun Page(icon: ImageVector, title: Int, body: Int, content: @Composable () -> Unit) {
-    Spacer(Modifier.height(24.dp))
+    // In landscape (or on short screens) a smaller badge leaves room for the title and the choices.
+    val compact = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } < 560.dp
+    Spacer(Modifier.height(if (compact) 4.dp else 24.dp))
     MorphBadge(
         icon = icon,
         colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
-        size = 128.dp,
+        size = if (compact) 64.dp else 128.dp,
     )
-    Spacer(Modifier.height(28.dp))
+    Spacer(Modifier.height(if (compact) 12.dp else 28.dp))
     Text(stringResource(title), style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
     Spacer(Modifier.height(10.dp))
     Text(

@@ -88,7 +88,7 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
     val rules = calendar.breakRules(date)
     val required = calendar.required(date)
     val shift = calendar.shift(date)
-    val result = DayCalculator.result(record, rules, required)
+    val result = calendar.result(date)
     val breakInfo = DayCalculator.breakInfo(record, rules, required, null)
     val issues = DayCalculator.issues(record)
     val smartRange = calendar.smartRange(date, data.smart.period, Engine.firstDayOfWeek())

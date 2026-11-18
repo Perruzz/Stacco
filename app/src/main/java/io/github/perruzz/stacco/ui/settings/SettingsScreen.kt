@@ -296,7 +296,8 @@ fun SettingsScreen(viewModel: MainViewModel) {
                                 labels = { Fmt.weekdayNarrow(DayOfWeek.of(it)).take(2) },
                                 onToggle = { day ->
                                     update {
-                                        val days = it.work.workDays.toMutableSet().apply { if (!add(day)) remove(day) }
+                                        // The last working day cannot be removed: a schedule needs at least one.
+                                        val days = it.work.workDays.toMutableSet().apply { if (!add(day) && size > 1) remove(day) }
                                         it.copy(work = it.work.copy(workDays = days))
                                     }
                                 },
