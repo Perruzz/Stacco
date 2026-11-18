@@ -79,6 +79,12 @@ class CrossFeatureTest {
     private val labels = CsvLabels(
         headers = listOf("Data", "Giorno", "Tipo", "Turno", "Entrata", "Inizio pausa", "Fine pausa", "Uscita", "Permesso", "Pausa", "Lavorato", "Previsto", "Saldo", "Note"),
         countedHeaders = listOf("Entrata conteggiata", "Uscita conteggiata"),
+        onCallHeaders = listOf("Reperibile", "Interventi", "Accreditati", "Recupero"),
+        yes = "Sì",
+        onCallDays = "Giorni di reperibilità",
+        creditedHours = "Ore intervento accreditate",
+        recoveryHours = "Recupero interventi fruito",
+        recoveryOn = { "Recupero interventi al $it" },
         type = { it?.name ?: "REST" },
         holiday = { it.name },
         date = { it.toString() },

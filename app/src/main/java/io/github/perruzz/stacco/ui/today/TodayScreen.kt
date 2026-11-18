@@ -81,6 +81,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
+import io.github.perruzz.stacco.Links
+import io.github.perruzz.stacco.ui.oncall.OnCallCard
+import io.github.perruzz.stacco.ui.oncall.RecoveryReminderCard
+import io.github.perruzz.stacco.ui.settings.openUrl
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.domain.BankAlert
 import io.github.perruzz.stacco.domain.DayIssue
@@ -126,6 +131,8 @@ import java.time.YearMonth
 @Composable
 fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
     val snapshot by viewModel.today.collectAsStateWithLifecycle()
+    val supportDue by viewModel.support.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val s = snapshot ?: return
     var editing by remember { mutableStateOf<StampSlot?>(null) }
     var choosingType by remember { mutableStateOf(false) }
@@ -166,6 +173,22 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
         }
 
         val working = s.isOffice || s.record.hasStamps
+        // On call: the timer goes first, unless the working day is under way and nothing is running.
+        val onCall = s.onCall
+        val dayUnderWay = working && s.projection.phase in setOf(DayPhase.MORNING, DayPhase.ON_BREAK, DayPhase.AFTERNOON)
+        val onCallFirst = onCall != null && onCall.onDuty && (onCall.running != null || !dayUnderWay)
+        val onCallCard: @Composable () -> Unit = {
+            if (onCall != null) {
+                OnCallCard(
+                    state = onCall,
+                    today = s.calendarDate,
+                    onStart = viewModel::startIntervention,
+                    onStop = viewModel::stopIntervention,
+                    onOpen = { onOpenTab(MainTab.BANK) },
+                )
+            }
+        }
+        if (onCallFirst) Appear(index++) { onCallCard() }
         when {
             s.isSmart -> Appear(index++) { SmartDayCard(s, onOffice = { viewModel.setDayType(s.date, if (s.scheduled) null else DayType.OFFICE) }) }
             s.isTravel -> Appear(index++) { TravelCard(s, onChange = { choosingType = true }) }
@@ -219,7 +242,27 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
                 }
             }
         }
+        if (onCall != null && onCall.onDuty && !onCallFirst) Appear(index++) { onCallCard() }
+        if (onCall != null && !onCall.onDuty && onCall.alert?.inWindow == true) {
+            Appear(index++) { RecoveryReminderCard(onCall, onOpen = { onOpenTab(MainTab.BANK) }) }
+        }
         Appear(index++) { BankSummaryCard(s, onOpen = { onOpenTab(MainTab.BANK) }) }
+        Appear(index++) {
+            AnimatedVisibility(
+                visible = supportDue,
+                enter = fadeIn(tween(500)) + expandVertically(spring(dampingRatio = 0.8f, stiffness = 300f)),
+                exit = fadeOut(tween(300)) + shrinkVertically(tween(450, delayMillis = 150)),
+            ) {
+                SupportCard(
+                    onOpen = {
+                        openUrl(context, Links.DONATE)
+                        viewModel.supportOpened()
+                    },
+                    onLater = viewModel::supportLater,
+                    onNever = viewModel::supportNever,
+                )
+            }
+        }
     }
 
     editing?.let { slot ->
@@ -961,7 +1004,7 @@ fun AlertBanner(alert: BankAlert, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AlertRow(icon: ImageVector, color: Color, title: String, body: String, modifier: Modifier = Modifier) {
+internal fun AlertRow(icon: ImageVector, color: Color, title: String, body: String, modifier: Modifier = Modifier) {
     Row(
         modifier
             .fillMaxWidth()

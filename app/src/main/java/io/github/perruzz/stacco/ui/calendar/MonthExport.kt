@@ -15,6 +15,12 @@ fun csvLabels(context: Context): CsvLabels {
     return CsvLabels(
         headers = res.getStringArray(R.array.csv_headers).toList(),
         countedHeaders = listOf(res.getString(R.string.csv_counted_entry), res.getString(R.string.csv_counted_exit)),
+        onCallHeaders = listOf(R.string.csv_on_call, R.string.csv_interventions, R.string.csv_credited, R.string.csv_recovery).map(res::getString),
+        yes = res.getString(R.string.csv_yes),
+        onCallDays = res.getString(R.string.csv_on_call_days),
+        creditedHours = res.getString(R.string.csv_credited_hours),
+        recoveryHours = res.getString(R.string.csv_recovery_hours),
+        recoveryOn = { res.getString(R.string.csv_recovery_on, dates.format(it)) },
         type = { res.getString(it.label) },
         holiday = { res.getString(it.label) },
         date = { dates.format(it) },

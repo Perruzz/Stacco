@@ -44,6 +44,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.ui.oncall.OnCallIcon
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.VacationCalculator
@@ -79,6 +80,8 @@ fun SelectionBar(
     onApply: (DayType?) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /** On-call duty on: marks (true) or unmarks the picked days, weekends and holidays included. */
+    onOnCall: ((Boolean) -> Unit)? = null,
 ) {
     val calendar = remember(data) { WorkCalendar.from(data) }
     val count = picked.size
@@ -148,6 +151,17 @@ fun SelectionBar(
                     .padding(end = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                if (onOnCall != null) {
+                    val allOnCall = count > 0 && picked.all { data.days[it.toString()]?.onCall == true }
+                    TypeAction(
+                        label = stringResource(if (allOnCall) R.string.select_on_call_off else R.string.select_on_call),
+                        icon = OnCallIcon,
+                        tint = StaccoTheme.colors.onCall,
+                        container = StaccoTheme.colors.onCallContainer,
+                        enabled = count > 0,
+                        onClick = { onOnCall(!allOnCall) },
+                    )
+                }
                 SelectionTypes.forEach { type ->
                     TypeAction(
                         label = stringResource(type.label),

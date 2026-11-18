@@ -13,6 +13,7 @@ import io.github.perruzz.stacco.domain.AlertsState
 import io.github.perruzz.stacco.domain.BankAlert
 import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.domain.Periods
+import io.github.perruzz.stacco.domain.RecoveryAlert
 import io.github.perruzz.stacco.domain.TodaySnapshot
 import io.github.perruzz.stacco.stacco
 import io.github.perruzz.stacco.ui.util.Fmt
@@ -102,8 +103,31 @@ object BankAlertNotifier {
                 }
             }
         }
+        // On-call recovery hours that are going to be lost (the module must be on).
+        val recovery = s.onCall?.alert
+        if (recovery != null && recovery.inWindow) {
+            val key = recovery.expiry.toString()
+            if (due(state.recoveryLastDate, state.recoveryPeriod, key, today, recovery.officeDaysLeft, s.scheduled)) {
+                val text = recoveryAlertText(context, recovery)
+                val builder = Notifications.base(context, Notifications.CHANNEL_BANK)
+                    .setContentTitle(context.getString(R.string.recovery_alert_title, Fmt.duration(recovery.minutes), Fmt.dayMonth(recovery.expiry, locale)))
+                    .setContentText(text)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                    .setAutoCancel(true)
+                Notifications.post(context, Notifications.ID_RECOVERY, builder)
+                state = state.copy(recoveryLastDate = today.toString(), recoveryPeriod = key)
+            }
+        }
         return state
     }
+
+    /** "3 office days left to take them as recovery", as in the app. */
+    fun recoveryAlertText(context: Context, alert: RecoveryAlert): String =
+        if (alert.officeDaysLeft > 0) {
+            context.resources.getQuantityString(R.plurals.recovery_alert_days, alert.officeDaysLeft, alert.officeDaysLeft)
+        } else {
+            context.getString(R.string.recovery_alert_last)
+        }
 
     /**
      * Not more than once a day; every other day while there is time, daily in the last two office days.

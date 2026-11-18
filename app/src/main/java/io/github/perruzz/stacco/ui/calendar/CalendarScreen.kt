@@ -100,6 +100,11 @@ import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.domain.parsedDays
 import io.github.perruzz.stacco.export.MonthCsv
+import io.github.perruzz.stacco.domain.OnCall
+import io.github.perruzz.stacco.ui.oncall.OnCallBadge
+import io.github.perruzz.stacco.ui.oncall.OnCallLegendEntry
+import io.github.perruzz.stacco.ui.oncall.OnCallMonthTile
+import io.github.perruzz.stacco.ui.oncall.RecoveryIcon
 import io.github.perruzz.stacco.ui.MainViewModel
 import io.github.perruzz.stacco.ui.components.RollingText
 import io.github.perruzz.stacco.ui.components.SectionLabel
@@ -305,7 +310,7 @@ fun CalendarScreen(viewModel: MainViewModel) {
                         )
                     }
                     Spacer(Modifier.height(12.dp))
-                    if (calendar.isShiftMode) ShiftLegend(data) else Legend()
+                    if (calendar.isShiftMode) ShiftLegend(data) else Legend(onCall = data.onCall.enabled)
                     AnimatedVisibility(!selecting, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) {
                             io.github.perruzz.stacco.ui.components.Pill(
@@ -344,6 +349,14 @@ fun CalendarScreen(viewModel: MainViewModel) {
                 onApply = { type ->
                     viewModel.setDayTypes(picked, type)
                     endSelection()
+                },
+                onOnCall = if (data.onCall.enabled) {
+                    { on ->
+                        viewModel.setOnCallDays(picked, on)
+                        endSelection()
+                    }
+                } else {
+                    null
                 },
                 onClose = { endSelection() },
             )
@@ -519,6 +532,14 @@ private fun DayCell(
             ),
         contentAlignment = Alignment.Center,
     ) {
+        if (inMonth && data.onCall.enabled && record?.onCall == true) {
+            // In the very corner: with large fonts the day number grows towards it.
+            OnCallBadge(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .padding(2.dp),
+            )
+        }
         if (pick > 0.01f) {
             Box(
                 Modifier
@@ -560,6 +581,8 @@ private fun DayCell(
                     maxLines = 1,
                 )
                 type != null && type != DayType.OFFICE -> Icon(type.icon, contentDescription = null, tint = type.tint(), modifier = Modifier.size(14.dp))
+                data.onCall.enabled && (record?.recoveryMinutes ?: 0) > 0 && record?.hasStamps != true ->
+                    Icon(RecoveryIcon, contentDescription = null, tint = StaccoTheme.colors.onCall, modifier = Modifier.size(14.dp))
                 record?.hasStamps == true -> Box(
                     Modifier
                         .size(6.dp)
@@ -574,13 +597,14 @@ private fun DayCell(
 
 @Composable
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-private fun Legend() {
+private fun Legend(onCall: Boolean) {
     // Wraps whole entries onto a second line with large fonts instead of breaking the words.
     FlowRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        if (onCall) OnCallLegendEntry()
         listOf(DayType.OFFICE, DayType.SMART, DayType.TRAVEL, DayType.VACATION, DayType.SICK, DayType.HOLIDAY).forEach { type ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
@@ -656,6 +680,11 @@ private fun MonthSummary(month: YearMonth, data: StaccoData, calendar: WorkCalen
         }
         Spacer(Modifier.height(10.dp))
         StatTile(Icons.Rounded.Savings, deltaColor(bank), stringResource(R.string.calendar_bank_month), Fmt.duration(bank, signed = true), Modifier.fillMaxWidth())
+        if (data.onCall.enabled) {
+            val duty = remember(data, month) { OnCall.month(data, month) }
+            Spacer(Modifier.height(10.dp))
+            OnCallMonthTile(days = duty.days, credited = duty.credited)
+        }
         if (worked > 0) {
             Spacer(Modifier.height(12.dp))
             Text(
@@ -800,6 +829,7 @@ private fun ShiftLegend(data: StaccoData) {
         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        if (data.onCall.enabled) OnCallLegendEntry()
         data.work.shifts.take(5).forEach { shift ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(

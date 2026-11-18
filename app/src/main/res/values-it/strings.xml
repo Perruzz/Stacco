@@ -560,6 +560,15 @@
     </string-array>
     <string name="csv_counted_entry">Entrata conteggiata</string>
     <string name="csv_counted_exit">Uscita conteggiata</string>
+    <string name="csv_on_call">Reperibile</string>
+    <string name="csv_interventions">Interventi</string>
+    <string name="csv_credited">Accreditati</string>
+    <string name="csv_recovery">Recupero</string>
+    <string name="csv_yes">Sì</string>
+    <string name="csv_on_call_days">Giorni di reperibilità</string>
+    <string name="csv_credited_hours">Ore intervento accreditate</string>
+    <string name="csv_recovery_hours">Recupero interventi fruito</string>
+    <string name="csv_recovery_on">Recupero interventi al %1$s</string>
     <string name="csv_date_pattern">dd/MM/yyyy</string>
     <string name="csv_total">Totale</string>
     <string name="csv_office_days">Giorni in sede</string>
@@ -588,4 +597,87 @@
     <string name="schedule_period_current">Dal %1$s · attuale</string>
     <string name="schedule_history_clear">Usa l\'orario attuale per tutte le date</string>
     <string name="schedule_history_clear_text">I giorni passati verranno ricalcolati con l\'orario attuale e lo storico verrà cancellato. Non si può annullare.</string>
+    <!-- On-call duty (reperibilità) -->
+    <string name="settings_on_call_section">Reperibilità</string>
+    <string name="settings_on_call">Reperibilità</string>
+    <string name="settings_on_call_sub">Giorni reperibili, interventi e recupero ore</string>
+    <string name="on_call_rule_credit">Ogni intervento è accreditato al quarto d\'ora per eccesso: 32 minuti diventano 45.</string>
+    <string name="on_call_rule_recovery">Le ore si usano come recupero a blocchi di 30 minuti, fino alla giornata intera: la giornata va in pari senza toccare banca ore e ferie.</string>
+    <string name="on_call_rule_expiry">Vanno usate entro la fine del secondo mese successivo: un intervento di novembre scade il 31 gennaio.</string>
+    <string name="on_call_rule_off">Se spegni la reperibilità sparisce dall\'app, ma i dati restano.</string>
+    <string name="day_on_call">Reperibile</string>
+    <string name="day_on_call_sub">Vale per qualsiasi tipo di giornata, anche festivi e weekend</string>
+    <string name="intervention_add">Aggiungi intervento</string>
+    <string name="intervention_title">Intervento</string>
+    <string name="intervention_start">Inizio</string>
+    <string name="intervention_end">Fine</string>
+    <string name="intervention_delete">Elimina</string>
+    <string name="intervention_delete_title">Eliminare l\'intervento?</string>
+    <string name="intervention_delete_text">%1$s · il recupero interventi scende di %2$s.</string>
+    <string name="intervention_running_short">in corso</string>
+    <string name="intervention_credit">%1$s → %2$s accreditati</string>
+    <string name="intervention_end_next_day">Finisce il giorno dopo</string>
+    <string name="day_recovery">Recupero interventi</string>
+    <string name="day_recovery_sub">Copre le ore del giorno senza toccare banca ore e ferie</string>
+    <string name="recovery_available_on">Disponibili per questo giorno: %1$s</string>
+    <string name="recovery_whole_day">Giornata intera · %1$s</string>
+    <string name="recovery_none">Nessuno</string>
+    <string name="recovery_over">Più di quanto hai disponibile: il recupero interventi andrà in negativo.</string>
+    <string name="select_on_call">Reperibile</string>
+    <string name="select_on_call_off">Non reperibile</string>
+    <plurals name="on_call_marked">
+        <item quantity="one">Reperibile %d giorno</item>
+        <item quantity="other">Reperibile %d giorni</item>
+        <item quantity="many">Reperibile %d giorni</item>
+    </plurals>
+    <plurals name="on_call_unmarked">
+        <item quantity="one">Reperibilità tolta da %d giorno</item>
+        <item quantity="other">Reperibilità tolta da %d giorni</item>
+        <item quantity="many">Reperibilità tolta da %d giorni</item>
+    </plurals>
+    <string name="summary_on_call">Reperibilità</string>
+    <plurals name="summary_on_call_days">
+        <item quantity="one">%d giorno</item>
+        <item quantity="other">%d giorni</item>
+        <item quantity="many">%d giorni</item>
+    </plurals>
+    <string name="summary_on_call_credited">%1$s accreditate</string>
+    <string name="on_call_today">Sei reperibile oggi</string>
+    <string name="on_call_last_night">Notte di reperibilità di ieri</string>
+    <string name="intervention_start_now">Avvia intervento</string>
+    <string name="intervention_running">Intervento in corso</string>
+    <string name="intervention_stop">Termina</string>
+    <string name="intervention_since">Iniziato alle %1$s · si accredita al quarto d\'ora</string>
+    <string name="intervention_notif_text">Iniziato alle %1$s · tocca Termina quando hai finito</string>
+    <string name="intervention_chip">Interv.</string>
+    <string name="intervention_done_title">Intervento chiuso</string>
+    <string name="intervention_done">%1$s reali → %2$s accreditati</string>
+    <string name="intervention_done_toast">Intervento chiuso · %1$s → %2$s accreditati</string>
+    <string name="recovery_title">Recupero interventi</string>
+    <string name="recovery_next_expiry">%1$s scadono il %2$s</string>
+    <string name="recovery_nothing_expiring">Nessuna scadenza in vista</string>
+    <string name="recovery_negative">Hai usato più ore di quelle maturate</string>
+    <string name="recovery_alert_title">%1$s di recupero interventi scadono il %2$s</string>
+    <plurals name="recovery_alert_days">
+        <item quantity="one">Resta %d giorno in sede per usarle come recupero.</item>
+        <item quantity="other">Restano %d giorni in sede per usarle come recupero.</item>
+        <item quantity="many">Restano %d giorni in sede per usarle come recupero.</item>
+    </plurals>
+    <string name="recovery_alert_last">Non restano giorni in sede prima della scadenza.</string>
+    <string name="recovery_bank_sub">Separato dalla banca ore. Le ore di ogni mese si usano entro la fine del secondo mese successivo.</string>
+    <string name="recovery_lot">Maturate a %1$s</string>
+    <string name="recovery_lot_expiry">scadono il %1$s</string>
+    <string name="recovery_planned">%1$s già pianificate come recupero</string>
+    <string name="recovery_expired">%1$s perse perché non usate in tempo</string>
+    <string name="recovery_empty">Ancora nessuna ora: ogni intervento le accumula qui.</string>
+    <string name="recovery_recent">Ultimi interventi</string>
+    <string name="channel_on_call">Interventi in reperibilità</string>
+    <string name="channel_on_call_desc">Il timer di un intervento in corso, anche a schermo bloccato</string>
+
+    <!-- Buy me a coffee card on Today -->
+    <string name="support_title">Ti piace Stacco?</string>
+    <string name="support_body">È gratuito, senza pubblicità, e i tuoi dati restano sul telefono. Se ti fa risparmiare tempo, puoi offrirmi un caffè.</string>
+    <string name="support_action">Offrimi un caffè</string>
+    <string name="support_later">Più tardi</string>
+    <string name="support_never">Non mostrare più</string>
 </resources>

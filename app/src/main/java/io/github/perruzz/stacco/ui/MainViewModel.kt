@@ -12,6 +12,10 @@ import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
+import io.github.perruzz.stacco.domain.Intervention
+import io.github.perruzz.stacco.domain.OnCall
+import io.github.perruzz.stacco.domain.RecoveryLedger
+import io.github.perruzz.stacco.domain.SupportRules
 import io.github.perruzz.stacco.domain.Schedule
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.VacationCalculator
@@ -27,14 +31,17 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 sealed interface UiEvent {
     data class Stamped(val slot: StampSlot, val minutes: Int, val date: LocalDate, val previous: DayRecord) : UiEvent
@@ -43,9 +50,15 @@ sealed interface UiEvent {
 
     /** A type was written on several days at once; [previous] restores them. */
     data class DaysMarked(val type: DayType?, val count: Int, val previous: Map<LocalDate, DayRecord?>, val vacationLeft: Int?) : UiEvent
+
+    /** Several days marked (or unmarked) as on call; [previous] restores them. */
+    data class OnCallMarked(val on: Boolean, val count: Int, val previous: Map<LocalDate, DayRecord?>) : UiEvent
+
+    /** An intervention timer was stopped; [previous] puts it back running. */
+    data class InterventionStopped(val real: Int, val credited: Int, val date: LocalDate, val previous: DayRecord) : UiEvent
 }
 
-private data class Core(val data: StaccoData, val ledger: BankLedger)
+private data class Core(val data: StaccoData, val ledger: BankLedger, val recovery: RecoveryLedger)
 
 /** One activity-scoped ViewModel: the app is small and every screen shares the same state. */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -67,13 +80,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** Today's date, kept current across midnight. */
     val currentDate: StateFlow<LocalDate> = date.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LocalDate.now())
 
-    private val core: Flow<Core> = combine(repo.data, date) { d, day -> Core(d, Engine.ledger(d, day)) }
+    private val core: Flow<Core> = combine(repo.data, date) { d, day -> Core(d, Engine.ledger(d, day), Engine.recovery(d, day)) }
         .flowOn(Dispatchers.Default)
 
     val ledger: StateFlow<BankLedger> = core.map { it.ledger }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BankLedger.EMPTY)
 
-    val today: StateFlow<TodaySnapshot?> = combine(core, clock) { c, now -> Engine.today(c.data, c.ledger, now) }
+    /** The on-call recovery account (empty while on-call duty is off). */
+    val recovery: StateFlow<RecoveryLedger> = core.map { it.recovery }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RecoveryLedger.EMPTY)
+
+    val today: StateFlow<TodaySnapshot?> = combine(core, clock) { c, now -> Engine.today(c.data, c.ledger, now, c.recovery) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -191,6 +208,89 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setLeave(date: LocalDate, minutes: Int) {
         viewModelScope.launch { repo.updateDay(date) { it.copy(leaveMinutes = minutes.coerceAtLeast(0)) } }
+    }
+
+    // --- On-call duty ---------------------------------------------------------------------------
+
+    fun setOnCallEnabled(on: Boolean) = updateData { it.copy(onCall = it.onCall.copy(enabled = on)) }
+
+    fun setOnCall(date: LocalDate, on: Boolean) {
+        viewModelScope.launch { repo.updateDay(date) { it.copy(onCall = on) } }
+    }
+
+    /** On call on many days at once: unlike day types, weekends and holidays are included. */
+    fun setOnCallDays(dates: Collection<LocalDate>, on: Boolean) {
+        if (dates.isEmpty()) return
+        viewModelScope.launch {
+            val previous = repo.setOnCallDays(dates, on)
+            _events.emit(UiEvent.OnCallMarked(on, dates.size, previous))
+        }
+    }
+
+    fun startIntervention() {
+        viewModelScope.launch { repo.startIntervention(LocalDateTime.now()) }
+    }
+
+    fun stopIntervention() {
+        viewModelScope.launch {
+            val change = repo.stopIntervention(LocalDateTime.now()) ?: return@launch
+            val real = OnCall.realMinutes(change.date, change.intervention) ?: 0
+            _events.emit(UiEvent.InterventionStopped(real, OnCall.credited(real), change.date, change.previous))
+        }
+    }
+
+    fun saveIntervention(date: LocalDate, intervention: Intervention) {
+        viewModelScope.launch { repo.saveIntervention(date, intervention) }
+    }
+
+    /** Deletes an intervention (the sheet asks first: a toast would be hidden under it). */
+    fun deleteIntervention(date: LocalDate, id: Long) {
+        viewModelScope.launch { repo.deleteIntervention(date, id) }
+    }
+
+    fun setRecovery(date: LocalDate, minutes: Int) {
+        viewModelScope.launch { repo.updateDay(date) { it.copy(recoveryMinutes = minutes.coerceAtLeast(0)) } }
+    }
+
+    // --- Buy me a coffee -----------------------------------------------------------------------
+
+    private val _support = MutableStateFlow(false)
+
+    /** The "buy me a coffee" card is due on this opening of the app. */
+    val support: StateFlow<Boolean> = _support
+
+    init {
+        viewModelScope.launch {
+            // Only when the app opens on an already set up Stacco: never during or right after onboarding.
+            val current = repo.data.first()
+            val today = LocalDate.now()
+            if (current.onboardingDone && SupportRules.isDue(current.support, installDate(), today)) {
+                _support.value = true
+                repo.update { it.copy(support = SupportRules.postponed(it.support, today)) }
+            }
+        }
+    }
+
+    private fun installDate(): LocalDate = runCatching {
+        val app = getApplication<Application>()
+        val installed = app.packageManager.getPackageInfo(app.packageName, 0).firstInstallTime
+        Instant.ofEpochMilli(installed).atZone(ZoneId.systemDefault()).toLocalDate()
+    }.getOrDefault(LocalDate.now())
+
+    /** "Later": the card comes back in 21–30 days. */
+    fun supportLater() {
+        _support.value = false
+        viewModelScope.launch { repo.update { it.copy(support = SupportRules.postponed(it.support, LocalDate.now())) } }
+    }
+
+    fun supportNever() {
+        _support.value = false
+        viewModelScope.launch { repo.update { it.copy(support = it.support.copy(dismissed = true)) } }
+    }
+
+    /** The link was opened: the card goes away until its next turn. */
+    fun supportOpened() {
+        _support.value = false
     }
 
     fun setNote(date: LocalDate, note: String) {

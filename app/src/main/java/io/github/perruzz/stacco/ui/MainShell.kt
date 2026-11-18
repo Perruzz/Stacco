@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.ui.oncall.OnCallIcon
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.StampSlot
 import io.github.perruzz.stacco.ui.bank.BankScreen
@@ -154,6 +155,18 @@ fun MainShell(viewModel: MainViewModel) {
                         onAction = { viewModel.restoreDays(event.previous) },
                     )
                 }
+                is UiEvent.OnCallMarked -> toast.show(
+                    icon = OnCallIcon,
+                    message = resources.getQuantityString(if (event.on) R.plurals.on_call_marked else R.plurals.on_call_unmarked, event.count, event.count),
+                    actionLabel = resources.getString(R.string.action_undo),
+                    onAction = { viewModel.restoreDays(event.previous) },
+                )
+                is UiEvent.InterventionStopped -> toast.show(
+                    icon = OnCallIcon,
+                    message = resources.getString(R.string.intervention_done_toast, Fmt.duration(event.real), Fmt.duration(event.credited)),
+                    actionLabel = resources.getString(R.string.action_undo),
+                    onAction = { viewModel.restoreDay(event.date, event.previous) },
+                )
             }
         }
     }

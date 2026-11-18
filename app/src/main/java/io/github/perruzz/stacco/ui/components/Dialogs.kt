@@ -90,7 +90,7 @@ fun StaccoDialog(
 }
 
 @Composable
-private fun DialogHeader(title: String, icon: ImageVector?, tint: Color, subtitle: String? = null) {
+internal fun DialogHeader(title: String, icon: ImageVector?, tint: Color, subtitle: String? = null) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (icon != null) {
             IconBubble(icon, tint = tint, container = tint.copy(alpha = 0.16f), size = 44.dp)
@@ -106,7 +106,7 @@ private fun DialogHeader(title: String, icon: ImageVector?, tint: Color, subtitl
 }
 
 @Composable
-private fun DialogButtons(
+internal fun DialogButtons(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     confirmLabel: String = stringResource(R.string.action_confirm),

@@ -162,9 +162,10 @@ class WorkCalendar(
         return working.ifEmpty { dates.toList() }.sorted()
     }
 
+    /** Minutes to work on [date]: the planned day minus a permit and on-call recovery hours. */
     fun required(date: LocalDate): Int {
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
-        val leave = days[date]?.leaveMinutes ?: 0
+        val leave = days[date]?.coveredMinutes ?: 0
         val planned = if (isShiftDay(date)) shift(date)?.workMinutes ?: 0 else workAt(date).dailyFor(date.dayOfWeek)
         return max(0, planned - leave)
     }
@@ -172,7 +173,7 @@ class WorkCalendar(
     fun minimum(date: LocalDate): Int {
         if (isShiftDay(date)) return required(date)
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
-        val leave = days[date]?.leaveMinutes ?: 0
+        val leave = days[date]?.coveredMinutes ?: 0
         // The bank can shorten every weekday by the same amount (e.g. 1h, also on a short Friday).
         val rules = workAt(date)
         return max(0, rules.dailyFor(date.dayOfWeek) - rules.flexMinutes - leave)

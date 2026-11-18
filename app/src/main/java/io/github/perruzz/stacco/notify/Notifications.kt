@@ -32,6 +32,9 @@ object Notifications {
     const val CHANNEL_BANK = "stacco_bank"
     const val CHANNEL_UPDATES = "stacco_updates"
 
+    /** On-call interventions: the running timer (silent, on the lock screen too) and its result. */
+    const val CHANNEL_ON_CALL = "stacco_on_call"
+
     const val ID_EXIT = 1001
     const val ID_LIVE = 1002
     const val ID_NEGATIVE = 1003
@@ -39,6 +42,9 @@ object Notifications {
     const val ID_DAY_DONE = 1005
     const val ID_SHIFT_START = 1006
     const val ID_UPDATE = 1007
+    const val ID_INTERVENTION = 1008
+    const val ID_INTERVENTION_DONE = 1009
+    const val ID_RECOVERY = 1010
 
     const val COLOR = 0xFF1F6E52.toInt()
 
@@ -63,6 +69,13 @@ object Notifications {
                 },
                 NotificationChannel(CHANNEL_UPDATES, context.getString(R.string.channel_updates), NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = context.getString(R.string.channel_updates_desc)
+                },
+                NotificationChannel(CHANNEL_ON_CALL, context.getString(R.string.channel_on_call), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = context.getString(R.string.channel_on_call_desc)
+                    setSound(null, null)
+                    enableVibration(false)
+                    setShowBadge(false)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 },
             ),
         )

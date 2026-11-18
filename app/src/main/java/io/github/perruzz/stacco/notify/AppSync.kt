@@ -34,6 +34,7 @@ object AppSync {
                 .collectLatest { (data, minute) ->
                     if (!data.onboardingDone) {
                         Notifications.cancel(app, Notifications.ID_LIVE)
+                        Notifications.cancel(app, Notifications.ID_INTERVENTION)
                         return@collectLatest
                     }
                     val snapshot = Engine.snapshot(data)
@@ -48,6 +49,7 @@ object AppSync {
         runCatching { ExitAlarmScheduler.schedule(context, snapshot) }
         runCatching { ShiftStartScheduler.schedule(context, snapshot.data) }
         runCatching { LiveDayNotifier.update(context, snapshot) }
+        runCatching { InterventionNotifier.update(context, snapshot) }
         if (updateWidget) {
             runCatching { StaccoWidget.refresh(context) }
             runCatching { StampTileService.requestUpdate(context) }

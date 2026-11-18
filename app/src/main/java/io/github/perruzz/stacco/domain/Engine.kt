@@ -32,6 +32,8 @@ data class TodaySnapshot(
     val alerts: List<BankAlert>,
     val smartUsed: Int,
     val data: StaccoData,
+    /** On-call duty, when the module is on. */
+    val onCall: OnCallState? = null,
 ) {
     /** The settings in force on [date] (an older contract for a day before a change). */
     val work: WorkSettings get() = WorkCalendar.from(data).workAt(date)
@@ -61,6 +63,22 @@ data class TodaySnapshot(
 
 enum class DayFix { MISSING_EXIT, INCONSISTENT }
 
+/** On-call duty as Today shows it. */
+data class OnCallState(
+    /** The intervention whose timer is running, with its day. */
+    val running: Pair<LocalDate, Intervention>?,
+    /** Seconds the running timer has been going. */
+    val runningSeconds: Int?,
+    /** The day an intervention started now belongs to (yesterday in the night after an on-call day). */
+    val dutyDate: LocalDate,
+    /** On call today or last night, or a timer running: the on-call card belongs on Today. */
+    val onDuty: Boolean,
+    /** Finished interventions of [dutyDate], the latest first. */
+    val interventions: List<Intervention>,
+    val recovery: RecoveryLedger,
+    val alert: RecoveryAlert?,
+)
+
 object Engine {
 
     /** How long after the end of a night shift it still counts as "current". */
@@ -69,6 +87,10 @@ object Engine {
     fun firstDayOfWeek(locale: Locale = Locale.getDefault()): DayOfWeek = WeekFields.of(locale).firstDayOfWeek
 
     fun ledger(data: StaccoData, today: LocalDate): BankLedger = BankCalculator.compute(data, today)
+
+    /** The on-call recovery account (empty while the module is off). */
+    fun recovery(data: StaccoData, today: LocalDate): RecoveryLedger =
+        if (data.onCall.enabled) RecoveryCalculator.compute(data, today) else RecoveryLedger.EMPTY
 
     /** How far back a forgotten exit is still worth pointing out. */
     private const val MISSING_EXIT_DAYS = 14L
@@ -115,7 +137,12 @@ object Engine {
         return ActiveDay(today, minutes, now.second)
     }
 
-    fun today(data: StaccoData, ledger: BankLedger, now: LocalDateTime): TodaySnapshot {
+    fun today(
+        data: StaccoData,
+        ledger: BankLedger,
+        now: LocalDateTime,
+        recovery: RecoveryLedger = RecoveryLedger.EMPTY,
+    ): TodaySnapshot {
         val active = activeDay(data, now)
         val date = active.date
         val calendar = WorkCalendar.from(data)
@@ -133,10 +160,11 @@ object Engine {
         )
         // A finished day reads the same as in the calendar and the bank (daylight saving included).
         val projection = if (projected.result != null) projected.copy(result = calendar.result(date)) else projected
+        val todayDone = projection.phase == DayPhase.DONE || !calendar.isScheduled(date)
         val alerts = AlertPlanner.plan(
             balance = ledger.balance,
             today = date,
-            todayDone = projection.phase == DayPhase.DONE || !calendar.isScheduled(date),
+            todayDone = todayDone,
             calendar = calendar,
             work = calendar.workAt(date),
             bank = data.bank,
@@ -158,11 +186,37 @@ object Engine {
             alerts = alerts,
             smartUsed = calendar.smartUsed(smartRange),
             data = data,
+            onCall = if (data.onCall.enabled) onCall(data, now, recovery, calendar, date, todayDone) else null,
+        )
+    }
+
+    private fun onCall(
+        data: StaccoData,
+        now: LocalDateTime,
+        recovery: RecoveryLedger,
+        calendar: WorkCalendar,
+        workDate: LocalDate,
+        todayDone: Boolean,
+    ): OnCallState {
+        val (dutyDate, _) = OnCall.dutyDay(data, now)
+        val running = OnCall.running(data, now.toLocalDate())
+        val seconds = running?.let { (date, intervention) ->
+            (OnCall.minutesOf(date, now) * 60 + now.second - intervention.start * 60 - intervention.startSecond).coerceAtLeast(0)
+        }
+        val record = data.days[dutyDate.toString()]
+        return OnCallState(
+            running = running,
+            runningSeconds = seconds,
+            dutyDate = dutyDate,
+            onDuty = running != null || record?.onCall == true,
+            interventions = record?.interventions.orEmpty().filter { it.end != null }.sortedByDescending { it.start },
+            recovery = recovery,
+            alert = AlertPlanner.planRecovery(recovery, workDate, todayDone, calendar, calendar.workAt(workDate), data.bank),
         )
     }
 
     fun snapshot(data: StaccoData, now: LocalDateTime = LocalDateTime.now()): TodaySnapshot =
-        today(data, ledger(data, now.toLocalDate()), now)
+        today(data, ledger(data, now.toLocalDate()), now, recovery(data, now.toLocalDate()))
 
     /**
      * Normalizes a stamp typed or picked as a clock time: a stamp earlier than the entry

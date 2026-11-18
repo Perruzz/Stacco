@@ -554,6 +554,15 @@
     </string-array>
     <string name="csv_counted_entry">Counted entry</string>
     <string name="csv_counted_exit">Counted exit</string>
+    <string name="csv_on_call">On call</string>
+    <string name="csv_interventions">Interventions</string>
+    <string name="csv_credited">Credited</string>
+    <string name="csv_recovery">Recovery</string>
+    <string name="csv_yes">Yes</string>
+    <string name="csv_on_call_days">On-call days</string>
+    <string name="csv_credited_hours">Credited intervention hours</string>
+    <string name="csv_recovery_hours">Intervention recovery taken</string>
+    <string name="csv_recovery_on">Intervention recovery on %1$s</string>
     <string name="csv_date_pattern">yyyy-MM-dd</string>
     <string name="csv_total">Total</string>
     <string name="csv_office_days">Office days</string>
@@ -582,4 +591,83 @@
     <string name="schedule_period_current">From %1$s · current</string>
     <string name="schedule_history_clear">Use the current schedule for every date</string>
     <string name="schedule_history_clear_text">Past days will be recounted with the current schedule and the history will be deleted. This cannot be undone.</string>
+    <!-- On-call duty -->
+    <string name="settings_on_call_section">On call</string>
+    <string name="settings_on_call">On-call duty</string>
+    <string name="settings_on_call_sub">On-call days, interventions and recovery hours</string>
+    <string name="on_call_rule_credit">Each intervention is credited by the quarter hour, rounded up: 32 minutes become 45.</string>
+    <string name="on_call_rule_recovery">The hours are taken as recovery in blocks of 30 minutes, up to a whole day: the day evens out without touching the hour bank or vacation.</string>
+    <string name="on_call_rule_expiry">They must be used by the end of the second month after: a November intervention expires on 31 January.</string>
+    <string name="on_call_rule_off">Turning on-call duty off hides it from the app; your data stays.</string>
+    <string name="day_on_call">On call</string>
+    <string name="day_on_call_sub">Whatever kind of day it is, holidays and weekends too</string>
+    <string name="intervention_add">Add intervention</string>
+    <string name="intervention_title">Intervention</string>
+    <string name="intervention_start">Start</string>
+    <string name="intervention_end">End</string>
+    <string name="intervention_delete">Delete</string>
+    <string name="intervention_delete_title">Delete this intervention?</string>
+    <string name="intervention_delete_text">%1$s · the intervention recovery goes down by %2$s.</string>
+    <string name="intervention_running_short">running</string>
+    <string name="intervention_credit">%1$s → %2$s credited</string>
+    <string name="intervention_end_next_day">Ends the next day</string>
+    <string name="day_recovery">Intervention recovery</string>
+    <string name="day_recovery_sub">Covers the day\'s hours without touching the hour bank or vacation</string>
+    <string name="recovery_available_on">Available for this day: %1$s</string>
+    <string name="recovery_whole_day">Whole day · %1$s</string>
+    <string name="recovery_none">None</string>
+    <string name="recovery_over">More than you have: the intervention recovery will go negative.</string>
+    <string name="select_on_call">On call</string>
+    <string name="select_on_call_off">Not on call</string>
+    <plurals name="on_call_marked">
+        <item quantity="one">On call on %d day</item>
+        <item quantity="other">On call on %d days</item>
+    </plurals>
+    <plurals name="on_call_unmarked">
+        <item quantity="one">No longer on call on %d day</item>
+        <item quantity="other">No longer on call on %d days</item>
+    </plurals>
+    <string name="summary_on_call">On call</string>
+    <plurals name="summary_on_call_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="summary_on_call_credited">%1$s credited</string>
+    <string name="on_call_today">You\'re on call today</string>
+    <string name="on_call_last_night">Last night\'s on-call duty</string>
+    <string name="intervention_start_now">Start intervention</string>
+    <string name="intervention_running">Intervention running</string>
+    <string name="intervention_stop">Stop</string>
+    <string name="intervention_since">Started at %1$s · credited by the quarter hour</string>
+    <string name="intervention_notif_text">Started at %1$s · tap Stop when you\'re done</string>
+    <string name="intervention_chip">On call</string>
+    <string name="intervention_done_title">Intervention closed</string>
+    <string name="intervention_done">%1$s real → %2$s credited</string>
+    <string name="intervention_done_toast">Intervention closed · %1$s → %2$s credited</string>
+    <string name="recovery_title">Intervention recovery</string>
+    <string name="recovery_next_expiry">%1$s expire on %2$s</string>
+    <string name="recovery_nothing_expiring">Nothing about to expire</string>
+    <string name="recovery_negative">You used more hours than you earned</string>
+    <string name="recovery_alert_title">%1$s of intervention recovery expire on %2$s</string>
+    <plurals name="recovery_alert_days">
+        <item quantity="one">%d office day left to take them as recovery.</item>
+        <item quantity="other">%d office days left to take them as recovery.</item>
+    </plurals>
+    <string name="recovery_alert_last">No office days left before they expire.</string>
+    <string name="recovery_bank_sub">Kept apart from the hour bank. Each month\'s hours must be used by the end of the second month after.</string>
+    <string name="recovery_lot">Earned in %1$s</string>
+    <string name="recovery_lot_expiry">expire on %1$s</string>
+    <string name="recovery_planned">%1$s already planned as recovery</string>
+    <string name="recovery_expired">%1$s lost because they were not used in time</string>
+    <string name="recovery_empty">No hours yet: every intervention adds them here.</string>
+    <string name="recovery_recent">Latest interventions</string>
+    <string name="channel_on_call">On-call interventions</string>
+    <string name="channel_on_call_desc">The timer of a running intervention, on the lock screen too</string>
+
+    <!-- Buy me a coffee card on Today -->
+    <string name="support_title">Enjoying Stacco?</string>
+    <string name="support_body">It\'s free, with no ads, and your data stays on your phone. If it saves you time, you can buy me a coffee.</string>
+    <string name="support_action">Buy me a coffee</string>
+    <string name="support_later">Later</string>
+    <string name="support_never">Don\'t show again</string>
 </resources>

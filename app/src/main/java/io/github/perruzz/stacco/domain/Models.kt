@@ -28,10 +28,45 @@ data class StaccoData(
      * keep being counted with the rules of their time. Empty: [work] applies to every date.
      */
     val scheduleHistory: List<SchedulePeriod> = emptyList(),
+    /** On-call duty (reperibilità) and its recovery hours: off, and invisible, unless turned on. */
+    val onCall: OnCallSettings = OnCallSettings(),
+    /** The "buy me a coffee" card on Today: when it may come back, or never again. */
+    val support: SupportPrompt = SupportPrompt(),
 )
 
 @Serializable
 data class Profile(val name: String = "")
+
+/**
+ * On-call duty: days marked as on call, interventions timed while on call and the recovery hours
+ * they earn, kept apart from the hour bank. Turning it off only hides it: nothing is deleted.
+ */
+@Serializable
+data class OnCallSettings(val enabled: Boolean = false)
+
+/**
+ * An intervention while on call. Times are minutes since midnight of its day; one that goes past
+ * midnight (or starts in the night after an on-call day) runs past 1440.
+ */
+@Serializable
+data class Intervention(
+    val id: Long,
+    val start: Int,
+    /** Null while its timer is running. */
+    val end: Int? = null,
+    /** Seconds past the start minute, so that a live timer starts from zero (0 when typed in). */
+    val startSecond: Int = 0,
+    val note: String = "",
+)
+
+/** The gentle "support Stacco" card: shown now and then, never in the first two weeks. */
+@Serializable
+data class SupportPrompt(
+    /** First day (ISO) it may show up again; null = as soon as the first two weeks are over. */
+    val nextAt: String? = null,
+    /** "Don't show again". */
+    val dismissed: Boolean = false,
+)
 
 /** How the user works: a fixed daily schedule with a lunch break, or planned shifts. */
 @Serializable
@@ -219,6 +254,14 @@ data class DayRecord(
     /** Hourly leave (permesso/ROL) that reduces the required time of the day. */
     val leaveMinutes: Int = 0,
     val note: String = "",
+    /** On call this day, whatever kind of day it is (office, smart working, weekend…). */
+    val onCall: Boolean = false,
+    val interventions: List<Intervention> = emptyList(),
+    /**
+     * Recovery hours of on-call interventions taken this day: like a permit they cover part (or all)
+     * of the required time, but they come from the on-call account, not from vacation or the bank.
+     */
+    val recoveryMinutes: Int = 0,
 ) {
     operator fun get(slot: StampSlot): Int? = when (slot) {
         StampSlot.ENTRY -> entry
@@ -236,7 +279,12 @@ data class DayRecord(
 
     val hasStamps: Boolean get() = entry != null || breakOut != null || breakIn != null || exit != null
 
-    val isEmpty: Boolean get() = type == null && shiftId == null && !hasStamps && leaveMinutes == 0 && note.isBlank()
+    /** Part of the day covered without working: permit and on-call recovery. */
+    val coveredMinutes: Int get() = leaveMinutes + recoveryMinutes
+
+    val isEmpty: Boolean
+        get() = type == null && shiftId == null && !hasStamps && leaveMinutes == 0 && note.isBlank() &&
+            !onCall && interventions.isEmpty() && recoveryMinutes == 0
 
     fun clearStamps(): DayRecord = copy(entry = null, breakOut = null, breakIn = null, exit = null)
 
@@ -291,4 +339,7 @@ data class AlertsState(
     val negativePeriod: String? = null,
     val expiryLastDate: String? = null,
     val expiryPeriod: String? = null,
+    /** Last warning about on-call recovery hours about to expire, and the deadline it was about. */
+    val recoveryLastDate: String? = null,
+    val recoveryPeriod: String? = null,
 )

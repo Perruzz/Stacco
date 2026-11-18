@@ -68,6 +68,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.ui.oncall.RecoveryCard
 import io.github.perruzz.stacco.domain.AlertPlanner
 import io.github.perruzz.stacco.domain.BankLedger
 import io.github.perruzz.stacco.domain.Movement
@@ -97,6 +98,7 @@ fun BankScreen(viewModel: MainViewModel) {
     val dataState by viewModel.data.collectAsStateWithLifecycle()
     val ledger by viewModel.ledger.collectAsStateWithLifecycle()
     val todayDone by viewModel.todayDone.collectAsStateWithLifecycle()
+    val recovery by viewModel.recovery.collectAsStateWithLifecycle()
     val data = dataState ?: return
     val today = LocalDate.now()
 
@@ -116,6 +118,9 @@ fun BankScreen(viewModel: MainViewModel) {
             work = data.work,
             bank = data.bank,
         )
+    }
+    val recoveryAlert = remember(recovery, data, todayDone) {
+        AlertPlanner.planRecovery(recovery, today, todayDone, WorkCalendar.from(data), data.work, data.bank)
     }
     val movements = remember(ledger) { ledger.movements.asReversed() }
     val grouped = remember(movements) { movements.groupBy { YearMonth.from(it.date) } }
@@ -178,6 +183,11 @@ fun BankScreen(viewModel: MainViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+        }
+        if (data.onCall.enabled) {
+            item(key = "recovery") {
+                Appear(4) { RecoveryCard(data, recovery, recoveryAlert) }
             }
         }
         item(key = "vacation") {

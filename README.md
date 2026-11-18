@@ -91,6 +91,15 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 - Il residuo passa all'anno nuovo (si può disattivare) e con *Imposta residuo* ti allinei alla busta paga.
 - Mentre selezioni più giorni vedi subito quante ferie ti resterebbero.
 
+### 📞 Reperibilità e recupero interventi
+Per chi è reperibile (IT, impianti, sanità…). È un modulo **spento di default**: finché non lo accendi in *Impostazioni → Reperibilità* l'app resta identica.
+- **Giorni reperibili** dal calendario, dalla scheda del giorno o con la selezione multipla (weekend e festivi compresi). Il giorno può essere in sede, in smart working o di riposo: la reperibilità è un'indicazione in più, con un piccolo telefono nell'angolo della cella.
+- **Timer dell'intervento** H24: nei giorni di reperibilità *Oggi* mostra *Avvia intervento*. Il cronometro gira anche nella notifica, a schermo bloccato, con il pulsante *Termina*. Un intervento nelle prime ore dopo un giorno di reperibilità resta in quella notte (*23:30 → 00:40 +1*).
+- **Quarto d'ora per eccesso**: ogni intervento è accreditato arrotondato al quarto d'ora successivo (32 minuti → 45), con accanto il tempo reale. Gli interventi si possono anche inserire o correggere a mano.
+- **Recupero interventi**: un saldo **separato** dalla banca ore e dalle ferie. Lo usi in una giornata lavorativa a blocchi di 30 minuti, fino alla giornata intera: per esempio 1h lavorata + 7h di recupero fanno le 8h e la giornata va in pari senza toccare la banca ore.
+- **Scadenza**: le ore di ogni mese vanno usate entro la fine del secondo mese successivo (intervento a novembre → 31 gennaio). Si usano prima quelle che scadono prima, con avviso in app e notifica quando rischi di perderle.
+- Nella scheda *Banca ore* trovi saldo, scadenze mese per mese e ultimi interventi; nel calendario e nell'export CSV i giorni di reperibilità, le ore maturate e quelle fruite.
+
 ### 🔔 Notifiche, widget e scorciatoie
 - **Promemoria di stacco** (all'orario o 5/10/15 minuti prima), con il pulsante *Timbra uscita* direttamente nella notifica.
 - **Promemoria di inizio turno** in modalità turni.
@@ -128,6 +137,7 @@ Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 | Anticipo extra degli avvisi | 3 giorni | Giorni in sede in più rispetto a quelli strettamente necessari |
 | Smart working | 10 al mese | Oppure N a settimana |
 | Ferie annue | 160h | Le scalano i giorni di ferie e le ore di permesso; il residuo passa all'anno dopo |
+| Reperibilità | Spenta | Giorni reperibili, timer degli interventi e recupero ore (quarto d'ora per eccesso, scadenza a fine del 2° mese) |
 
 > **Esempio** — oggi è il 14 novembre e hai **5h** in banca ore con scadenza trimestrale. Con 8h giornaliere e 7h minime puoi uscire al massimo 1h prima al giorno, quindi per usarle tutte ti servono **5 giorni in sede**. Stacco te lo mostra (*"5h scadono il 31 dicembre · uscendo fino a 1h prima ti servono 5 giorni in sede"*) e, con un anticipo extra di 3 giorni, ti manda la notifica quando i giorni in sede rimasti prima del 31 dicembre scendono a **8** (5 + 3).<br/>
 > Vale anche per il negativo: con **−45m** da recuperare entro fine mese basta 1 giorno, quindi l'avviso arriva quando restano 4 giorni in sede.
@@ -196,7 +206,7 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
   </a>
 </p>
 
-(Lo trovi anche nell'app, in *Impostazioni → Supporta Stacco*.)
+(Lo trovi anche nell'app, in *Impostazioni → Supporta Stacco*. Ogni tanto, mai nelle prime due settimane e al massimo una volta ogni 3–4 settimane, *Oggi* te lo ricorda con una piccola card che puoi rimandare o nascondere per sempre.)
 
 ## 📄 Licenza
 
@@ -219,6 +229,7 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 - Forgotten exit stamps are pointed out (with a suggested time), Italian holidays plus your town's patron saint's day, and a daily check for new versions on GitHub (the app's only network access).
 - Different hours per weekday (short Fridays, part-time), company rounding of badge times with tolerance, and a monthly CSV export.
 - Contract changes take effect from a date you choose: every day is counted with the rules in force on that day, so past months stay as they were.
+- Optional **on-call duty**: on-call days on the calendar, a 24/7 intervention timer (also on the lock screen), interventions credited by the quarter hour rounded up, and a separate recovery account that evens out a working day without touching the hour bank, to be used by the end of the second month after.
 - Light/dark/system theme with a circular reveal, Material You colors, Italian and English.
 - No account, no tracking: everything stays on your device.
 

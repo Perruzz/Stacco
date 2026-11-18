@@ -47,6 +47,11 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.domain.OnCall
+import io.github.perruzz.stacco.domain.RecoveryCalculator
+import io.github.perruzz.stacco.ui.oncall.OnCallDaySection
+import io.github.perruzz.stacco.ui.oncall.RecoveryDialog
+import io.github.perruzz.stacco.ui.oncall.RecoveryRow
 import io.github.perruzz.stacco.data.day
 import io.github.perruzz.stacco.domain.DayCalculator
 import io.github.perruzz.stacco.domain.DayIssue
@@ -100,6 +105,8 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
 
     var editing by remember { mutableStateOf<StampSlot?>(null) }
     var editingLeave by remember { mutableStateOf(false) }
+    var editingRecovery by remember { mutableStateOf(false) }
+    val onCallOn = data.onCall.enabled
     var confirmClear by remember { mutableStateOf(false) }
     var note by remember(date) { mutableStateOf(record.note) }
     LaunchedEffect(note) {
@@ -226,11 +233,22 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
                                 style = MaterialTheme.typography.titleMedium,
                             )
                         }
+                        if (onCallOn) RecoveryRow(record.recoveryMinutes, onClick = { editingRecovery = true })
                     }
                 }
             }
             if (type == null && !record.hasStamps) {
                 Hint(icon = Icons.Rounded.Info, text = stringResource(R.string.day_rest_hint))
+            }
+
+            if (onCallOn) {
+                OnCallDaySection(
+                    date = date,
+                    record = record,
+                    onOnCall = { viewModel.setOnCall(date, it) },
+                    onSave = { viewModel.saveIntervention(date, it) },
+                    onDelete = { viewModel.deleteIntervention(date, it.id) },
+                )
             }
 
             OutlinedTextField(
@@ -291,6 +309,21 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
             onConfirm = {
                 viewModel.setLeave(date, it)
                 editingLeave = false
+            },
+        )
+    }
+
+    if (editingRecovery) {
+        val room = remember(data) { OnCall.recoveryRoom(calendar, date) }
+        val available = remember(data) { RecoveryCalculator.availableOn(data, date) }
+        RecoveryDialog(
+            initial = record.recoveryMinutes,
+            room = room,
+            available = available,
+            onDismiss = { editingRecovery = false },
+            onConfirm = {
+                viewModel.setRecovery(date, it)
+                editingRecovery = false
             },
         )
     }

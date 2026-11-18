@@ -4,6 +4,8 @@ import io.github.perruzz.stacco.domain.BankCalculator
 import io.github.perruzz.stacco.domain.DayCalculator
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Holiday
+import io.github.perruzz.stacco.domain.OnCall
+import io.github.perruzz.stacco.domain.RecoveryCalculator
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.WorkCalendar
@@ -17,6 +19,14 @@ class CsvLabels(
     val headers: List<String>,
     /** Counted entry and exit, added after the real stamps when badge times are rounded. */
     val countedHeaders: List<String>,
+    /** On call, interventions (real time), credited, recovery taken: before the note, with on-call duty on. */
+    val onCallHeaders: List<String>,
+    /** The on-call column of a day on call. */
+    val yes: String,
+    val onCallDays: String,
+    val creditedHours: String,
+    val recoveryHours: String,
+    val recoveryOn: (LocalDate) -> String,
     val type: (DayType?) -> String,
     val holiday: (Holiday) -> String,
     val date: (LocalDate) -> String,
@@ -68,9 +78,13 @@ object MonthCsv {
         // With rounding the hours are counted from the rounded times: show them next to the real
         // stamps, so that every row adds up on its own.
         val rounded = data.work.rounding.enabled
-        fun withCounted(row: List<String>, entry: String, exit: String) =
-            if (rounded) row.take(8) + listOf(entry, exit) + row.drop(8) else row
-        val rows = mutableListOf(withCounted(labels.headers, labels.countedHeaders[0], labels.countedHeaders[1]))
+        // On-call duty adds its own columns just before the note.
+        val onCall = data.onCall.enabled
+        fun shape(row: List<String>, entry: String, exit: String, duty: List<String>): List<String> {
+            val withDuty = if (onCall) row.dropLast(1) + duty + row.last() else row
+            return if (rounded) withDuty.take(8) + listOf(entry, exit) + withDuty.drop(8) else withDuty
+        }
+        val rows = mutableListOf(shape(labels.headers, labels.countedHeaders[0], labels.countedHeaders[1], labels.onCallHeaders))
         var worked = 0
         var required = 0
         var balance = 0
@@ -80,6 +94,10 @@ object MonthCsv {
         var vacation = 0
         var sick = 0
         var leave = 0
+        var onCallDays = 0
+        var interventionTime = 0
+        var credited = 0
+        var recovery = 0
 
         for (day in 1..month.lengthOfMonth()) {
             val date = month.atDay(day)
@@ -101,7 +119,10 @@ object MonthCsv {
             val counted = calendar.counted(date)
             // The permit as it is taken from the vacation hours (never more than the day).
             val permit = if (isOffice && (record?.leaveMinutes ?: 0) > 0) VacationCalculator.cost(calendar, date) else 0
-            rows += withCounted(
+            val interventions = record?.interventions.orEmpty().mapNotNull { OnCall.realMinutes(date, it) }
+            val dayCredit = interventions.sumOf { OnCall.credited(it) }
+            val dayRecovery = OnCall.recoveryCost(calendar, date)
+            rows += shape(
                 listOf(
                     labels.date(date),
                     labels.weekday(date),
@@ -120,6 +141,12 @@ object MonthCsv {
                 ),
                 clock(counted?.entry),
                 clock(counted?.exit),
+                listOf(
+                    if (record?.onCall == true) labels.yes else "",
+                    if (interventions.isNotEmpty()) hours(interventions.sum()) else "",
+                    if (dayCredit > 0) hours(dayCredit) else "",
+                    if (dayRecovery > 0) hours(dayRecovery) else "",
+                ),
             )
 
             if (result != null) {
@@ -136,11 +163,15 @@ object MonthCsv {
                 else -> Unit
             }
             leave += permit
+            if (record?.onCall == true) onCallDays++
+            interventionTime += interventions.sum()
+            credited += dayCredit
+            recovery += dayRecovery
         }
 
         val blank = List(labels.headers.size) { "" }
-        rows += withCounted(blank, "", "")
-        rows += withCounted(
+        rows += shape(blank, "", "", List(labels.onCallHeaders.size) { "" })
+        rows += shape(
             blank.toMutableList().also {
                 it[0] = labels.total
                 it[10] = hours(worked)
@@ -149,6 +180,7 @@ object MonthCsv {
             },
             "",
             "",
+            listOf(onCallDays.toString(), hours(interventionTime), hours(credited), hours(recovery)),
         )
         rows += listOf(labels.officeDays, office.toString())
         rows += listOf(labels.smartDays, smart.toString())
@@ -156,9 +188,15 @@ object MonthCsv {
         rows += listOf(labels.vacationDays, vacation.toString())
         rows += listOf(labels.sickDays, sick.toString())
         rows += listOf(labels.leaveHours, hours(leave))
+        if (onCall) {
+            rows += listOf(labels.onCallDays, onCallDays.toString())
+            rows += listOf(labels.creditedHours, hours(credited))
+            rows += listOf(labels.recoveryHours, hours(recovery))
+        }
         val bankDay = minOf(month.atEndOfMonth(), today)
         if (!bankDay.isBefore(month.atDay(1))) {
             rows += listOf(labels.bankOn(bankDay), hours(BankCalculator.compute(data, bankDay).balance, signed = true))
+            if (onCall) rows += listOf(labels.recoveryOn(bankDay), hours(RecoveryCalculator.compute(data, bankDay).balance))
         }
 
         return BOM + rows.joinToString("\r\n") { row -> row.joinToString(SEPARATOR) { cell(it) } } + "\r\n"

@@ -151,6 +151,8 @@ import io.github.perruzz.stacco.ui.components.StaccoCard
 import io.github.perruzz.stacco.ui.components.StaccoDialog
 import io.github.perruzz.stacco.ui.components.TextInputDialog
 import io.github.perruzz.stacco.ui.components.bouncyClickable
+import io.github.perruzz.stacco.ui.oncall.OnCallIcon
+import io.github.perruzz.stacco.ui.oncall.OnCallRules
 import io.github.perruzz.stacco.ui.theme.StaccoTheme
 import io.github.perruzz.stacco.ui.theme.deltaColor
 import io.github.perruzz.stacco.ui.today.Appear
@@ -452,6 +454,24 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         tint = StaccoTheme.colors.vacation,
                         onCheckedChange = { on -> update { it.copy(vacation = it.vacation.copy(carryOver = on)) } },
                     )
+                }
+            }
+
+            // On-call duty: one switch, off by default; nothing of it shows anywhere until it is on.
+            Appear(i++) {
+                StaccoCard {
+                    SectionLabel(stringResource(R.string.settings_on_call_section))
+                    SwitchRow(
+                        icon = OnCallIcon,
+                        title = stringResource(R.string.settings_on_call),
+                        subtitle = stringResource(R.string.settings_on_call_sub),
+                        checked = data.onCall.enabled,
+                        tint = StaccoTheme.colors.onCall,
+                        onCheckedChange = { on -> viewModel.setOnCallEnabled(on) },
+                    )
+                    AnimatedVisibility(data.onCall.enabled, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        OnCallRules(Modifier.padding(start = 54.dp, top = 4.dp, bottom = 8.dp))
+                    }
                 }
             }
 

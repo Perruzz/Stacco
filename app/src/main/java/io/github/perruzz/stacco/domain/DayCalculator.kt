@@ -123,9 +123,9 @@ object DayCalculator {
         if (issues(r).isNotEmpty()) return null
         val b = breakInfo(r, rules, required, now = null)
         val worked = max(0, exit - entry - b.deducted - clockShift)
-        // With a permit the day can only cost hours, never add them: time worked beyond the
-        // reduced day does not go to the bank (that permit was simply not needed).
-        val delta = if (r.leaveMinutes > 0) min(0, worked - required) else worked - required
+        // With a permit (or on-call recovery hours) the day can only cost hours, never add them:
+        // time worked beyond the reduced day does not go to the bank (that cover was not needed).
+        val delta = if (r.coveredMinutes > 0) min(0, worked - required) else worked - required
         return DayResult(worked = worked, required = required, delta = delta)
     }
 
@@ -204,7 +204,7 @@ object DayCalculator {
             // Worked minutes that bring the bank back to zero, never below the daily minimum.
             // With a permit staying longer recovers nothing, so never past the standard exit.
             val recovery = max(minimum, required - bankBefore)
-            val bankTargetWorked = if (r.leaveMinutes > 0) min(recovery, required) else recovery
+            val bankTargetWorked = if (r.coveredMinutes > 0) min(recovery, required) else recovery
             bankExit = entry + b.deducted + bankTargetWorked
             bankUsage = required - bankTargetWorked
         }

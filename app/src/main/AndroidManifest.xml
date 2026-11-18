@@ -49,6 +49,9 @@
             android:name=".notify.LiveDismissReceiver"
             android:exported="false" />
         <receiver
+            android:name=".notify.InterventionReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".notify.LiveRefreshReceiver"
             android:exported="false" />
         <receiver

@@ -13,6 +13,8 @@ import io.github.perruzz.stacco.domain.BankCalculator
 import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
+import io.github.perruzz.stacco.domain.Intervention
+import io.github.perruzz.stacco.domain.OnCall
 import io.github.perruzz.stacco.domain.Schedule
 import io.github.perruzz.stacco.domain.ScheduleHistory
 import io.github.perruzz.stacco.domain.ShiftTemplate
@@ -30,6 +32,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlin.math.max
 
 val StaccoJson = Json {
     ignoreUnknownKeys = true
@@ -133,6 +136,60 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
             dates.fold(data) { acc, date -> acc.withDay(date) { it.copy(type = type) } }
         }
         return previous
+    }
+
+    /** Marks (or unmarks) days as on call, days off included; returns them as they were, for undo. */
+    suspend fun setOnCallDays(dates: Collection<LocalDate>, on: Boolean): Map<LocalDate, DayRecord?> {
+        var previous: Map<LocalDate, DayRecord?> = emptyMap()
+        update { data ->
+            previous = dates.associateWith { data.days[it.toString()] }
+            dates.fold(data) { acc, date -> acc.withDay(date) { it.copy(onCall = on) } }
+        }
+        return previous
+    }
+
+    /** A started or stopped intervention timer: its day, the intervention, and the day as it was before. */
+    data class InterventionChange(val date: LocalDate, val intervention: Intervention, val previous: DayRecord)
+
+    /**
+     * Starts an intervention timer now, on the on-call day it belongs to (yesterday's in the early
+     * hours after an on-call night), which is marked as on call. Nothing happens if one is running.
+     */
+    suspend fun startIntervention(now: LocalDateTime, id: Long = System.currentTimeMillis()): InterventionChange? {
+        var change: InterventionChange? = null
+        update { data ->
+            if (OnCall.running(data, now.toLocalDate()) != null) return@update data
+            val (date, minutes) = OnCall.dutyDay(data, now)
+            val intervention = Intervention(id = id, start = minutes, startSecond = now.second)
+            val day = data.days[date.toString()] ?: DayRecord.EMPTY
+            change = InterventionChange(date, intervention, day)
+            data.withDay(date) { it.copy(onCall = true, interventions = it.interventions + intervention) }
+        }
+        return change
+    }
+
+    /** Stops the running timer at [now]. */
+    suspend fun stopIntervention(now: LocalDateTime): InterventionChange? {
+        var change: InterventionChange? = null
+        update { data ->
+            val (date, running) = OnCall.running(data, now.toLocalDate()) ?: return@update data
+            val done = running.copy(end = max(running.start, OnCall.minutesOf(date, now)))
+            change = InterventionChange(date, done, data.days[date.toString()] ?: DayRecord.EMPTY)
+            data.withDay(date) { day -> day.copy(interventions = day.interventions.map { if (it.id == running.id) done else it }) }
+        }
+        return change
+    }
+
+    /** Adds or corrects an intervention typed in by hand: its day becomes an on-call day. */
+    suspend fun saveIntervention(date: LocalDate, intervention: Intervention) {
+        updateDay(date) { day ->
+            val others = day.interventions.filterNot { it.id == intervention.id }
+            day.copy(onCall = true, interventions = (others + intervention).sortedBy { it.start })
+        }
+    }
+
+    suspend fun deleteIntervention(date: LocalDate, id: Long) {
+        updateDay(date) { day -> day.copy(interventions = day.interventions.filterNot { it.id == id }) }
     }
 
     suspend fun restoreDays(previous: Map<LocalDate, DayRecord?>) {
