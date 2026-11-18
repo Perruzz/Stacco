@@ -149,7 +149,7 @@ class WorkCalendar(
     fun required(date: LocalDate): Int {
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
         val leave = days[date]?.leaveMinutes ?: 0
-        val planned = if (isShiftMode) shift(date)?.workMinutes ?: 0 else work.dailyMinutes
+        val planned = if (isShiftMode) shift(date)?.workMinutes ?: 0 else work.dailyFor(date.dayOfWeek)
         return max(0, planned - leave)
     }
 
@@ -157,11 +157,22 @@ class WorkCalendar(
         if (isShiftMode) return required(date)
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
         val leave = days[date]?.leaveMinutes ?: 0
-        return max(0, minOf(work.minDailyMinutes, work.dailyMinutes) - leave)
+        // The bank can shorten every weekday by the same amount (e.g. 1h, also on a short Friday).
+        return max(0, work.dailyFor(date.dayOfWeek) - work.flexMinutes - leave)
     }
 
-    fun breakRules(date: LocalDate): BreakRules =
-        BreakRules(if (isShiftMode) shift(date)?.breakMinutes ?: 0 else work.minBreakMinutes)
+    /**
+     * The lunch break rule of the day. With a fixed schedule it is only due on days longer than
+     * six hours (as Italian law requires): a 4h part-time day, a short Friday or a day mostly
+     * covered by leave neither expects a break nor gets one deducted. Shifts keep their own break.
+     */
+    fun breakRules(date: LocalDate): BreakRules = BreakRules(
+        when {
+            isShiftMode -> shift(date)?.breakMinutes ?: 0
+            required(date) in 1..SHORT_DAY_MINUTES -> 0
+            else -> work.minBreakMinutes
+        },
+    )
 
     fun expectsBreak(date: LocalDate): Boolean = breakRules(date).min > 0
 
@@ -190,11 +201,14 @@ class WorkCalendar(
      * less (spring) or more (autumn) than its stamps say: the real elapsed time is counted.
      */
     fun result(date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): DayResult? {
-        val record = days[date] ?: return null
+        val record = counted(date) ?: return null
         val entry = record.entry ?: return null
         val exit = record.exit ?: return null
         return DayCalculator.result(record, breakRules(date), required(date), clockShift(date, entry, exit, zone))
     }
+
+    /** The day as it is counted: entry and exit rounded by the company rules, if any. */
+    fun counted(date: LocalDate): DayRecord? = days[date]?.let { Rounding.counted(it, work.rounding) }
 
     /** Hour bank delta of a completed office day, or null when there is nothing to count. */
     fun delta(date: LocalDate): Int? {
@@ -212,6 +226,9 @@ class WorkCalendar(
         }
 
     companion object {
+        /** Up to this many hours of work no lunch break is due. */
+        const val SHORT_DAY_MINUTES = 6 * 60
+
         /** The last calendar built: the same data comes back every second from the clock. */
         @Volatile
         private var cached: Pair<StaccoData, WorkCalendar>? = null

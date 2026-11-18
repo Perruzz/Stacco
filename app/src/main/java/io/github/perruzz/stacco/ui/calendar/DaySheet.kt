@@ -189,6 +189,7 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
                         worked = result?.worked,
                         onEdit = { editing = it },
                         showBreak = calendar.expectsBreak(date),
+                        counted = calendar.counted(date),
                     )
                     if (issues.isNotEmpty()) {
                         Hint(

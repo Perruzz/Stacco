@@ -267,7 +267,7 @@
     <string name="settings_holidays_sub">National holidays are not working days</string>
     <string name="settings_break">Lunch break</string>
     <string name="settings_min_break">Minimum break</string>
-    <string name="settings_min_break_sub">A shorter break still counts as this long (even if not stamped)</string>
+    <string name="settings_min_break_sub">A shorter break still counts as this long, even if not stamped. No break is due on days of up to 6 hours.</string>
     <string name="settings_bank">Hour bank</string>
     <string name="settings_balance">Hour bank balance</string>
     <string name="settings_balance_sub">Edit it to match your company\'s balance</string>
@@ -348,7 +348,7 @@
     <string name="ob_work_explainer">With %1$s a day and a %2$s minimum you can use up to %3$s a day from the hour bank.</string>
     <string name="ob_break_title">Lunch break</string>
     <string name="ob_break_body">Stacco applies your company\'s lunch break rules.</string>
-    <string name="ob_break_explainer">A break shorter than %1$s still counts as %1$s. If you don\'t stamp the break, Stacco applies the minimum.</string>
+    <string name="ob_break_explainer">A break shorter than %1$s still counts as %1$s. If you don\'t stamp the break, Stacco applies the minimum; no break is due on days of up to 6 hours.</string>
     <string name="ob_bank_title">Your hour bank</string>
     <string name="ob_bank_body">How much do you have in your hour bank right now? And what are your company\'s rules?</string>
     <string name="ob_smart_title">Remote work</string>
@@ -514,4 +514,53 @@
     <string name="select_none">No days selected</string>
     <string name="select_vacation_preview">Vacation available: %1$s → %2$s</string>
     <string name="select_days_off">Weekends and holidays stay free</string>
+    <!-- Hours per weekday and rounding -->
+    <string name="settings_daily_by_day">Hours per weekday</string>
+    <string name="settings_daily_by_day_same">Same every day</string>
+    <string name="week_hours_title">Hours per weekday</string>
+    <string name="week_hours_sub">Tap a day to give it different hours, e.g. a short Friday. The hour bank can shorten every day by %1$s.</string>
+    <string name="week_hours_total">Week total: %1$s</string>
+    <string name="action_restore">Reset</string>
+    <string name="settings_rounding">Rounding</string>
+    <string name="settings_rounding_sub">If your company rounds badge times, e.g. to the quarter hour. Stamps stay as they are: only the counted hours change.</string>
+    <string name="rounding_off">Off</string>
+    <string name="rounding_minutes">%1$d min</string>
+    <string name="rounding_entry">Entry</string>
+    <string name="rounding_exit">Exit</string>
+    <string name="rounding_down">Down</string>
+    <string name="rounding_nearest">Nearest</string>
+    <string name="rounding_up">Up</string>
+    <string name="rounding_tolerance">Tolerance</string>
+    <string name="rounding_tolerance_sub">Minutes after the mark (entry) or before it (exit) that still count as the mark</string>
+    <string name="rounding_example">Example: in at %1$s → counts %2$s · out at %3$s → counts %4$s</string>
+    <string name="stamp_counted">counted as %1$s</string>
+    <!-- Monthly CSV export -->
+    <string-array name="csv_headers">
+        <item>Date</item>
+        <item>Day</item>
+        <item>Type</item>
+        <item>Shift</item>
+        <item>Entry</item>
+        <item>Break out</item>
+        <item>Break in</item>
+        <item>Exit</item>
+        <item>Leave</item>
+        <item>Counted break</item>
+        <item>Worked</item>
+        <item>Planned</item>
+        <item>Balance</item>
+        <item>Note</item>
+    </string-array>
+    <string name="csv_date_pattern">yyyy-MM-dd</string>
+    <string name="csv_total">Total</string>
+    <string name="csv_office_days">Office days</string>
+    <string name="csv_smart_days">Remote days</string>
+    <string name="csv_travel_days">Business trip days</string>
+    <string name="csv_vacation_days">Vacation days</string>
+    <string name="csv_sick_days">Sick days</string>
+    <string name="csv_leave_hours">Leave hours</string>
+    <string name="csv_bank_on">Hour bank on %1$s</string>
+    <string name="export_month">CSV</string>
+    <string name="export_month_desc">Export the month as CSV</string>
+    <string name="export_month_done">Month exported</string>
 </resources>

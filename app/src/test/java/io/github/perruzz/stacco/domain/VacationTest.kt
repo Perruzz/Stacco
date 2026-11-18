@@ -34,6 +34,16 @@ class VacationTest {
     }
 
     @Test
+    fun `permit days without a stamped break match the examples`() {
+        // 8h day with 4h of permit: no lunch break is due on what is left (4h).
+        val five = DayRecord(entry = t(8), exit = t(13), leaveMinutes = 4 * h)
+        val three = DayRecord(entry = t(8), exit = t(11), leaveMinutes = 4 * h)
+        val cal = WorkCalendar(WorkSettings(), mapOf(d("2026-11-16") to five, d("2026-11-17") to three))
+        assertEquals(0, cal.delta(d("2026-11-16")))
+        assertEquals(-1 * h, cal.delta(d("2026-11-17")))
+    }
+
+    @Test
     fun `with a permit the bank is never recovered by staying longer`() {
         val day = DayRecord(entry = t(8), leaveMinutes = 4 * h)
         val p = DayCalculator.project(day, BreakRules(30), required = 4 * h, minimum = 3 * h, bankBefore = -2 * h, now = t(9))

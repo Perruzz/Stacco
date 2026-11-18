@@ -121,7 +121,7 @@ object Engine {
         val record = data.days[date.toString()] ?: DayRecord.EMPTY
         val required = calendar.required(date)
         val projected = DayCalculator.project(
-            r = record,
+            r = Rounding.counted(record, data.work.rounding),
             rules = calendar.breakRules(date),
             required = required,
             minimum = calendar.minimum(date),

@@ -77,6 +77,8 @@ fun StampTimeline(
     onEdit: (StampSlot) -> Unit,
     modifier: Modifier = Modifier,
     showBreak: Boolean = true,
+    /** The day as counted (rounded entry/exit), to show when it differs from the stamps. */
+    counted: DayRecord? = null,
 ) {
     // Without a planned break (e.g. many shifts) the timeline is just entry → exit.
     val slots = if (showBreak || record.breakOut != null || record.breakIn != null) {
@@ -87,7 +89,9 @@ fun StampTimeline(
     Column(modifier) {
         slots.forEachIndexed { index, slot ->
             val value = record[slot]
-            val supporting = when (slot) {
+            val countedAt = counted?.get(slot)?.takeIf { value != null && it != value }
+                ?.let { stringResource(R.string.stamp_counted, Fmt.timeDay(it)) }
+            val stampNote = when (slot) {
                 StampSlot.BREAK_IN -> breakInfo?.let { b ->
                     when {
                         b.ongoing && b.actual != null -> stringResource(R.string.stamps_break_live, Fmt.duration(b.actual))
@@ -98,6 +102,7 @@ fun StampTimeline(
                 StampSlot.EXIT -> if (value != null && worked != null) stringResource(R.string.stamps_worked, Fmt.duration(worked)) else null
                 else -> null
             }
+            val supporting = listOfNotNull(countedAt, stampNote).joinToString(" · ").ifEmpty { null }
             TimelineRow(
                 slot = slot,
                 minutes = value,

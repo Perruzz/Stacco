@@ -53,7 +53,8 @@ Sai sempre a che ora puoi *staccare*.
 - Tutti gli orari si possono correggere toccandoli, con un **selettore a rotella 3D** che "ticchetta" sotto il dito.
 - **Il calcolo di oggi**:
   - **Uscita standard** = entrata + ore giornaliere + pausa conteggiata.
-  - **Pausa conteggiata**: se non timbri la pausa si applica la minima; se è più corta della minima conta comunque la minima; se è più lunga conta per intero e l'uscita si sposta di conseguenza.
+  - **Pausa conteggiata**: se non timbri la pausa si applica la minima; se è più corta della minima conta comunque la minima; se è più lunga conta per intero e l'uscita si sposta di conseguenza. Nelle giornate fino a 6 ore (part-time, venerdì corto, mezza giornata di permesso) la pausa non è dovuta, come prevede la legge.
+  - **Arrotondamenti**: se l'azienda arrotonda le timbrature (per esempio entrata al quarto d'ora successivo, uscita al precedente, con qualche minuto di tolleranza), Stacco conta gli orari arrotondati ovunque: conto alla rovescia, giornata, calendario, banca ore ed export. Le timbrature restano quelle vere e accanto vedi *conteggiata alle 08:15*.
   - **Con la banca ore**: con saldo positivo ti dice quanto prima puoi uscire, rispettando le **ore minime** giornaliere; con saldo negativo ti dice fino a che ora restare per recuperare (e quanto recuperare al giorno fino a fine mese).
   - **Uscita minima**: l'orario più presto consentito dalle ore minime.
   - **Con un permesso**: le ore da fare si riducono e il permesso si scala dalle ferie. Quel giorno la banca ore può scendere ma non salire: se lavori più del necessario, il permesso era in più (8h con 4h di permesso: 5h lavorate → ±0, 3h lavorate → −1h).
@@ -76,6 +77,7 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 - **Seleziona più giorni**: tieni premuto un giorno e trascina il dito sugli altri (oppure tocca *Seleziona più giorni*), poi scegli *Ferie*, *Smart working*, *Trasferta*… e li segni tutti insieme. Sabati, domeniche e festivi restano liberi; un messaggio con *Annulla* ti permette di tornare indietro.
 - **Quota smart working** del mese (o della settimana) con avviso quando superi il limite del contratto.
 - Riepilogo mensile: giorni in sede, smart, trasferte, assenze, ore lavorate e saldo del mese.
+- **Esporta il mese in CSV** (pulsante nel riepilogo): una riga per giorno con tipo, turno, timbrature, permesso, pausa conteggiata, ore lavorate, previste e saldo, più i totali e la banca ore. Si apre direttamente in Excel, Numbers o Fogli Google.
 
 ### 🐷 Banca ore
 - Saldo attuale con **grafico** degli ultimi 30/90 giorni.
@@ -111,11 +113,13 @@ Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 | --- | --- | --- |
 | Modalità | Orario fisso | Oppure *Turni*, con turni personalizzabili pianificati sul calendario |
 | Ore giornaliere | 8h | Orario di uscita standard |
+| Orario per giorno | Ven 4h | Giorni con ore diverse (settimana corta, part-time verticale) |
 | Ore minime | 7h | Massimo utilizzo giornaliero della banca ore (8h − 7h = 1h) |
 | Giorni lavorativi | Lun–Ven | Calendario, giorni in sede rimanenti |
 | Festività italiane | Sì | Le feste nazionali non sono lavorative |
 | Santo patrono | 7 dicembre | La festa del patrono della città in cui lavori, ogni anno |
-| Pausa minima | 30m | Una pausa 12:00 → 12:20 conta comunque 30m |
+| Pausa minima | 30m | Una pausa 12:00 → 12:20 conta comunque 30m (nelle giornate oltre le 6 ore) |
+| Arrotondamenti | 15 min | Entrata per eccesso, uscita per difetto, tolleranza in minuti |
 | Scadenza saldo positivo | Trimestrale | Mai, mensile, bimestrale, trimestrale, quadrimestrale, semestrale, annuale |
 | Negativo da recuperare | Entro fine mese | Avvisi di recupero; a fine mese il negativo si azzera o si riporta |
 | Anticipo extra degli avvisi | 3 giorni | Giorni in sede in più rispetto a quelli strettamente necessari |
@@ -210,6 +214,7 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 - Yearly vacation hours: vacation days and hours of leave are taken from them (taken, planned, left, carry-over). A day with leave can lower the hour bank but never raise it.
 - Smart alerts whose timing adapts to how many hours you need to use or recover; exit reminders; Android 16 Live Update countdown, also on the lock screen; home screen widget; Quick Settings tile.
 - Forgotten exit stamps are pointed out (with a suggested time), Italian holidays plus your town's patron saint's day, and a daily check for new versions on GitHub (the app's only network access).
+- Different hours per weekday (short Fridays, part-time), company rounding of badge times with tolerance, and a monthly CSV export.
 - Light/dark/system theme with a circular reveal, Material You colors, Italian and English.
 - No account, no tracking: everything stays on your device.
 

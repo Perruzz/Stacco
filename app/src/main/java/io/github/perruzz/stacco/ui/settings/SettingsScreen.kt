@@ -83,6 +83,7 @@ import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.rounded.Upload
+import androidx.compose.material.icons.rounded.ViewWeek
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.WorkHistory
 import androidx.compose.material3.Button
@@ -168,6 +169,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
     var editingName by remember { mutableStateOf(false) }
     var editingPatron by remember { mutableStateOf(false) }
     var editingVacation by remember { mutableStateOf(false) }
+    var editingWeek by remember { mutableStateOf(false) }
     var choosingExpiry by remember { mutableStateOf(false) }
     var confirmImport by remember { mutableStateOf<String?>(null) }
     var editingShift by remember { mutableStateOf<ShiftTemplate?>(null) }
@@ -287,6 +289,12 @@ fun SettingsScreen(viewModel: MainViewModel) {
                                 value = Fmt.duration(work.minDailyMinutes),
                                 onClick = { editingDuration = DurationField.MINIMUM },
                             )
+                            SettingRow(
+                                icon = Icons.Rounded.ViewWeek,
+                                title = stringResource(R.string.settings_daily_by_day),
+                                subtitle = weekHoursSummary(work),
+                                onClick = { editingWeek = true },
+                            )
                             Spacer(Modifier.height(8.dp))
                             Text(stringResource(R.string.settings_workdays), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
                             val first = remember { io.github.perruzz.stacco.domain.Engine.firstDayOfWeek() }
@@ -335,6 +343,12 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         }
                     }
                 }
+            }
+        }
+
+        Appear(i++) {
+            StaccoCard {
+                RoundingSection(work.rounding) { rules -> update { it.copy(work = it.work.copy(rounding = rules)) } }
             }
         }
 
@@ -578,6 +592,17 @@ fun SettingsScreen(viewModel: MainViewModel) {
         }
 
         Appear(i++) { AboutCard(onGithub = { openUrl(context, Links.GITHUB) }) }
+    }
+
+    if (editingWeek) {
+        WeekHoursDialog(
+            work = data.work,
+            onDismiss = { editingWeek = false },
+            onSave = { hours ->
+                update { it.copy(work = it.work.copy(dailyByDay = hours)) }
+                editingWeek = false
+            },
+        )
     }
 
     if (editingVacation) {

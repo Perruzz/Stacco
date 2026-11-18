@@ -47,7 +47,7 @@ object AlertPlanner {
     ): List<BankAlert> {
         val start = if (todayDone) today.plusDays(1) else today
         // How much the bank can move in a single day: with shifts the day cannot be shortened.
-        val flex = if (work.mode == WorkMode.SHIFTS) 0 else max(0, work.dailyMinutes - work.minDailyMinutes)
+        val flex = if (work.mode == WorkMode.SHIFTS) 0 else work.flexMinutes
         val alerts = mutableListOf<BankAlert>()
 
         if (balance < 0 && bank.negativeMustBeRecovered) {

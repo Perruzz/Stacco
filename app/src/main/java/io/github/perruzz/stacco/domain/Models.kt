@@ -1,6 +1,8 @@
 package io.github.perruzz.stacco.domain
 
 import kotlinx.serialization.Serializable
+import java.time.DayOfWeek
+import kotlin.math.max
 
 /**
  * The whole persisted state of Stacco. Everything the app shows is *derived* from this object,
@@ -47,7 +49,36 @@ data class WorkSettings(
     val patronDay: Int = 0,
     /** Shift templates (shift mode). */
     val shifts: List<ShiftTemplate> = emptyList(),
-)
+    /** Weekdays with their own hours (ISO 1 = Monday … 7 = Sunday -> minutes), e.g. a short Friday. */
+    val dailyByDay: Map<Int, Int> = emptyMap(),
+    /** How entry and exit are rounded before counting them (the stamps themselves stay as they are). */
+    val rounding: RoundingSettings = RoundingSettings(),
+) {
+    /** Minutes to work on [day]: the daily hours, unless that weekday has its own. */
+    fun dailyFor(day: DayOfWeek): Int = dailyByDay[day.value] ?: dailyMinutes
+
+    /** How much the hour bank can shorten a day; the same on every weekday. */
+    val flexMinutes: Int get() = max(0, dailyMinutes - minDailyMinutes)
+}
+
+@Serializable
+enum class RoundingDirection { DOWN, NEAREST, UP }
+
+/**
+ * Company rounding of the badge times, e.g. entry rounded up to the next quarter hour and exit
+ * down to the previous one, with a few minutes of tolerance.
+ */
+@Serializable
+data class RoundingSettings(
+    /** Rounding step in minutes; 0 or 1 = exact minutes. */
+    val stepMinutes: Int = 0,
+    val entry: RoundingDirection = RoundingDirection.UP,
+    val exit: RoundingDirection = RoundingDirection.DOWN,
+    /** Minutes past (entry) or before (exit) a step that still count as that step. */
+    val toleranceMinutes: Int = 0,
+) {
+    val enabled: Boolean get() = stepMinutes > 1
+}
 
 /**
  * A shift such as "Morning 07:00–14:00" or "Night 21:00–07:00" (ends the next day).

@@ -39,7 +39,7 @@ object VacationCalculator {
         if (work.mode == WorkMode.SHIFTS) {
             calendar.shift(date)?.workMinutes ?: typicalDay(work)
         } else if (date.dayOfWeek.value in work.workDays && calendar.holiday(date) == null) {
-            work.dailyMinutes
+            work.dailyFor(date.dayOfWeek)
         } else {
             0
         }

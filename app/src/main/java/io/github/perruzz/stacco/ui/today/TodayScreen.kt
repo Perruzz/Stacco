@@ -88,6 +88,7 @@ import io.github.perruzz.stacco.domain.DayFix
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.ExitTarget
+import io.github.perruzz.stacco.domain.Rounding
 import io.github.perruzz.stacco.domain.SmartPeriod
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.StampSlot
@@ -203,6 +204,7 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
                             worked = s.projection.result?.worked,
                             onEdit = { editing = it },
                             showBreak = s.expectsBreak,
+                            counted = Rounding.counted(s.record, s.work.rounding),
                         )
                         AnimatedVisibility(s.record.entry != null && s.record.breakOut == null && s.projection.breakInfo.deducted > 0) {
                             Hint(

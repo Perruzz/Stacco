@@ -269,7 +269,7 @@
     <string name="settings_holidays_sub">Le feste nazionali non sono giorni lavorativi</string>
     <string name="settings_break">Pausa pranzo</string>
     <string name="settings_min_break">Pausa minima</string>
-    <string name="settings_min_break_sub">Una pausa più breve conta comunque così (anche se non la timbri)</string>
+    <string name="settings_min_break_sub">Una pausa più breve conta comunque così, anche se non la timbri. Sotto le 6 ore di lavoro la pausa non è dovuta.</string>
     <string name="settings_bank">Banca ore</string>
     <string name="settings_balance">Saldo banca ore</string>
     <string name="settings_balance_sub">Modificalo per allinearti al saldo aziendale</string>
@@ -350,7 +350,7 @@
     <string name="ob_work_explainer">Con %1$s al giorno e %2$s minime potrai usare fino a %3$s al giorno dalla banca ore.</string>
     <string name="ob_break_title">Pausa pranzo</string>
     <string name="ob_break_body">Stacco applica le regole della tua azienda sulla pausa.</string>
-    <string name="ob_break_explainer">Una pausa più corta di %1$s conta comunque %1$s. Se non timbri la pausa, Stacco applica la minima.</string>
+    <string name="ob_break_explainer">Una pausa più corta di %1$s conta comunque %1$s. Se non timbri la pausa, Stacco applica la minima; nelle giornate fino a 6 ore la pausa non è dovuta.</string>
     <string name="ob_bank_title">La tua banca ore</string>
     <string name="ob_bank_body">Quanto hai adesso in banca ore? E quali sono le regole della tua azienda?</string>
     <string name="ob_smart_title">Smart working</string>
@@ -520,4 +520,53 @@
     <string name="select_none">Nessun giorno selezionato</string>
     <string name="select_vacation_preview">Ferie disponibili: %1$s → %2$s</string>
     <string name="select_days_off">Sabati, domeniche e festivi restano liberi</string>
+    <!-- Hours per weekday and rounding -->
+    <string name="settings_daily_by_day">Orario per giorno</string>
+    <string name="settings_daily_by_day_same">Uguale tutti i giorni</string>
+    <string name="week_hours_title">Ore per giorno</string>
+    <string name="week_hours_sub">Tocca un giorno per dargli ore diverse, per esempio un venerdì corto. La banca ore può accorciare ogni giorno di %1$s.</string>
+    <string name="week_hours_total">Totale settimana: %1$s</string>
+    <string name="action_restore">Ripristina</string>
+    <string name="settings_rounding">Arrotondamenti</string>
+    <string name="settings_rounding_sub">Se l\'azienda arrotonda le timbrature, per esempio al quarto d\'ora. Le timbrature restano quelle vere: cambiano solo le ore conteggiate.</string>
+    <string name="rounding_off">No</string>
+    <string name="rounding_minutes">%1$d min</string>
+    <string name="rounding_entry">Entrata</string>
+    <string name="rounding_exit">Uscita</string>
+    <string name="rounding_down">Per difetto</string>
+    <string name="rounding_nearest">Più vicino</string>
+    <string name="rounding_up">Per eccesso</string>
+    <string name="rounding_tolerance">Tolleranza</string>
+    <string name="rounding_tolerance_sub">Minuti dopo l\'ora (in entrata) o prima (in uscita) che contano ancora come quell\'ora</string>
+    <string name="rounding_example">Esempio: entri alle %1$s → conta %2$s · esci alle %3$s → conta %4$s</string>
+    <string name="stamp_counted">conteggiata alle %1$s</string>
+    <!-- Monthly CSV export -->
+    <string-array name="csv_headers">
+        <item>Data</item>
+        <item>Giorno</item>
+        <item>Tipo</item>
+        <item>Turno</item>
+        <item>Entrata</item>
+        <item>Inizio pausa</item>
+        <item>Fine pausa</item>
+        <item>Uscita</item>
+        <item>Permesso</item>
+        <item>Pausa conteggiata</item>
+        <item>Lavorato</item>
+        <item>Previsto</item>
+        <item>Saldo</item>
+        <item>Note</item>
+    </string-array>
+    <string name="csv_date_pattern">dd/MM/yyyy</string>
+    <string name="csv_total">Totale</string>
+    <string name="csv_office_days">Giorni in sede</string>
+    <string name="csv_smart_days">Giorni in smart working</string>
+    <string name="csv_travel_days">Giorni di trasferta</string>
+    <string name="csv_vacation_days">Giorni di ferie</string>
+    <string name="csv_sick_days">Giorni di malattia</string>
+    <string name="csv_leave_hours">Ore di permesso</string>
+    <string name="csv_bank_on">Banca ore al %1$s</string>
+    <string name="export_month">CSV</string>
+    <string name="export_month_desc">Esporta il mese in CSV</string>
+    <string name="export_month_done">Mese esportato</string>
 </resources>

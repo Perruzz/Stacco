@@ -1,6 +1,8 @@
 package io.github.perruzz.stacco.ui.calendar
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -47,10 +50,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EditCalendar
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Today
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -71,7 +76,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -84,6 +92,7 @@ import io.github.perruzz.stacco.domain.SmartPeriod
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.domain.parsedDays
+import io.github.perruzz.stacco.export.MonthCsv
 import io.github.perruzz.stacco.ui.MainViewModel
 import io.github.perruzz.stacco.ui.components.RollingText
 import io.github.perruzz.stacco.ui.components.SectionLabel
@@ -101,8 +110,10 @@ import io.github.perruzz.stacco.ui.today.SmartQuota
 import io.github.perruzz.stacco.ui.today.icon
 import io.github.perruzz.stacco.ui.today.label
 import io.github.perruzz.stacco.ui.util.Fmt
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -132,6 +143,22 @@ fun CalendarScreen(viewModel: MainViewModel) {
     var dragAnchor by remember { mutableStateOf<LocalDate?>(null) }
     var dragBase by remember { mutableStateOf(emptySet<LocalDate>()) }
     var dragRemoving by remember { mutableStateOf(false) }
+    // Month export: the month is remembered while the system file picker is open.
+    val context = LocalContext.current
+    var exporting by remember { mutableStateOf<YearMonth?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        val target = exporting
+        exporting = null
+        if (uri != null && target != null) {
+            scope.launch {
+                val csv = MonthCsv.build(data, target, csvLabels(context))
+                val ok = withContext(Dispatchers.IO) {
+                    runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(csv.toByteArray()) } != null }.getOrDefault(false)
+                }
+                viewModel.notify(if (ok) R.string.export_month_done else R.string.backup_error)
+            }
+        }
+    }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     val month = baseMonth.plusMonths((pager.currentPage - CENTER).toLong())
 
@@ -285,7 +312,12 @@ fun CalendarScreen(viewModel: MainViewModel) {
                 }
             }
 
-            Appear(2) { MonthSummary(month, data, calendar) }
+            Appear(2) {
+                MonthSummary(month, data, calendar, onExport = {
+                    exporting = month
+                    exportLauncher.launch("stacco-$month.csv")
+                })
+            }
             Appear(3) { OfficeDaysList(month, data, calendar, onOpen = { selected = it }) }
         }
 
@@ -543,7 +575,7 @@ private val DayType.shortLabel: Int
     }
 
 @Composable
-private fun MonthSummary(month: YearMonth, data: StaccoData, calendar: WorkCalendar) {
+private fun MonthSummary(month: YearMonth, data: StaccoData, calendar: WorkCalendar, onExport: () -> Unit) {
     val days = remember(data) { data.parsedDays() }
     val inMonth = days.filterKeys { YearMonth.from(it) == month }
     val office = inMonth.count { (date, record) -> calendar.effectiveType(date) == DayType.OFFICE && record.hasStamps }
@@ -559,7 +591,20 @@ private fun MonthSummary(month: YearMonth, data: StaccoData, calendar: WorkCalen
     val c = StaccoTheme.colors
 
     StaccoCard {
-        SectionLabel(stringResource(R.string.calendar_summary, Fmt.monthName(month)))
+        val exportDescription = stringResource(R.string.export_month_desc)
+        SectionLabel(stringResource(R.string.calendar_summary, Fmt.monthName(month))) {
+            FilledTonalButton(
+                onClick = onExport,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                modifier = Modifier
+                    .height(32.dp)
+                    .semantics { contentDescription = exportDescription },
+            ) {
+                Icon(Icons.Rounded.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.export_month), style = MaterialTheme.typography.labelLarge)
+            }
+        }
         Spacer(Modifier.height(12.dp))
         if (calendar.isShiftMode) {
             ShiftCounts(month, data, calendar)
