@@ -13,6 +13,8 @@ import io.github.perruzz.stacco.domain.BankCalculator
 import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
+import io.github.perruzz.stacco.domain.Schedule
+import io.github.perruzz.stacco.domain.ScheduleHistory
 import io.github.perruzz.stacco.domain.ShiftTemplate
 import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.WorkCalendar
@@ -135,6 +137,19 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
 
     suspend fun restoreDays(previous: Map<LocalDate, DayRecord?>) {
         update { data -> previous.entries.fold(data) { acc, (date, record) -> acc.withDay(date) { record ?: DayRecord.EMPTY } } }
+    }
+
+    /**
+     * A new contract (hours, weekdays, fixed or shifts) from [from] on; null rewrites every date.
+     * Days before keep being counted with the rules they had.
+     */
+    suspend fun changeSchedule(next: Schedule, from: LocalDate?) {
+        update { data ->
+            // With nothing recorded before the change there is no past to protect.
+            val effectiveFrom = from?.takeIf { day -> data.days.keys.any { it < day.toString() } }
+            val history = ScheduleHistory.change(data.scheduleHistory, data.work.schedule, next, effectiveFrom)
+            data.copy(work = data.work.withSchedule(next), scheduleHistory = history)
+        }
     }
 
     /** Makes the vacation hours available today equal to [target] minutes. */

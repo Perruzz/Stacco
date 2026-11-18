@@ -3,6 +3,7 @@ package io.github.perruzz.stacco.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.StaccoApp
 import io.github.perruzz.stacco.data.Backup
 import io.github.perruzz.stacco.data.day
@@ -11,6 +12,7 @@ import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
+import io.github.perruzz.stacco.domain.Schedule
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.StampSlot
@@ -20,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -149,6 +152,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun restoreDays(previous: Map<LocalDate, DayRecord?>) {
         viewModelScope.launch { repo.restoreDays(previous) }
+    }
+
+    private val _pendingSchedule = MutableStateFlow<Schedule?>(null)
+
+    /** Schedule edits waiting for the user to say from when they apply. */
+    val pendingSchedule: StateFlow<Schedule?> = _pendingSchedule
+
+    /** Edits the draft of the schedule (hours, weekdays, mode); nothing is saved yet. */
+    fun editSchedule(transform: (Schedule) -> Schedule) {
+        val current = data.value?.work?.schedule ?: return
+        val next = transform(_pendingSchedule.value ?: current)
+        _pendingSchedule.value = next.takeIf { it != current }
+    }
+
+    fun discardSchedule() {
+        _pendingSchedule.value = null
+    }
+
+    /** Saves the draft, valid from [from] (null: every date, the past included). */
+    fun applySchedule(from: LocalDate?) {
+        val next = _pendingSchedule.value ?: return
+        _pendingSchedule.value = null
+        viewModelScope.launch {
+            repo.changeSchedule(next, from)
+            _events.emit(UiEvent.Info(R.string.schedule_applied))
+        }
+    }
+
+    /** The current schedule for every date: past days are recounted with it. */
+    fun clearScheduleHistory() {
+        viewModelScope.launch { repo.update { it.copy(scheduleHistory = emptyList()) } }
     }
 
     fun setVacationAvailable(target: Int) {

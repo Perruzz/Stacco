@@ -22,7 +22,10 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +63,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -75,8 +79,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChangedIgnoreConsumed
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -98,6 +105,7 @@ import io.github.perruzz.stacco.ui.components.RollingText
 import io.github.perruzz.stacco.ui.components.SectionLabel
 import io.github.perruzz.stacco.ui.components.StaccoCard
 import io.github.perruzz.stacco.ui.components.bouncyClickable
+import io.github.perruzz.stacco.ui.components.pressScale
 import io.github.perruzz.stacco.ui.theme.StaccoTheme
 import io.github.perruzz.stacco.ui.theme.container
 import io.github.perruzz.stacco.ui.theme.deltaColor
@@ -293,6 +301,7 @@ fun CalendarScreen(viewModel: MainViewModel) {
                                 }
                             },
                             onRangeEnd = { dragAnchor = null },
+                        isRanging = { dragAnchor != null },
                         )
                     }
                     Spacer(Modifier.height(12.dp))
@@ -374,13 +383,14 @@ private fun MonthGrid(
     onRangeStart: (LocalDate) -> Unit,
     onRangeExtend: (LocalDate) -> Unit,
     onRangeEnd: () -> Unit,
+    isRanging: () -> Boolean,
 ) {
     val first = month.atDay(1)
     val offset = (first.dayOfWeek.value - firstDow.value + 7) % 7
     val start = first.minusDays(offset.toLong())
-    val startRange by rememberUpdatedState(onRangeStart)
     val extendRange by rememberUpdatedState(onRangeExtend)
     val endRange by rememberUpdatedState(onRangeEnd)
+    val ranging by rememberUpdatedState(isRanging)
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.pointerInput(start) {
@@ -393,15 +403,21 @@ private fun MonthGrid(
                 val row = (p.y / rowStep).toInt().coerceIn(0, 5)
                 return start.plusDays((row * 7 + col).toLong())
             }
-            detectDragGesturesAfterLongPress(
-                onDragStart = { startRange(dayAt(it)) },
-                onDrag = { change, _ ->
-                    change.consume()
-                    extendRange(dayAt(change.position))
-                },
-                onDragEnd = { endRange() },
-                onDragCancel = { endRange() },
-            )
+            // The long press itself is handled by the day (so that letting go is not also a tap);
+            // from then on the finger picks every day it crosses, until it is lifted.
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false)
+                do {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.firstOrNull() ?: break
+                    // After its long press the day consumes the moves: read them anyway.
+                    if (ranging() && change.pressed && change.positionChangedIgnoreConsumed()) {
+                        change.consume()
+                        extendRange(dayAt(change.position))
+                    }
+                } while (event.changes.any { it.pressed })
+                if (ranging()) endRange()
+            }
         },
     ) {
         repeat(6) { week ->
@@ -418,6 +434,7 @@ private fun MonthGrid(
                         index = index,
                         picked = date in picked,
                         onClick = { onDayClick(date) },
+                        onLongClick = { onRangeStart(date) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -436,8 +453,11 @@ private fun DayCell(
     index: Int,
     picked: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    val clickHaptics = LocalHapticFeedback.current
     val record = data.days[date.toString()]
     val type = calendar.effectiveType(date)
     val explicitOrWorked = record?.type != null || record?.hasStamps == true
@@ -485,7 +505,18 @@ private fun DayCell(
             .background(cellColor)
             .then(if (isToday) Modifier.border(2.dp, primary, RoundedCornerShape(16.dp)) else Modifier)
             .then(if (pick > 0.01f) Modifier.border(3.dp, primary.copy(alpha = pick), RoundedCornerShape(16.dp)) else Modifier)
-            .bouncyClickable(enabled = inMonth, pressed = 0.88f, onClick = onClick),
+            .pressScale(interaction, 0.88f)
+            .combinedClickable(
+                interactionSource = interaction,
+                indication = ripple(),
+                enabled = inMonth,
+                hapticFeedbackEnabled = false,
+                onLongClick = onLongClick,
+                onClick = {
+                    clickHaptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    onClick()
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         if (pick > 0.01f) {

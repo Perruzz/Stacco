@@ -23,6 +23,11 @@ data class StaccoData(
     val adjustments: List<BankAdjustment> = emptyList(),
     val alerts: AlertsState = AlertsState(),
     val vacation: VacationSettings = VacationSettings(),
+    /**
+     * Earlier contracts (hours, weekdays, fixed or shifts) with the last day they applied: past days
+     * keep being counted with the rules of their time. Empty: [work] applies to every date.
+     */
+    val scheduleHistory: List<SchedulePeriod> = emptyList(),
 )
 
 @Serializable
@@ -59,7 +64,33 @@ data class WorkSettings(
 
     /** How much the hour bank can shorten a day; the same on every weekday. */
     val flexMinutes: Int get() = max(0, dailyMinutes - minDailyMinutes)
+
+    /** The contract part of these settings, the one that can change over time. */
+    val schedule: Schedule get() = Schedule(mode, dailyMinutes, minDailyMinutes, dailyByDay, workDays)
+
+    /** These settings with another contract; everything else (rounding, holidays, shifts…) stays. */
+    fun withSchedule(s: Schedule): WorkSettings = copy(
+        mode = s.mode,
+        dailyMinutes = s.dailyMinutes,
+        minDailyMinutes = s.minDailyMinutes,
+        dailyByDay = s.dailyByDay,
+        workDays = s.workDays,
+    )
 }
+
+/** What a contract change touches: fixed hours or shifts, daily and minimum hours, weekdays. */
+@Serializable
+data class Schedule(
+    val mode: WorkMode = WorkMode.FIXED,
+    val dailyMinutes: Int = 8 * 60,
+    val minDailyMinutes: Int = 7 * 60,
+    val dailyByDay: Map<Int, Int> = emptyMap(),
+    val workDays: Set<Int> = setOf(1, 2, 3, 4, 5),
+)
+
+/** A [schedule] that applied up to [until] (ISO date, included); the next one starts the day after. */
+@Serializable
+data class SchedulePeriod(val until: String, val schedule: Schedule)
 
 @Serializable
 enum class RoundingDirection { DOWN, NEAREST, UP }

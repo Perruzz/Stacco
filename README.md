@@ -109,6 +109,8 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 
 Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 
+**Cambi di contratto.** Quando modifichi ore giornaliere, ore minime, orario per giorno, giorni lavorativi o passi tra orario fisso e turni, Stacco ti chiede *da quando* vale la modifica: da oggi, da un giorno scelto o da sempre. Ogni giornata viene calcolata con le regole in vigore quel giorno, quindi i mesi passati restano come erano e non serve reimpostare il saldo. Lo storico è in *Impostazioni → Storico dell'orario*.
+
 | Impostazione | Esempio | Effetto |
 | --- | --- | --- |
 | Modalità | Orario fisso | Oppure *Turni*, con turni personalizzabili pianificati sul calendario |
@@ -120,6 +122,7 @@ Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 | Santo patrono | 7 dicembre | La festa del patrono della città in cui lavori, ogni anno |
 | Pausa minima | 30m | Una pausa 12:00 → 12:20 conta comunque 30m (nelle giornate oltre le 6 ore) |
 | Arrotondamenti | 15 min | Entrata per eccesso, uscita per difetto, tolleranza in minuti |
+| Storico dell'orario | Dal 1° dicembre | Ogni modifica all'orario vale da una data: i giorni prima restano calcolati con l'orario di allora |
 | Scadenza saldo positivo | Trimestrale | Mai, mensile, bimestrale, trimestrale, quadrimestrale, semestrale, annuale |
 | Negativo da recuperare | Entro fine mese | Avvisi di recupero; a fine mese il negativo si azzera o si riporta |
 | Anticipo extra degli avvisi | 3 giorni | Giorni in sede in più rispetto a quelli strettamente necessari |
@@ -215,6 +218,7 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 - Smart alerts whose timing adapts to how many hours you need to use or recover; exit reminders; Android 16 Live Update countdown, also on the lock screen; home screen widget; Quick Settings tile.
 - Forgotten exit stamps are pointed out (with a suggested time), Italian holidays plus your town's patron saint's day, and a daily check for new versions on GitHub (the app's only network access).
 - Different hours per weekday (short Fridays, part-time), company rounding of badge times with tolerance, and a monthly CSV export.
+- Contract changes take effect from a date you choose: every day is counted with the rules in force on that day, so past months stay as they were.
 - Light/dark/system theme with a circular reveal, Material You colors, Italian and English.
 - No account, no tracking: everything stays on your device.
 

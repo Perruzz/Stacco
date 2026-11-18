@@ -440,7 +440,8 @@ fun OnboardingScreen(viewModel: MainViewModel) {
             onDismiss = { editing = null },
             onConfirm = { v ->
                 draft = when (field) {
-                    Field.DAILY -> draft.copy(work = work.copy(dailyMinutes = v, minDailyMinutes = work.minDailyMinutes.coerceAtMost(v)))
+                    // Keep the room the hour bank had (8h/7h -> 6h/5h).
+                    Field.DAILY -> draft.copy(work = work.copy(dailyMinutes = v, minDailyMinutes = (v - work.flexMinutes).coerceAtLeast(0)))
                     Field.MINIMUM -> draft.copy(work = work.copy(minDailyMinutes = v.coerceAtMost(work.dailyMinutes)))
                     Field.MIN_BREAK -> draft.copy(work = work.copy(minBreakMinutes = v))
                     Field.BALANCE -> draft.also { balance = v }

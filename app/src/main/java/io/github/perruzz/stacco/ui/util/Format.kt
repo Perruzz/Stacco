@@ -90,6 +90,9 @@ object Fmt {
     fun dayMonth(date: LocalDate, locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofPattern("d MMMM", locale).format(date)
 
+    fun dayMonthYear(date: LocalDate, locale: Locale = Locale.getDefault()): String =
+        DateTimeFormatter.ofPattern("d MMMM yyyy", locale).format(date)
+
     fun monthYear(month: YearMonth, locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofPattern("LLLL yyyy", locale).format(month).capitalized(locale)
 

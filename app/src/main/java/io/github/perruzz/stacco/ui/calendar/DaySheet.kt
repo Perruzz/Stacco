@@ -150,7 +150,7 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
                 }
             }
 
-            if (calendar.isShiftMode && data.work.shifts.isNotEmpty()) {
+            if (calendar.isShiftDay(date) && data.work.shifts.isNotEmpty()) {
                 SectionLabel(stringResource(R.string.day_shift))
                 ShiftSelector(
                     shifts = data.work.shifts,

@@ -34,15 +34,17 @@ data class VacationBalance(
  */
 object VacationCalculator {
 
-    /** What a day of vacation on [date] is worth: nothing on a day off. */
-    fun dayLength(work: WorkSettings, calendar: WorkCalendar, date: LocalDate): Int =
-        if (work.mode == WorkMode.SHIFTS) {
+    /** What a day of vacation on [date] is worth (with the rules of that day): nothing on a day off. */
+    fun dayLength(calendar: WorkCalendar, date: LocalDate): Int {
+        val work = calendar.workAt(date)
+        return if (work.mode == WorkMode.SHIFTS) {
             calendar.shift(date)?.workMinutes ?: typicalDay(work)
         } else if (date.dayOfWeek.value in work.workDays && calendar.holiday(date) == null) {
             work.dailyFor(date.dayOfWeek)
         } else {
             0
         }
+    }
 
     /** A normal working day: the daily hours, or the median shift (also used without a planned shift). */
     fun typicalDay(work: WorkSettings): Int {
@@ -52,10 +54,10 @@ object VacationCalculator {
     }
 
     /** Minutes [date] takes from the vacation hours. */
-    fun cost(work: WorkSettings, calendar: WorkCalendar, date: LocalDate): Int {
+    fun cost(calendar: WorkCalendar, date: LocalDate): Int {
         val record = calendar.record(date) ?: return 0
         return when {
-            record.type == DayType.VACATION -> dayLength(work, calendar, date)
+            record.type == DayType.VACATION -> dayLength(calendar, date)
             record.leaveMinutes > 0 && calendar.effectiveType(date) == DayType.OFFICE -> record.leaveMinutes
             else -> 0
         }
@@ -64,8 +66,8 @@ object VacationCalculator {
     fun balance(data: StaccoData, today: LocalDate, year: Int = today.year): VacationBalance {
         val settings = data.vacation
         val days = data.parsedDays()
-        val calendar = WorkCalendar(data.work, days)
-        val costs = days.keys.mapNotNull { date -> cost(data.work, calendar, date).takeIf { it > 0 }?.let { date to it } }
+        val calendar = WorkCalendar(data.work, days, data.scheduleHistory)
+        val costs = days.keys.mapNotNull { date -> cost(calendar, date).takeIf { it > 0 }?.let { date to it } }
         val first = (costs.map { it.first.year } + settings.adjustments.keys.mapNotNull { it.toIntOrNull() } + year).min()
 
         var left = 0
@@ -102,6 +104,6 @@ object VacationCalculator {
     /** Extra minutes that marking [dates] as vacation would take (days off and days already counted excluded). */
     fun costAsVacation(data: StaccoData, dates: Collection<LocalDate>): Int {
         val calendar = WorkCalendar.from(data)
-        return dates.sumOf { date -> dayLength(data.work, calendar, date) - cost(data.work, calendar, date) }
+        return dates.sumOf { date -> dayLength(calendar, date) - cost(calendar, date) }
     }
 }

@@ -12,6 +12,9 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.material.icons.rounded.History
+import io.github.perruzz.stacco.domain.Schedule
+import io.github.perruzz.stacco.domain.ScheduleHistory
 import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.WorkMode
@@ -170,6 +173,9 @@ fun SettingsScreen(viewModel: MainViewModel) {
     var editingPatron by remember { mutableStateOf(false) }
     var editingVacation by remember { mutableStateOf(false) }
     var editingWeek by remember { mutableStateOf(false) }
+    var pickingScheduleDate by remember { mutableStateOf(false) }
+    var showingHistory by remember { mutableStateOf(false) }
+    var confirmClearHistory by remember { mutableStateOf(false) }
     var choosingExpiry by remember { mutableStateOf(false) }
     var confirmImport by remember { mutableStateOf<String?>(null) }
     var editingShift by remember { mutableStateOf<ShiftTemplate?>(null) }
@@ -209,397 +215,464 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val work = data.work
+    // Schedule edits (mode, hours, weekdays) are a draft until the user says from when they apply.
+    val pendingSchedule by viewModel.pendingSchedule.collectAsStateWithLifecycle()
+    val work = pendingSchedule?.let { data.work.withSchedule(it) } ?: data.work
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        var i = 0
-        Appear(i++) { Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineLarge) }
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            var i = 0
+            Appear(i++) { Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineLarge) }
 
-        Appear(i++) {
-            StaccoCard {
-                SectionLabel(stringResource(R.string.settings_profile))
-                SettingRow(
-                    icon = Icons.Rounded.Badge,
-                    title = stringResource(R.string.settings_name),
-                    subtitle = data.profile.name.ifBlank { stringResource(R.string.settings_name_empty) },
-                    onClick = { editingName = true },
-                )
-            }
-        }
-
-        Appear(i++) {
-            val defaults = defaultShifts()
-            WorkModeCard(
-                mode = work.mode,
-                onChange = { mode ->
-                    update {
-                        val shifts = if (mode == WorkMode.SHIFTS && it.work.shifts.isEmpty()) defaults else it.work.shifts
-                        it.copy(work = it.work.copy(mode = mode, shifts = shifts))
-                    }
-                },
-            )
-        }
-
-        Appear(i++) {
-            AnimatedContent(
-                targetState = work.mode,
-                transitionSpec = {
-                    (fadeIn(tween(300, delayMillis = 120)) + slideInVertically(spring(dampingRatio = 0.85f, stiffness = 300f)) { it / 6 }) togetherWith
-                        (fadeOut(tween(150)) + slideOutVertically(tween(200)) { -it / 8 }) using
-                        SizeTransform(clip = false)
-                },
-                label = "work-mode",
-            ) { mode ->
-                if (mode == WorkMode.SHIFTS) {
-                    StaccoCard {
-                        SectionLabel(stringResource(R.string.settings_shifts))
-                        Text(
-                            stringResource(R.string.settings_shifts_sub),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-                        )
-                        ShiftList(
-                            shifts = work.shifts,
-                            onEdit = { editingShift = it },
-                            onAdd = { addingShift = true },
-                        )
-                    }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        StaccoCard {
-                            SectionLabel(stringResource(R.string.settings_work))
-                            SettingRow(
-                                icon = Icons.Rounded.Schedule,
-                                title = stringResource(R.string.settings_daily),
-                                subtitle = stringResource(R.string.settings_daily_sub),
-                                value = Fmt.duration(work.dailyMinutes),
-                                onClick = { editingDuration = DurationField.DAILY },
-                            )
-                            SettingRow(
-                                icon = Icons.Rounded.HourglassBottom,
-                                title = stringResource(R.string.settings_minimum),
-                                subtitle = stringResource(R.string.settings_minimum_sub, Fmt.duration((work.dailyMinutes - work.minDailyMinutes).coerceAtLeast(0))),
-                                value = Fmt.duration(work.minDailyMinutes),
-                                onClick = { editingDuration = DurationField.MINIMUM },
-                            )
-                            SettingRow(
-                                icon = Icons.Rounded.ViewWeek,
-                                title = stringResource(R.string.settings_daily_by_day),
-                                subtitle = weekHoursSummary(work),
-                                onClick = { editingWeek = true },
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(stringResource(R.string.settings_workdays), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
-                            val first = remember { io.github.perruzz.stacco.domain.Engine.firstDayOfWeek() }
-                            WeekdayToggles(
-                                selected = work.workDays,
-                                order = (0 until 7).map { first.plus(it.toLong()).value },
-                                labels = { Fmt.weekdayNarrow(DayOfWeek.of(it)).take(2) },
-                                onToggle = { day ->
-                                    update {
-                                        // The last working day cannot be removed: a schedule needs at least one.
-                                        val days = it.work.workDays.toMutableSet().apply { if (!add(day) && size > 1) remove(day) }
-                                        it.copy(work = it.work.copy(workDays = days))
-                                    }
-                                },
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            SwitchRow(
-                                icon = Icons.Rounded.Celebration,
-                                title = stringResource(R.string.settings_holidays),
-                                subtitle = stringResource(R.string.settings_holidays_sub),
-                                checked = work.italianHolidays,
-                                onCheckedChange = { on -> update { it.copy(work = it.work.copy(italianHolidays = on)) } },
-                            )
-                            SettingRow(
-                                icon = Icons.Rounded.LocationCity,
-                                title = stringResource(R.string.settings_patron),
-                                subtitle = stringResource(R.string.settings_patron_sub),
-                                value = if (work.patronDay > 0) {
-                                    Fmt.dayMonth(LocalDate.of(2024, work.patronDay / 100, work.patronDay % 100))
-                                } else {
-                                    stringResource(R.string.settings_patron_none)
-                                },
-                                onClick = { editingPatron = true },
-                            )
-                        }
-                        StaccoCard {
-                            SectionLabel(stringResource(R.string.settings_break))
-                            SettingRow(
-                                icon = Icons.Rounded.Coffee,
-                                title = stringResource(R.string.settings_min_break),
-                                subtitle = stringResource(R.string.settings_min_break_sub),
-                                value = Fmt.duration(work.minBreakMinutes),
-                                tint = StaccoTheme.colors.lunch,
-                                onClick = { editingDuration = DurationField.MIN_BREAK },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Appear(i++) {
-            StaccoCard {
-                RoundingSection(work.rounding) { rules -> update { it.copy(work = it.work.copy(rounding = rules)) } }
-            }
-        }
-
-        Appear(i++) {
-            StaccoCard {
-                SectionLabel(stringResource(R.string.settings_bank))
-                SettingRow(
-                    icon = Icons.Rounded.Savings,
-                    title = stringResource(R.string.settings_balance),
-                    subtitle = stringResource(R.string.settings_balance_sub),
-                    value = Fmt.duration(ledger.balance, signed = true),
-                    tint = deltaColor(ledger.balance).takeIf { ledger.balance != 0 } ?: MaterialTheme.colorScheme.primary,
-                    onClick = { editingDuration = DurationField.BALANCE },
-                )
-                SettingRow(
-                    icon = Icons.Rounded.HourglassTop,
-                    title = stringResource(R.string.settings_expiry),
-                    subtitle = stringResource(R.string.settings_expiry_sub),
-                    value = stringResource(data.bank.positiveExpiry.label),
-                    onClick = { choosingExpiry = true },
-                )
-                SwitchRow(
-                    icon = Icons.AutoMirrored.Rounded.TrendingDown,
-                    title = stringResource(R.string.settings_negative),
-                    subtitle = stringResource(R.string.settings_negative_sub),
-                    checked = data.bank.negativeMustBeRecovered,
-                    tint = StaccoTheme.colors.negative,
-                    onCheckedChange = { on -> update { it.copy(bank = it.bank.copy(negativeMustBeRecovered = on)) } },
-                )
-                AnimatedVisibility(data.bank.negativeMustBeRecovered, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                    Column(Modifier.padding(start = 54.dp, bottom = 8.dp)) {
-                        Text(stringResource(R.string.settings_negative_close), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(8.dp))
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                            SegmentedButton(
-                                selected = data.bank.resetNegativeAtMonthEnd,
-                                onClick = { update { it.copy(bank = it.bank.copy(resetNegativeAtMonthEnd = true)) } },
-                                shape = SegmentedButtonDefaults.itemShape(0, 2),
-                            ) { Text(stringResource(R.string.settings_negative_reset)) }
-                            SegmentedButton(
-                                selected = !data.bank.resetNegativeAtMonthEnd,
-                                onClick = { update { it.copy(bank = it.bank.copy(resetNegativeAtMonthEnd = false)) } },
-                                shape = SegmentedButtonDefaults.itemShape(1, 2),
-                            ) { Text(stringResource(R.string.settings_negative_carry)) }
-                        }
-                    }
-                }
-                StepperRow(
-                    icon = Icons.Rounded.EventRepeat,
-                    title = stringResource(R.string.settings_lead),
-                    subtitle = stringResource(R.string.settings_lead_sub),
-                    value = data.bank.alertLeadDays,
-                    range = 0..15,
-                    onValueChange = { v -> update { it.copy(bank = it.bank.copy(alertLeadDays = v)) } },
-                )
-                LeadExample(work = work, lead = data.bank.alertLeadDays)
-            }
-        }
-
-        Appear(i++) {
-            StaccoCard {
-                SectionLabel(stringResource(R.string.settings_vacation_section))
-                SettingRow(
-                    icon = DayType.VACATION.icon,
-                    title = stringResource(R.string.settings_vacation),
-                    subtitle = stringResource(R.string.settings_vacation_sub),
-                    value = if (data.vacation.annualMinutes > 0) Fmt.duration(data.vacation.annualMinutes) else "—",
-                    tint = StaccoTheme.colors.vacation,
-                    onClick = { editingVacation = true },
-                )
-                SwitchRow(
-                    icon = Icons.Rounded.EventRepeat,
-                    title = stringResource(R.string.vacation_carry),
-                    subtitle = stringResource(R.string.vacation_carry_sub),
-                    checked = data.vacation.carryOver,
-                    tint = StaccoTheme.colors.vacation,
-                    onCheckedChange = { on -> update { it.copy(vacation = it.vacation.copy(carryOver = on)) } },
-                )
-            }
-        }
-
-        Appear(i++) {
-            StaccoCard {
-                SectionLabel(stringResource(R.string.settings_smart))
-                StepperRow(
-                    icon = Icons.Rounded.Home,
-                    title = stringResource(R.string.settings_smart_days),
-                    subtitle = stringResource(R.string.settings_smart_days_sub),
-                    value = data.smart.allowance,
-                    range = 0..31,
-                    tint = StaccoTheme.colors.smart,
-                    onValueChange = { v -> update { it.copy(smart = it.smart.copy(allowance = v)) } },
-                )
-                SingleChoiceSegmentedButtonRow(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                ) {
-                    SegmentedButton(
-                        selected = data.smart.period == SmartPeriod.MONTH,
-                        onClick = { update { it.copy(smart = it.smart.copy(period = SmartPeriod.MONTH)) } },
-                        shape = SegmentedButtonDefaults.itemShape(0, 2),
-                    ) { Text(stringResource(R.string.settings_smart_month)) }
-                    SegmentedButton(
-                        selected = data.smart.period == SmartPeriod.WEEK,
-                        onClick = { update { it.copy(smart = it.smart.copy(period = SmartPeriod.WEEK)) } },
-                        shape = SegmentedButtonDefaults.itemShape(1, 2),
-                    ) { Text(stringResource(R.string.settings_smart_week)) }
-                }
-            }
-        }
-
-        Appear(i++) {
-            StaccoCard {
-                SectionLabel(stringResource(R.string.settings_notifications))
-                if (!notificationsGranted) {
-                    PermissionBanner(
-                        text = stringResource(R.string.settings_notif_denied),
-                        action = stringResource(R.string.settings_notif_grant),
-                        onClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            } else {
-                                openAppNotificationSettings(context)
-                            }
-                        },
+            Appear(i++) {
+                StaccoCard {
+                    SectionLabel(stringResource(R.string.settings_profile))
+                    SettingRow(
+                        icon = Icons.Rounded.Badge,
+                        title = stringResource(R.string.settings_name),
+                        subtitle = data.profile.name.ifBlank { stringResource(R.string.settings_name_empty) },
+                        onClick = { editingName = true },
                     )
                 }
-                SwitchRow(
-                    icon = Icons.Rounded.AlarmOn,
-                    title = stringResource(R.string.settings_exit_reminder),
-                    subtitle = stringResource(R.string.settings_exit_reminder_sub),
-                    checked = data.notifications.exitReminder,
-                    onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(exitReminder = on)) } },
+            }
+
+            Appear(i++) {
+                val defaults = defaultShifts()
+                WorkModeCard(
+                    mode = work.mode,
+                    onChange = { mode ->
+                        if (mode == WorkMode.SHIFTS && data.work.shifts.isEmpty()) update { it.copy(work = it.work.copy(shifts = defaults)) }
+                        viewModel.editSchedule { it.copy(mode = mode) }
+                    },
                 )
-                AnimatedVisibility(data.notifications.exitReminder, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                    Column(Modifier.padding(start = 54.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(stringResource(R.string.settings_exit_lead), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                            val options = listOf(0, 5, 10, 15)
-                            options.forEachIndexed { index, minutes ->
-                                SegmentedButton(
-                                    selected = data.notifications.exitReminderLeadMinutes == minutes,
-                                    onClick = { update { it.copy(notifications = it.notifications.copy(exitReminderLeadMinutes = minutes)) } },
-                                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                                    icon = {},
-                                ) {
-                                    Text(
-                                        if (minutes == 0) stringResource(R.string.settings_exit_lead_now) else "${minutes}m",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                    )
-                                }
-                            }
-                        }
-                        Text(stringResource(R.string.settings_exit_target), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                            SegmentedButton(
-                                selected = data.notifications.exitTarget == ExitTarget.STANDARD,
-                                onClick = { update { it.copy(notifications = it.notifications.copy(exitTarget = ExitTarget.STANDARD)) } },
-                                shape = SegmentedButtonDefaults.itemShape(0, 2),
-                            ) { Text(stringResource(R.string.target_standard)) }
-                            SegmentedButton(
-                                selected = data.notifications.exitTarget == ExitTarget.BANK,
-                                onClick = { update { it.copy(notifications = it.notifications.copy(exitTarget = ExitTarget.BANK)) } },
-                                shape = SegmentedButtonDefaults.itemShape(1, 2),
-                            ) { Text(stringResource(R.string.target_bank_long)) }
-                        }
-                        if (!exactAlarms) {
-                            PermissionBanner(
-                                text = stringResource(R.string.settings_exact_denied),
-                                action = stringResource(R.string.settings_exact_grant),
-                                onClick = { openExactAlarmSettings(context) },
-                                urgent = false,
+            }
+
+            if (data.scheduleHistory.isNotEmpty()) {
+                Appear(i++) {
+                    StaccoCard {
+                        SettingRow(
+                            icon = Icons.Rounded.History,
+                            title = stringResource(R.string.schedule_history),
+                            subtitle = ScheduleHistory.currentSince(data.scheduleHistory)
+                                ?.let { stringResource(R.string.schedule_history_since, Fmt.dayMonthYear(it)) },
+                            onClick = { showingHistory = true },
+                        )
+                    }
+                }
+            }
+
+            Appear(i++) {
+                AnimatedContent(
+                    targetState = work.mode,
+                    transitionSpec = {
+                        (fadeIn(tween(300, delayMillis = 120)) + slideInVertically(spring(dampingRatio = 0.85f, stiffness = 300f)) { it / 6 }) togetherWith
+                            (fadeOut(tween(150)) + slideOutVertically(tween(200)) { -it / 8 }) using
+                            SizeTransform(clip = false)
+                    },
+                    label = "work-mode",
+                ) { mode ->
+                    if (mode == WorkMode.SHIFTS) {
+                        StaccoCard {
+                            SectionLabel(stringResource(R.string.settings_shifts))
+                            Text(
+                                stringResource(R.string.settings_shifts_sub),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
                             )
+                            ShiftList(
+                                shifts = work.shifts,
+                                onEdit = { editingShift = it },
+                                onAdd = { addingShift = true },
+                            )
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            StaccoCard {
+                                SectionLabel(stringResource(R.string.settings_work))
+                                SettingRow(
+                                    icon = Icons.Rounded.Schedule,
+                                    title = stringResource(R.string.settings_daily),
+                                    subtitle = stringResource(R.string.settings_daily_sub),
+                                    value = Fmt.duration(work.dailyMinutes),
+                                    onClick = { editingDuration = DurationField.DAILY },
+                                )
+                                SettingRow(
+                                    icon = Icons.Rounded.HourglassBottom,
+                                    title = stringResource(R.string.settings_minimum),
+                                    subtitle = stringResource(R.string.settings_minimum_sub, Fmt.duration((work.dailyMinutes - work.minDailyMinutes).coerceAtLeast(0))),
+                                    value = Fmt.duration(work.minDailyMinutes),
+                                    onClick = { editingDuration = DurationField.MINIMUM },
+                                )
+                                SettingRow(
+                                    icon = Icons.Rounded.ViewWeek,
+                                    title = stringResource(R.string.settings_daily_by_day),
+                                    subtitle = weekHoursSummary(work),
+                                    onClick = { editingWeek = true },
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(stringResource(R.string.settings_workdays), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+                                val first = remember { io.github.perruzz.stacco.domain.Engine.firstDayOfWeek() }
+                                WeekdayToggles(
+                                    selected = work.workDays,
+                                    order = (0 until 7).map { first.plus(it.toLong()).value },
+                                    labels = { Fmt.weekdayNarrow(DayOfWeek.of(it)).take(2) },
+                                    onToggle = { day ->
+                                        viewModel.editSchedule { schedule ->
+                                            // The last working day cannot be removed: a schedule needs at least one.
+                                            val days = schedule.workDays.toMutableSet().apply { if (!add(day) && size > 1) remove(day) }
+                                            schedule.copy(workDays = days)
+                                        }
+                                    },
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                SwitchRow(
+                                    icon = Icons.Rounded.Celebration,
+                                    title = stringResource(R.string.settings_holidays),
+                                    subtitle = stringResource(R.string.settings_holidays_sub),
+                                    checked = work.italianHolidays,
+                                    onCheckedChange = { on -> update { it.copy(work = it.work.copy(italianHolidays = on)) } },
+                                )
+                                SettingRow(
+                                    icon = Icons.Rounded.LocationCity,
+                                    title = stringResource(R.string.settings_patron),
+                                    subtitle = stringResource(R.string.settings_patron_sub),
+                                    value = if (work.patronDay > 0) {
+                                        Fmt.dayMonth(LocalDate.of(2024, work.patronDay / 100, work.patronDay % 100))
+                                    } else {
+                                        stringResource(R.string.settings_patron_none)
+                                    },
+                                    onClick = { editingPatron = true },
+                                )
+                            }
+                            StaccoCard {
+                                SectionLabel(stringResource(R.string.settings_break))
+                                SettingRow(
+                                    icon = Icons.Rounded.Coffee,
+                                    title = stringResource(R.string.settings_min_break),
+                                    subtitle = stringResource(R.string.settings_min_break_sub),
+                                    value = Fmt.duration(work.minBreakMinutes),
+                                    tint = StaccoTheme.colors.lunch,
+                                    onClick = { editingDuration = DurationField.MIN_BREAK },
+                                )
+                            }
                         }
                     }
                 }
-                AnimatedVisibility(work.mode == WorkMode.SHIFTS, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+            }
+
+            Appear(i++) {
+                StaccoCard {
+                    RoundingSection(work.rounding) { rules -> update { it.copy(work = it.work.copy(rounding = rules)) } }
+                }
+            }
+
+            Appear(i++) {
+                StaccoCard {
+                    SectionLabel(stringResource(R.string.settings_bank))
+                    SettingRow(
+                        icon = Icons.Rounded.Savings,
+                        title = stringResource(R.string.settings_balance),
+                        subtitle = stringResource(R.string.settings_balance_sub),
+                        value = Fmt.duration(ledger.balance, signed = true),
+                        tint = deltaColor(ledger.balance).takeIf { ledger.balance != 0 } ?: MaterialTheme.colorScheme.primary,
+                        onClick = { editingDuration = DurationField.BALANCE },
+                    )
+                    SettingRow(
+                        icon = Icons.Rounded.HourglassTop,
+                        title = stringResource(R.string.settings_expiry),
+                        subtitle = stringResource(R.string.settings_expiry_sub),
+                        value = stringResource(data.bank.positiveExpiry.label),
+                        onClick = { choosingExpiry = true },
+                    )
+                    SwitchRow(
+                        icon = Icons.AutoMirrored.Rounded.TrendingDown,
+                        title = stringResource(R.string.settings_negative),
+                        subtitle = stringResource(R.string.settings_negative_sub),
+                        checked = data.bank.negativeMustBeRecovered,
+                        tint = StaccoTheme.colors.negative,
+                        onCheckedChange = { on -> update { it.copy(bank = it.bank.copy(negativeMustBeRecovered = on)) } },
+                    )
+                    AnimatedVisibility(data.bank.negativeMustBeRecovered, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        Column(Modifier.padding(start = 54.dp, bottom = 8.dp)) {
+                            Text(stringResource(R.string.settings_negative_close), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(8.dp))
+                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                SegmentedButton(
+                                    selected = data.bank.resetNegativeAtMonthEnd,
+                                    onClick = { update { it.copy(bank = it.bank.copy(resetNegativeAtMonthEnd = true)) } },
+                                    shape = SegmentedButtonDefaults.itemShape(0, 2),
+                                ) { Text(stringResource(R.string.settings_negative_reset)) }
+                                SegmentedButton(
+                                    selected = !data.bank.resetNegativeAtMonthEnd,
+                                    onClick = { update { it.copy(bank = it.bank.copy(resetNegativeAtMonthEnd = false)) } },
+                                    shape = SegmentedButtonDefaults.itemShape(1, 2),
+                                ) { Text(stringResource(R.string.settings_negative_carry)) }
+                            }
+                        }
+                    }
+                    StepperRow(
+                        icon = Icons.Rounded.EventRepeat,
+                        title = stringResource(R.string.settings_lead),
+                        subtitle = stringResource(R.string.settings_lead_sub),
+                        value = data.bank.alertLeadDays,
+                        range = 0..15,
+                        onValueChange = { v -> update { it.copy(bank = it.bank.copy(alertLeadDays = v)) } },
+                    )
+                    LeadExample(work = work, lead = data.bank.alertLeadDays)
+                }
+            }
+
+            Appear(i++) {
+                StaccoCard {
+                    SectionLabel(stringResource(R.string.settings_vacation_section))
+                    SettingRow(
+                        icon = DayType.VACATION.icon,
+                        title = stringResource(R.string.settings_vacation),
+                        subtitle = stringResource(R.string.settings_vacation_sub),
+                        value = if (data.vacation.annualMinutes > 0) Fmt.duration(data.vacation.annualMinutes) else "—",
+                        tint = StaccoTheme.colors.vacation,
+                        onClick = { editingVacation = true },
+                    )
+                    SwitchRow(
+                        icon = Icons.Rounded.EventRepeat,
+                        title = stringResource(R.string.vacation_carry),
+                        subtitle = stringResource(R.string.vacation_carry_sub),
+                        checked = data.vacation.carryOver,
+                        tint = StaccoTheme.colors.vacation,
+                        onCheckedChange = { on -> update { it.copy(vacation = it.vacation.copy(carryOver = on)) } },
+                    )
+                }
+            }
+
+            Appear(i++) {
+                StaccoCard {
+                    SectionLabel(stringResource(R.string.settings_smart))
+                    StepperRow(
+                        icon = Icons.Rounded.Home,
+                        title = stringResource(R.string.settings_smart_days),
+                        subtitle = stringResource(R.string.settings_smart_days_sub),
+                        value = data.smart.allowance,
+                        range = 0..31,
+                        tint = StaccoTheme.colors.smart,
+                        onValueChange = { v -> update { it.copy(smart = it.smart.copy(allowance = v)) } },
+                    )
+                    SingleChoiceSegmentedButtonRow(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                    ) {
+                        SegmentedButton(
+                            selected = data.smart.period == SmartPeriod.MONTH,
+                            onClick = { update { it.copy(smart = it.smart.copy(period = SmartPeriod.MONTH)) } },
+                            shape = SegmentedButtonDefaults.itemShape(0, 2),
+                        ) { Text(stringResource(R.string.settings_smart_month)) }
+                        SegmentedButton(
+                            selected = data.smart.period == SmartPeriod.WEEK,
+                            onClick = { update { it.copy(smart = it.smart.copy(period = SmartPeriod.WEEK)) } },
+                            shape = SegmentedButtonDefaults.itemShape(1, 2),
+                        ) { Text(stringResource(R.string.settings_smart_week)) }
+                    }
+                }
+            }
+
+            Appear(i++) {
+                StaccoCard {
+                    SectionLabel(stringResource(R.string.settings_notifications))
+                    if (!notificationsGranted) {
+                        PermissionBanner(
+                            text = stringResource(R.string.settings_notif_denied),
+                            action = stringResource(R.string.settings_notif_grant),
+                            onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    openAppNotificationSettings(context)
+                                }
+                            },
+                        )
+                    }
                     SwitchRow(
                         icon = Icons.Rounded.AlarmOn,
-                        title = stringResource(R.string.settings_shift_reminder),
-                        subtitle = stringResource(R.string.settings_shift_reminder_sub, data.notifications.shiftStartLeadMinutes),
-                        checked = data.notifications.shiftStartReminder,
-                        onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(shiftStartReminder = on)) } },
+                        title = stringResource(R.string.settings_exit_reminder),
+                        subtitle = stringResource(R.string.settings_exit_reminder_sub),
+                        checked = data.notifications.exitReminder,
+                        onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(exitReminder = on)) } },
+                    )
+                    AnimatedVisibility(data.notifications.exitReminder, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        Column(Modifier.padding(start = 54.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(stringResource(R.string.settings_exit_lead), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                val options = listOf(0, 5, 10, 15)
+                                options.forEachIndexed { index, minutes ->
+                                    SegmentedButton(
+                                        selected = data.notifications.exitReminderLeadMinutes == minutes,
+                                        onClick = { update { it.copy(notifications = it.notifications.copy(exitReminderLeadMinutes = minutes)) } },
+                                        shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                                        icon = {},
+                                    ) {
+                                        Text(
+                                            if (minutes == 0) stringResource(R.string.settings_exit_lead_now) else "${minutes}m",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                        )
+                                    }
+                                }
+                            }
+                            Text(stringResource(R.string.settings_exit_target), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                SegmentedButton(
+                                    selected = data.notifications.exitTarget == ExitTarget.STANDARD,
+                                    onClick = { update { it.copy(notifications = it.notifications.copy(exitTarget = ExitTarget.STANDARD)) } },
+                                    shape = SegmentedButtonDefaults.itemShape(0, 2),
+                                ) { Text(stringResource(R.string.target_standard)) }
+                                SegmentedButton(
+                                    selected = data.notifications.exitTarget == ExitTarget.BANK,
+                                    onClick = { update { it.copy(notifications = it.notifications.copy(exitTarget = ExitTarget.BANK)) } },
+                                    shape = SegmentedButtonDefaults.itemShape(1, 2),
+                                ) { Text(stringResource(R.string.target_bank_long)) }
+                            }
+                            if (!exactAlarms) {
+                                PermissionBanner(
+                                    text = stringResource(R.string.settings_exact_denied),
+                                    action = stringResource(R.string.settings_exact_grant),
+                                    onClick = { openExactAlarmSettings(context) },
+                                    urgent = false,
+                                )
+                            }
+                        }
+                    }
+                    AnimatedVisibility(work.mode == WorkMode.SHIFTS, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        SwitchRow(
+                            icon = Icons.Rounded.AlarmOn,
+                            title = stringResource(R.string.settings_shift_reminder),
+                            subtitle = stringResource(R.string.settings_shift_reminder_sub, data.notifications.shiftStartLeadMinutes),
+                            checked = data.notifications.shiftStartReminder,
+                            onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(shiftStartReminder = on)) } },
+                        )
+                    }
+                    SwitchRow(
+                        icon = Icons.Rounded.Timer,
+                        title = stringResource(R.string.settings_live),
+                        subtitle = stringResource(R.string.settings_live_sub),
+                        checked = data.notifications.liveNotification,
+                        onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(liveNotification = on)) } },
+                    )
+                    SwitchRow(
+                        icon = Icons.Rounded.NotificationsActive,
+                        title = stringResource(R.string.settings_bank_alerts),
+                        subtitle = stringResource(R.string.settings_bank_alerts_sub),
+                        checked = data.notifications.bankAlerts,
+                        onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(bankAlerts = on)) } },
+                    )
+                    SwitchRow(
+                        icon = Icons.Rounded.SystemUpdate,
+                        title = stringResource(R.string.settings_updates),
+                        subtitle = stringResource(R.string.settings_updates_sub),
+                        checked = data.notifications.updateCheck,
+                        onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(updateCheck = on)) } },
                     )
                 }
-                SwitchRow(
-                    icon = Icons.Rounded.Timer,
-                    title = stringResource(R.string.settings_live),
-                    subtitle = stringResource(R.string.settings_live_sub),
-                    checked = data.notifications.liveNotification,
-                    onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(liveNotification = on)) } },
-                )
-                SwitchRow(
-                    icon = Icons.Rounded.NotificationsActive,
-                    title = stringResource(R.string.settings_bank_alerts),
-                    subtitle = stringResource(R.string.settings_bank_alerts_sub),
-                    checked = data.notifications.bankAlerts,
-                    onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(bankAlerts = on)) } },
-                )
-                SwitchRow(
-                    icon = Icons.Rounded.SystemUpdate,
-                    title = stringResource(R.string.settings_updates),
-                    subtitle = stringResource(R.string.settings_updates_sub),
-                    checked = data.notifications.updateCheck,
-                    onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(updateCheck = on)) } },
-                )
             }
+
+            Appear(i++) { AppearanceCard(data, onDynamic = { on -> update { it.copy(appearance = it.appearance.copy(dynamicColor = on)) } }) }
+
+            Appear(i++) { DonateCard(onClick = { openUrl(context, Links.DONATE) }) }
+
+            Appear(i++) {
+                StaccoCard {
+                    SectionLabel(stringResource(R.string.settings_data))
+                    SettingRow(
+                        icon = Icons.Rounded.Upload,
+                        title = stringResource(R.string.settings_export),
+                        subtitle = stringResource(R.string.settings_export_sub),
+                        onClick = { exportLauncher.launch("stacco-backup-${LocalDate.now()}.json") },
+                    )
+                    SettingRow(
+                        icon = Icons.Rounded.Download,
+                        title = stringResource(R.string.settings_import),
+                        subtitle = stringResource(R.string.settings_import_sub),
+                        onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(stringResource(R.string.settings_reset_info), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(10.dp))
+                    HoldToConfirmButton(
+                        text = stringResource(R.string.settings_reset),
+                        holdingText = stringResource(R.string.settings_reset_holding),
+                        onConfirmed = { viewModel.reset() },
+                    )
+                }
+            }
+
+            Appear(i++) { AboutCard(onGithub = { openUrl(context, Links.GITHUB) }) }
         }
 
-        Appear(i++) { AppearanceCard(data, onDynamic = { on -> update { it.copy(appearance = it.appearance.copy(dynamicColor = on)) } }) }
-
-        Appear(i++) { DonateCard(onClick = { openUrl(context, Links.DONATE) }) }
-
-        Appear(i++) {
-            StaccoCard {
-                SectionLabel(stringResource(R.string.settings_data))
-                SettingRow(
-                    icon = Icons.Rounded.Upload,
-                    title = stringResource(R.string.settings_export),
-                    subtitle = stringResource(R.string.settings_export_sub),
-                    onClick = { exportLauncher.launch("stacco-backup-${LocalDate.now()}.json") },
-                )
-                SettingRow(
-                    icon = Icons.Rounded.Download,
-                    title = stringResource(R.string.settings_import),
-                    subtitle = stringResource(R.string.settings_import_sub),
-                    onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(stringResource(R.string.settings_reset_info), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(10.dp))
-                HoldToConfirmButton(
-                    text = stringResource(R.string.settings_reset),
-                    holdingText = stringResource(R.string.settings_reset_holding),
-                    onConfirmed = { viewModel.reset() },
-                )
-            }
+        AnimatedVisibility(
+            visible = pendingSchedule != null,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 12.dp, end = 12.dp, bottom = bottom + 96.dp),
+            enter = slideInVertically(spring(dampingRatio = 0.8f, stiffness = 380f)) { it } + fadeIn(),
+            exit = slideOutVertically(tween(260)) { it } + fadeOut(tween(200)),
+        ) {
+            SchedulePendingBar(
+                onToday = { viewModel.applySchedule(LocalDate.now()) },
+                onPickDate = { pickingScheduleDate = true },
+                onDiscard = { viewModel.discardSchedule() },
+            )
         }
+    }
 
-        Appear(i++) { AboutCard(onGithub = { openUrl(context, Links.GITHUB) }) }
+    if (pickingScheduleDate) {
+        ScheduleDatePicker(
+            onDismiss = { pickingScheduleDate = false },
+            onApply = { from ->
+                viewModel.applySchedule(from)
+                pickingScheduleDate = false
+            },
+        )
+    }
+
+    if (showingHistory) {
+        ScheduleHistoryDialog(
+            data = data,
+            onDismiss = { showingHistory = false },
+            onClear = {
+                showingHistory = false
+                confirmClearHistory = true
+            },
+        )
+    }
+
+    if (confirmClearHistory) {
+        ConfirmDialog(
+            title = stringResource(R.string.schedule_history_clear),
+            text = stringResource(R.string.schedule_history_clear_text),
+            confirmLabel = stringResource(R.string.action_confirm),
+            icon = Icons.Rounded.History,
+            destructive = true,
+            onDismiss = { confirmClearHistory = false },
+            onConfirm = {
+                viewModel.clearScheduleHistory()
+                confirmClearHistory = false
+            },
+        )
     }
 
     if (editingWeek) {
         WeekHoursDialog(
-            work = data.work,
+            work = work,
             onDismiss = { editingWeek = false },
             onSave = { hours ->
-                update { it.copy(work = it.work.copy(dailyByDay = hours)) }
+                viewModel.editSchedule { it.copy(dailyByDay = hours) }
                 editingWeek = false
             },
         )
@@ -662,6 +735,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
             onConfirm = { value ->
                 when (field) {
                     DurationField.BALANCE -> viewModel.setBalance(value)
+                    DurationField.DAILY, DurationField.MINIMUM -> viewModel.editSchedule { it.withDuration(field, value) }
                     else -> update { it.copy(work = it.work.withDuration(field, value)) }
                 }
                 editingDuration = null
@@ -750,6 +824,15 @@ fun SettingsScreen(viewModel: MainViewModel) {
             },
         )
     }
+}
+
+private fun Schedule.withDuration(field: DurationField, value: Int): Schedule = when (field) {
+    // New daily hours keep the room the hour bank had: 8h/7h becomes 6h/5h, not 6h/6h.
+    DurationField.DAILY -> value.coerceAtLeast(0).let { daily ->
+        copy(dailyMinutes = daily, minDailyMinutes = (daily - (dailyMinutes - minDailyMinutes).coerceAtLeast(0)).coerceAtLeast(0))
+    }
+    DurationField.MINIMUM -> copy(minDailyMinutes = value.coerceIn(0, dailyMinutes))
+    else -> this
 }
 
 private fun WorkSettings.withDuration(field: DurationField, value: Int): WorkSettings = when (field) {

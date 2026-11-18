@@ -19,16 +19,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.ViewWeek
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +53,10 @@ import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.domain.Rounding
 import io.github.perruzz.stacco.domain.RoundingDirection
 import io.github.perruzz.stacco.domain.RoundingSettings
+import io.github.perruzz.stacco.domain.Schedule
+import io.github.perruzz.stacco.domain.ScheduleHistory
+import io.github.perruzz.stacco.domain.StaccoData
+import io.github.perruzz.stacco.domain.WorkMode
 import io.github.perruzz.stacco.domain.WorkSettings
 import io.github.perruzz.stacco.ui.components.DurationPickerDialog
 import io.github.perruzz.stacco.ui.components.IconBubble
@@ -56,6 +66,9 @@ import io.github.perruzz.stacco.ui.components.StaccoDialog
 import io.github.perruzz.stacco.ui.components.bouncyClickable
 import io.github.perruzz.stacco.ui.util.Fmt
 import java.time.DayOfWeek
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.format.TextStyle
 
 /** Working days in the user's week order. */
@@ -260,5 +273,140 @@ private fun DirectionChoice(title: String, icon: androidx.compose.ui.graphics.ve
                 Text(stringResource(label), style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false, color = Color.Unspecified)
             }
         }
+    }
+}
+
+// --- Schedule history ---------------------------------------------------------------------------
+
+/** "8h · Lun–Ven · Ven 4h", or "Turni". */
+@Composable
+fun scheduleSummary(schedule: Schedule): String {
+    if (schedule.mode == WorkMode.SHIFTS) return stringResource(R.string.mode_shifts)
+    val week = (0 until 7).map { Engine.firstDayOfWeek().plus(it.toLong()) }
+    // Runs of consecutive working days in week order: "Lun–Ven", "Lun, Mer, Ven".
+    val runs = mutableListOf<MutableList<DayOfWeek>>()
+    week.forEach { day ->
+        if (day.value in schedule.workDays) {
+            if (runs.isEmpty() || week.indexOf(runs.last().last()) != week.indexOf(day) - 1) runs += mutableListOf(day) else runs.last() += day
+        }
+    }
+    val short = week.associateWith { dayName(it, TextStyle.SHORT_STANDALONE) }
+    val days = runs.joinToString(", ") { run ->
+        if (run.size >= 3) "${short[run.first()]}–${short[run.last()]}" else run.joinToString(", ") { short.getValue(it) }
+    }
+    val custom = week.filter { it.value in schedule.workDays && (schedule.dailyByDay[it.value] ?: schedule.dailyMinutes) != schedule.dailyMinutes }
+        .joinToString(" · ") { "${short[it]} ${Fmt.duration(schedule.dailyByDay[it.value] ?: schedule.dailyMinutes)}" }
+    return listOf(Fmt.duration(schedule.dailyMinutes), days, custom).filter { it.isNotEmpty() }.joinToString(" · ")
+}
+
+/** Floating bar shown while the schedule has unsaved edits: from when do they apply? */
+@Composable
+fun SchedulePendingBar(onToday: () -> Unit, onPickDate: () -> Unit, onDiscard: () -> Unit, modifier: Modifier = Modifier) {
+    androidx.compose.material3.Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 10.dp,
+        tonalElevation = 2.dp,
+    ) {
+        Column(Modifier.padding(start = 18.dp, end = 8.dp, top = 12.dp, bottom = 14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconBubble(Icons.Rounded.History, tint = MaterialTheme.colorScheme.primary, container = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), size = 40.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.schedule_pending_title), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.schedule_pending_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                androidx.compose.material3.IconButton(onClick = onDiscard) {
+                    androidx.compose.material3.Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_cancel))
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.padding(end = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = onToday, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.schedule_from_today), maxLines = 1) }
+                androidx.compose.material3.FilledTonalButton(onClick = onPickDate, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.schedule_from_date), maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+/** Picks the first day of the new schedule; "Always" rewrites the past too. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ScheduleDatePicker(onDismiss: () -> Unit, onApply: (LocalDate?) -> Unit) {
+    val state = rememberDatePickerState(initialSelectedDateMillis = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = { state.selectedDateMillis?.let { onApply(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) } },
+                enabled = state.selectedDateMillis != null,
+            ) { Text(stringResource(R.string.schedule_apply)) }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = { onApply(null) }) { Text(stringResource(R.string.schedule_always)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            }
+        },
+    ) {
+        DatePicker(
+            state = state,
+            showModeToggle = false,
+            title = {
+                Text(
+                    stringResource(R.string.schedule_pick_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
+                )
+            },
+        )
+    }
+}
+
+/** The contracts over time, oldest first, with the current one at the end. */
+@Composable
+fun ScheduleHistoryDialog(data: StaccoData, onDismiss: () -> Unit, onClear: () -> Unit) {
+    val periods = ScheduleHistory.parse(data.scheduleHistory)
+    StaccoDialog(onDismiss) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBubble(Icons.Rounded.History, tint = MaterialTheme.colorScheme.primary, container = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f), size = 44.dp)
+            Spacer(Modifier.width(14.dp))
+            Text(stringResource(R.string.schedule_history), style = MaterialTheme.typography.headlineSmall)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.schedule_history_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            periods.forEach { (until, schedule) ->
+                HistoryRow(stringResource(R.string.schedule_period_until, Fmt.dayMonthYear(until)), scheduleSummary(schedule), current = false)
+            }
+            periods.lastOrNull()?.let { (until, _) ->
+                HistoryRow(stringResource(R.string.schedule_period_current, Fmt.dayMonthYear(until.plusDays(1))), scheduleSummary(data.work.schedule), current = true)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        TextButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.schedule_history_clear), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        }
+    }
+}
+
+@Composable
+private fun HistoryRow(title: String, summary: String, current: Boolean) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (current) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.surfaceContainerHighest)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.labelLarge, color = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(summary, style = MaterialTheme.typography.titleSmall)
     }
 }

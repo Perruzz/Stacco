@@ -167,7 +167,8 @@ object ShiftStartScheduler {
         val alarms = context.getSystemService(AlarmManager::class.java) ?: return
         val pi = pendingIntent(context)
         val settings = data.notifications
-        val next = if (data.work.mode == io.github.perruzz.stacco.domain.WorkMode.SHIFTS && settings.shiftStartReminder) nextShift(data, now) else null
+        // Shifts are looked up day by day: the mode may change on a given date (contract history).
+        val next = if (settings.shiftStartReminder) nextShift(data, now) else null
         if (next == null) {
             alarms.cancel(pi)
             return

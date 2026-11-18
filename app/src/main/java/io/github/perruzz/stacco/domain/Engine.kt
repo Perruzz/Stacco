@@ -33,8 +33,9 @@ data class TodaySnapshot(
     val smartUsed: Int,
     val data: StaccoData,
 ) {
-    val work: WorkSettings get() = data.work
-    val isShiftMode: Boolean get() = data.work.mode == WorkMode.SHIFTS
+    /** The settings in force on [date] (an older contract for a day before a change). */
+    val work: WorkSettings get() = WorkCalendar.from(data).workAt(date)
+    val isShiftMode: Boolean get() = work.mode == WorkMode.SHIFTS
     val isSmart: Boolean get() = type == DayType.SMART
     val isTravel: Boolean get() = type == DayType.TRAVEL
     val isOffice: Boolean get() = type == DayType.OFFICE
@@ -137,7 +138,7 @@ object Engine {
             today = date,
             todayDone = projection.phase == DayPhase.DONE || !calendar.isScheduled(date),
             calendar = calendar,
-            work = data.work,
+            work = calendar.workAt(date),
             bank = data.bank,
         )
         val smartRange = calendar.smartRange(date, data.smart.period, firstDayOfWeek())

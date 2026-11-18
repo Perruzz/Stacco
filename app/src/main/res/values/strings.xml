@@ -11,6 +11,7 @@
     <!-- Common actions -->
     <string name="action_back">Back</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
     <string name="action_confirm">Confirm</string>
     <string name="action_delete">Delete</string>
     <string name="action_now">Now</string>
@@ -563,4 +564,20 @@
     <string name="export_month">CSV</string>
     <string name="export_month_desc">Export the month as CSV</string>
     <string name="export_month_done">Month exported</string>
+    <!-- Schedule history -->
+    <string name="schedule_pending_title">Work schedule changed</string>
+    <string name="schedule_pending_sub">From when? Earlier days keep being counted with the previous schedule.</string>
+    <string name="schedule_from_today">From today</string>
+    <string name="schedule_from_date">Pick a day</string>
+    <string name="schedule_pick_title">When does the new schedule start?</string>
+    <string name="schedule_apply">Apply</string>
+    <string name="schedule_always">Always</string>
+    <string name="schedule_applied">Schedule updated</string>
+    <string name="schedule_history">Schedule history</string>
+    <string name="schedule_history_since">Current schedule since %1$s</string>
+    <string name="schedule_history_sub">Every day is counted with the schedule in force on that day.</string>
+    <string name="schedule_period_until">Until %1$s</string>
+    <string name="schedule_period_current">From %1$s · current</string>
+    <string name="schedule_history_clear">Use the current schedule for every date</string>
+    <string name="schedule_history_clear_text">Past days will be recounted with the current schedule and the history will be deleted. This cannot be undone.</string>
 </resources>

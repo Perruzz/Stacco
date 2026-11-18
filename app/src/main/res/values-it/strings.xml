@@ -10,6 +10,7 @@
     <!-- Common actions -->
     <string name="action_back">Indietro</string>
     <string name="action_cancel">Annulla</string>
+    <string name="action_close">Chiudi</string>
     <string name="action_confirm">Conferma</string>
     <string name="action_delete">Elimina</string>
     <string name="action_now">Adesso</string>
@@ -569,4 +570,20 @@
     <string name="export_month">CSV</string>
     <string name="export_month_desc">Esporta il mese in CSV</string>
     <string name="export_month_done">Mese esportato</string>
+    <!-- Schedule history -->
+    <string name="schedule_pending_title">Orario di lavoro modificato</string>
+    <string name="schedule_pending_sub">Da quando vale? I giorni prima restano calcolati con l\'orario di prima.</string>
+    <string name="schedule_from_today">Da oggi</string>
+    <string name="schedule_from_date">Scegli il giorno</string>
+    <string name="schedule_pick_title">Da quando vale il nuovo orario?</string>
+    <string name="schedule_apply">Applica</string>
+    <string name="schedule_always">Da sempre</string>
+    <string name="schedule_applied">Orario aggiornato</string>
+    <string name="schedule_history">Storico dell\'orario</string>
+    <string name="schedule_history_since">Orario attuale dal %1$s</string>
+    <string name="schedule_history_sub">Ogni giornata è calcolata con l\'orario in vigore quel giorno.</string>
+    <string name="schedule_period_until">Fino al %1$s</string>
+    <string name="schedule_period_current">Dal %1$s · attuale</string>
+    <string name="schedule_history_clear">Usa l\'orario attuale per tutte le date</string>
+    <string name="schedule_history_clear_text">I giorni passati verranno ricalcolati con l\'orario attuale e lo storico verrà cancellato. Non si può annullare.</string>
 </resources>

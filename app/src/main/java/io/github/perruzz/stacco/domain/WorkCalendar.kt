@@ -102,9 +102,25 @@ object Periods {
 class WorkCalendar(
     private val work: WorkSettings,
     private val days: Map<LocalDate, DayRecord>,
+    history: List<SchedulePeriod> = emptyList(),
 ) {
     private val shiftsById = work.shifts.associateBy { it.id }
+
+    /** The current mode (what the screens show); single days follow [isShiftDay]. */
     val isShiftMode: Boolean get() = work.mode == WorkMode.SHIFTS
+
+    // Earlier contracts with the last day they applied; after them the current settings apply.
+    private val past: List<Pair<LocalDate, WorkSettings>> =
+        ScheduleHistory.parse(history).map { (until, schedule) -> until to work.withSchedule(schedule) }
+
+    /** The settings in force on [date]: hours, weekdays and mode of that time. */
+    fun workAt(date: LocalDate): WorkSettings {
+        for ((until, settings) in past) if (!date.isAfter(until)) return settings
+        return work
+    }
+
+    /** Whether [date] was worked in shifts (the mode may have changed over time). */
+    fun isShiftDay(date: LocalDate): Boolean = workAt(date).mode == WorkMode.SHIFTS
 
     fun record(date: LocalDate): DayRecord? = days[date]
 
@@ -115,14 +131,14 @@ class WorkCalendar(
 
     /** Planned shift of the day (shift mode only). */
     fun shift(date: LocalDate): ShiftTemplate? =
-        if (isShiftMode) days[date]?.shiftId?.let(shiftsById::get) else null
+        if (isShiftDay(date)) days[date]?.shiftId?.let(shiftsById::get) else null
 
     /** A day that is planned as working: weekly schedule (minus holidays) or a planned shift. */
     fun isScheduled(date: LocalDate): Boolean =
-        if (isShiftMode) {
+        if (isShiftDay(date)) {
             shift(date) != null
         } else {
-            date.dayOfWeek.value in work.workDays && holiday(date) == null
+            date.dayOfWeek.value in workAt(date).workDays && holiday(date) == null
         }
 
     /** Explicit type, or the one implied by the schedule. Null means a rest day. */
@@ -131,7 +147,7 @@ class WorkCalendar(
         record?.type?.let { return it }
         if (record?.hasStamps == true) return DayType.OFFICE
         if (isScheduled(date)) return DayType.OFFICE
-        if (!isShiftMode && holiday(date) != null && date.dayOfWeek.value in work.workDays) return DayType.HOLIDAY
+        if (!isShiftDay(date) && holiday(date) != null && date.dayOfWeek.value in workAt(date).workDays) return DayType.HOLIDAY
         return null
     }
 
@@ -141,24 +157,25 @@ class WorkCalendar(
      * only days off were picked. Shifts have no fixed days off.
      */
     fun daysToMark(dates: Collection<LocalDate>, type: DayType?): List<LocalDate> {
-        if (type == null || isShiftMode) return dates.sorted()
-        val working = dates.filter(::isScheduled)
+        if (type == null) return dates.sorted()
+        val working = dates.filter { isShiftDay(it) || isScheduled(it) }
         return working.ifEmpty { dates.toList() }.sorted()
     }
 
     fun required(date: LocalDate): Int {
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
         val leave = days[date]?.leaveMinutes ?: 0
-        val planned = if (isShiftMode) shift(date)?.workMinutes ?: 0 else work.dailyFor(date.dayOfWeek)
+        val planned = if (isShiftDay(date)) shift(date)?.workMinutes ?: 0 else workAt(date).dailyFor(date.dayOfWeek)
         return max(0, planned - leave)
     }
 
     fun minimum(date: LocalDate): Int {
-        if (isShiftMode) return required(date)
+        if (isShiftDay(date)) return required(date)
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
         val leave = days[date]?.leaveMinutes ?: 0
         // The bank can shorten every weekday by the same amount (e.g. 1h, also on a short Friday).
-        return max(0, work.dailyFor(date.dayOfWeek) - work.flexMinutes - leave)
+        val rules = workAt(date)
+        return max(0, rules.dailyFor(date.dayOfWeek) - rules.flexMinutes - leave)
     }
 
     /**
@@ -168,7 +185,7 @@ class WorkCalendar(
      */
     fun breakRules(date: LocalDate): BreakRules = BreakRules(
         when {
-            isShiftMode -> shift(date)?.breakMinutes ?: 0
+            isShiftDay(date) -> shift(date)?.breakMinutes ?: 0
             required(date) in 1..SHORT_DAY_MINUTES -> 0
             else -> work.minBreakMinutes
         },
@@ -235,7 +252,7 @@ class WorkCalendar(
 
         fun from(data: StaccoData): WorkCalendar {
             cached?.let { (source, calendar) -> if (source === data) return calendar }
-            return WorkCalendar(data.work, data.parsedDays()).also { cached = data to it }
+            return WorkCalendar(data.work, data.parsedDays(), data.scheduleHistory).also { cached = data to it }
         }
     }
 }
