@@ -191,7 +191,7 @@
     <string name="day_break">Break</string>
     <string name="day_bank">Hour bank</string>
     <string name="day_leave">Leave hours</string>
-    <string name="day_leave_sub">Reduces the hours due without touching the hour bank</string>
+    <string name="day_leave_sub">Taken from vacation hours; with leave, extra time does not go to the bank</string>
     <string name="day_rest_hint">Day off. If you work, every minute goes to the hour bank.</string>
     <string name="day_note">Notes</string>
     <string name="day_clear">Clear day</string>
@@ -464,4 +464,49 @@
     <string name="ob_shifts_explainer">Then, in the Calendar, pick a shift and tap the days to plan the month. Stacco reminds you before every shift and counts your overtime.</string>
     <string name="notif_shift_title">%1$s shift at %2$s</string>
     <string name="notif_shift_text">Starts in %1$d minutes. Have a good shift!</string>
+    <!-- Vacation hours -->
+    <string name="vacation_title">Vacation and leave %1$d</string>
+    <string name="vacation_setup">Keep track of your vacation hours: every vacation day and every hour of leave is taken from them.</string>
+    <string name="vacation_setup_action">Set yearly hours</string>
+    <string name="vacation_available">Available today</string>
+    <string name="vacation_days_approx">about %1$s days</string>
+    <string name="vacation_used">Taken</string>
+    <string name="vacation_planned">Planned</string>
+    <string name="vacation_after_planned">Left</string>
+    <string name="vacation_annual_short">Yearly %1$s</string>
+    <string name="vacation_carried_short">from last year %1$s</string>
+    <string name="vacation_adjust_short">adjustment %1$s</string>
+    <string name="vacation_leave_note">including leave %1$s</string>
+    <string name="vacation_set_available">Set balance</string>
+    <string name="vacation_annual">Yearly hours</string>
+    <string name="vacation_annual_title">Vacation per year</string>
+    <string name="vacation_annual_sub">Vacation hours you earn from 1 January to 31 December</string>
+    <string name="vacation_carry">Carry leftover hours into the new year</string>
+    <string name="vacation_carry_sub">Hours not taken by 31 December are added to next year\'s</string>
+    <string name="vacation_set_title">Vacation available today</string>
+    <string name="vacation_set_sub">As on your payslip: Stacco takes it from here</string>
+    <string name="settings_vacation_section">Vacation and leave</string>
+    <string name="settings_vacation">Yearly vacation</string>
+    <string name="settings_vacation_sub">Vacation days and hours of leave are taken from it</string>
+    <string name="away_vacation_left">Vacation left: %1$s</string>
+    <plurals name="days_marked">
+        <item quantity="one">%1$s on %2$d day</item>
+        <item quantity="other">%1$s on %2$d days</item>
+    </plurals>
+    <plurals name="days_reset">
+        <item quantity="one">%d day back to automatic</item>
+        <item quantity="other">%d days back to automatic</item>
+    </plurals>
+    <string name="days_marked_vacation_left">%1$s · %2$s of vacation left</string>
+
+    <!-- Selecting several days in the calendar -->
+    <string name="select_days">Select several days</string>
+    <string name="select_hint">Tap days, or press and drag</string>
+    <plurals name="select_count">
+        <item quantity="one">%d day selected</item>
+        <item quantity="other">%d days selected</item>
+    </plurals>
+    <string name="select_none">No days selected</string>
+    <string name="select_vacation_preview">Vacation available: %1$s → %2$s</string>
+    <string name="select_days_off">Weekends and holidays stay free</string>
 </resources>

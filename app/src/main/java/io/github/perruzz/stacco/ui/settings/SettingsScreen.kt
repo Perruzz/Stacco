@@ -12,6 +12,8 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import io.github.perruzz.stacco.domain.VacationCalculator
+import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.WorkMode
 import io.github.perruzz.stacco.domain.ShiftTemplate
 import androidx.compose.material.icons.rounded.Bedtime
@@ -131,6 +133,7 @@ import io.github.perruzz.stacco.domain.ThemeMode
 import io.github.perruzz.stacco.domain.WorkSettings
 import io.github.perruzz.stacco.ui.LocalThemeSwitcher
 import io.github.perruzz.stacco.ui.MainViewModel
+import io.github.perruzz.stacco.ui.bank.VacationAnnualDialog
 import io.github.perruzz.stacco.ui.components.ConfirmDialog
 import io.github.perruzz.stacco.ui.components.DayOfYearPickerDialog
 import io.github.perruzz.stacco.ui.components.DurationPickerDialog
@@ -143,6 +146,7 @@ import io.github.perruzz.stacco.ui.components.bouncyClickable
 import io.github.perruzz.stacco.ui.theme.StaccoTheme
 import io.github.perruzz.stacco.ui.theme.deltaColor
 import io.github.perruzz.stacco.ui.today.Appear
+import io.github.perruzz.stacco.ui.today.icon
 import io.github.perruzz.stacco.ui.util.Fmt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -163,6 +167,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
     var editingDuration by remember { mutableStateOf<DurationField?>(null) }
     var editingName by remember { mutableStateOf(false) }
     var editingPatron by remember { mutableStateOf(false) }
+    var editingVacation by remember { mutableStateOf(false) }
     var choosingExpiry by remember { mutableStateOf(false) }
     var confirmImport by remember { mutableStateOf<String?>(null) }
     var editingShift by remember { mutableStateOf<ShiftTemplate?>(null) }
@@ -390,6 +395,28 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
         Appear(i++) {
             StaccoCard {
+                SectionLabel(stringResource(R.string.settings_vacation_section))
+                SettingRow(
+                    icon = DayType.VACATION.icon,
+                    title = stringResource(R.string.settings_vacation),
+                    subtitle = stringResource(R.string.settings_vacation_sub),
+                    value = if (data.vacation.annualMinutes > 0) Fmt.duration(data.vacation.annualMinutes) else "—",
+                    tint = StaccoTheme.colors.vacation,
+                    onClick = { editingVacation = true },
+                )
+                SwitchRow(
+                    icon = Icons.Rounded.EventRepeat,
+                    title = stringResource(R.string.vacation_carry),
+                    subtitle = stringResource(R.string.vacation_carry_sub),
+                    checked = data.vacation.carryOver,
+                    tint = StaccoTheme.colors.vacation,
+                    onCheckedChange = { on -> update { it.copy(vacation = it.vacation.copy(carryOver = on)) } },
+                )
+            }
+        }
+
+        Appear(i++) {
+            StaccoCard {
                 SectionLabel(stringResource(R.string.settings_smart))
                 StepperRow(
                     icon = Icons.Rounded.Home,
@@ -550,6 +577,18 @@ fun SettingsScreen(viewModel: MainViewModel) {
         }
 
         Appear(i++) { AboutCard(onGithub = { openUrl(context, Links.GITHUB) }) }
+    }
+
+    if (editingVacation) {
+        VacationAnnualDialog(
+            settings = data.vacation,
+            dayMinutes = VacationCalculator.typicalDay(data.work),
+            onDismiss = { editingVacation = false },
+            onConfirm = { minutes, carry ->
+                update { it.copy(vacation = it.vacation.copy(annualMinutes = minutes, carryOver = carry)) }
+                editingVacation = false
+            },
+        )
     }
 
     if (editingPatron) {

@@ -134,6 +134,17 @@ class WorkCalendar(
         return null
     }
 
+    /**
+     * The days a type is written on when many are picked at once: with a fixed schedule the days
+     * off in the selection are left alone (a week of vacation does not touch the weekend), unless
+     * only days off were picked. Shifts have no fixed days off.
+     */
+    fun daysToMark(dates: Collection<LocalDate>, type: DayType?): List<LocalDate> {
+        if (type == null || isShiftMode) return dates.sorted()
+        val working = dates.filter(::isScheduled)
+        return working.ifEmpty { dates.toList() }.sorted()
+    }
+
     fun required(date: LocalDate): Int {
         if (!isScheduled(date) || effectiveType(date) != DayType.OFFICE) return 0
         val leave = days[date]?.leaveMinutes ?: 0

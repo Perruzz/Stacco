@@ -54,8 +54,10 @@ import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.StampSlot
+import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.ui.MainViewModel
+import io.github.perruzz.stacco.ui.bank.vacationHours
 import io.github.perruzz.stacco.ui.components.ConfirmDialog
 import io.github.perruzz.stacco.ui.components.DurationPickerDialog
 import io.github.perruzz.stacco.ui.components.Pill
@@ -92,6 +94,9 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
     val smartRange = calendar.smartRange(date, data.smart.period, Engine.firstDayOfWeek())
     val smartUsed = calendar.smartUsed(smartRange)
     val holiday = calendar.holiday(date)
+    val vacationLeft = remember(data) {
+        if (data.vacation.tracked) VacationCalculator.balance(data, LocalDate.now()).remaining else null
+    }
 
     var editing by remember { mutableStateOf<StampSlot?>(null) }
     var editingLeave by remember { mutableStateOf(false) }
@@ -159,6 +164,7 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
                 selected = record.type,
                 effective = if (record.type == null) type else null,
                 smartBadge = "$smartUsed/${data.smart.allowance}",
+                vacationBadge = vacationLeft?.let { vacationHours(it) },
                 onSelect = { viewModel.setDayType(date, it) },
             )
             AnimatedVisibility(record.type == DayType.SMART && smartUsed > data.smart.allowance) {

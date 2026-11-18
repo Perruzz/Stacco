@@ -1,18 +1,26 @@
 package io.github.perruzz.stacco.ui.calendar
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +45,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.EditCalendar
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material3.FilledTonalIconButton
@@ -49,13 +59,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -94,6 +107,7 @@ import java.time.YearMonth
 
 private const val PAGES = 241
 private const val CENTER = 120
+private val CELL_HEIGHT = 54.dp
 
 @Composable
 fun CalendarScreen(viewModel: MainViewModel) {
@@ -109,109 +123,184 @@ fun CalendarScreen(viewModel: MainViewModel) {
     // Shift planning: when a shift (or rest) is picked, tapping days assigns it.
     var painting by remember { mutableStateOf(false) }
     var paintShift by remember { mutableStateOf<String?>(null) }
+    // Many days at once: press and drag across them (or tap them after "select"), then pick a type.
+    var selecting by remember { mutableStateOf(false) }
+    var picked by remember { mutableStateOf(emptySet<LocalDate>()) }
+    var dragAnchor by remember { mutableStateOf<LocalDate?>(null) }
+    var dragBase by remember { mutableStateOf(emptySet<LocalDate>()) }
+    var dragRemoving by remember { mutableStateOf(false) }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     val month = baseMonth.plusMonths((pager.currentPage - CENTER).toLong())
 
+    fun endSelection() {
+        selecting = false
+        picked = emptySet()
+        dragAnchor = null
+    }
+    BackHandler(enabled = selecting) { endSelection() }
+
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // Room to scroll the calendar above the selection bar.
+    val barSpace by animateDpAsState(if (selecting) 230.dp else 0.dp, spring(dampingRatio = 0.85f, stiffness = 300f), label = "bar-space")
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Appear(0) {
-            Column {
-                Text(stringResource(R.string.calendar_title), style = MaterialTheme.typography.headlineLarge)
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FilledTonalIconButton(onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } }) {
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = stringResource(R.string.calendar_prev))
-                    }
-                    AnimatedContent(
-                        targetState = month,
-                        transitionSpec = {
-                            val dir = if (targetState > initialState) 1 else -1
-                            (slideInHorizontally { dir * it / 2 } + fadeIn()) togetherWith (slideOutHorizontally { -dir * it / 2 } + fadeOut())
-                        },
-                        modifier = Modifier.weight(1f),
-                        label = "month",
-                    ) { m ->
-                        Text(
-                            Fmt.monthYear(m),
-                            style = MaterialTheme.typography.headlineSmall,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    FilledTonalIconButton(onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } }) {
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = stringResource(R.string.calendar_next))
-                    }
-                }
-                AnimatedVisibility(month != baseMonth, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                    Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
-                        io.github.perruzz.stacco.ui.components.Pill(
-                            text = stringResource(R.string.calendar_back_today),
-                            icon = Icons.Rounded.Today,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            onClick = { scope.launch { pager.animateScrollToPage(CENTER) } },
-                        )
-                    }
-                }
-            }
-        }
-
-        if (calendar.isShiftMode && data.work.shifts.isNotEmpty()) {
-            Appear(1) {
-                ShiftPlanner(
-                    data = data,
-                    painting = painting,
-                    selected = paintShift,
-                    onPick = { id ->
-                        if (painting && paintShift == id) {
-                            painting = false
-                        } else {
-                            painting = true
-                            paintShift = id
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp + barSpace),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Appear(0) {
+                Column {
+                    Text(stringResource(R.string.calendar_title), style = MaterialTheme.typography.headlineLarge)
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FilledTonalIconButton(onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } }) {
+                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = stringResource(R.string.calendar_prev))
                         }
-                    },
-                )
+                        AnimatedContent(
+                            targetState = month,
+                            transitionSpec = {
+                                val dir = if (targetState > initialState) 1 else -1
+                                (slideInHorizontally { dir * it / 2 } + fadeIn()) togetherWith (slideOutHorizontally { -dir * it / 2 } + fadeOut())
+                            },
+                            modifier = Modifier.weight(1f),
+                            label = "month",
+                        ) { m ->
+                            Text(
+                                Fmt.monthYear(m),
+                                style = MaterialTheme.typography.headlineSmall,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        FilledTonalIconButton(onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } }) {
+                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = stringResource(R.string.calendar_next))
+                        }
+                    }
+                    AnimatedVisibility(month != baseMonth, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+                            io.github.perruzz.stacco.ui.components.Pill(
+                                text = stringResource(R.string.calendar_back_today),
+                                icon = Icons.Rounded.Today,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                onClick = { scope.launch { pager.animateScrollToPage(CENTER) } },
+                            )
+                        }
+                    }
+                }
             }
-        }
 
-        Appear(1) {
-            StaccoCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 16.dp)) {
-                WeekdayHeader(firstDow)
-                Spacer(Modifier.height(8.dp))
-                HorizontalPager(state = pager, modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) { page ->
-                    val pageMonth = baseMonth.plusMonths((page - CENTER).toLong())
-                    MonthGrid(
-                        month = pageMonth,
+            if (calendar.isShiftMode && data.work.shifts.isNotEmpty()) {
+                Appear(1) {
+                    ShiftPlanner(
                         data = data,
-                        calendar = calendar,
-                        today = today,
-                        firstDow = firstDow,
-                        onDayClick = { date ->
-                            if (painting) {
-                                haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.SegmentTick)
-                                val current = data.days[date.toString()]?.shiftId
-                                viewModel.setShift(date, if (current == paintShift) null else paintShift)
+                        painting = painting,
+                        selected = paintShift,
+                        onPick = { id ->
+                            if (painting && paintShift == id) {
+                                painting = false
                             } else {
-                                selected = date
+                                endSelection()
+                                painting = true
+                                paintShift = id
                             }
                         },
                     )
                 }
-                Spacer(Modifier.height(12.dp))
-                if (calendar.isShiftMode) ShiftLegend(data) else Legend()
             }
+
+            Appear(1) {
+                StaccoCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 16.dp)) {
+                    WeekdayHeader(firstDow)
+                    Spacer(Modifier.height(8.dp))
+                    HorizontalPager(state = pager, modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) { page ->
+                        val pageMonth = baseMonth.plusMonths((page - CENTER).toLong())
+                        MonthGrid(
+                            month = pageMonth,
+                            data = data,
+                            calendar = calendar,
+                            today = today,
+                            firstDow = firstDow,
+                            picked = picked,
+                            onDayClick = { date ->
+                                when {
+                                    selecting -> {
+                                        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.SegmentTick)
+                                        picked = if (date in picked) picked - date else picked + date
+                                    }
+                                    painting -> {
+                                        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.SegmentTick)
+                                        val current = data.days[date.toString()]?.shiftId
+                                        viewModel.setShift(date, if (current == paintShift) null else paintShift)
+                                    }
+                                    else -> selected = date
+                                }
+                            },
+                            onRangeStart = { date ->
+                                painting = false
+                                selecting = true
+                                dragAnchor = date
+                                dragBase = picked
+                                dragRemoving = date in picked
+                                picked = if (dragRemoving) picked - date else picked + date
+                                haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            },
+                            onRangeExtend = { date ->
+                                dragAnchor?.let { anchor ->
+                                    val range = datesBetween(anchor, date)
+                                    val next = if (dragRemoving) dragBase - range else dragBase + range
+                                    if (next != picked) {
+                                        picked = next
+                                        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.SegmentTick)
+                                    }
+                                }
+                            },
+                            onRangeEnd = { dragAnchor = null },
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    if (calendar.isShiftMode) ShiftLegend(data) else Legend()
+                    AnimatedVisibility(!selecting, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) {
+                            io.github.perruzz.stacco.ui.components.Pill(
+                                text = stringResource(R.string.select_days),
+                                icon = Icons.Rounded.EditCalendar,
+                                onClick = {
+                                    painting = false
+                                    selecting = true
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
+            Appear(2) { MonthSummary(month, data, calendar) }
+            Appear(3) { OfficeDaysList(month, data, calendar, onOpen = { selected = it }) }
         }
 
-        Appear(2) { MonthSummary(month, data, calendar) }
-        Appear(3) { OfficeDaysList(month, data, calendar, onOpen = { selected = it }) }
+        AnimatedVisibility(
+            visible = selecting,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 12.dp, end = 12.dp, bottom = bottom + 96.dp),
+            enter = slideInVertically(spring(dampingRatio = 0.8f, stiffness = 380f)) { it } + fadeIn(),
+            exit = slideOutVertically(tween(260)) { it } + fadeOut(tween(200)),
+        ) {
+            SelectionBar(
+                data = data,
+                picked = picked,
+                onApply = { type ->
+                    viewModel.setDayTypes(picked, type)
+                    endSelection()
+                },
+                onClose = { endSelection() },
+            )
+        }
     }
 
     selected?.let { date ->
@@ -242,12 +331,41 @@ private fun MonthGrid(
     calendar: WorkCalendar,
     today: LocalDate,
     firstDow: DayOfWeek,
+    picked: Set<LocalDate>,
     onDayClick: (LocalDate) -> Unit,
+    onRangeStart: (LocalDate) -> Unit,
+    onRangeExtend: (LocalDate) -> Unit,
+    onRangeEnd: () -> Unit,
 ) {
     val first = month.atDay(1)
     val offset = (first.dayOfWeek.value - firstDow.value + 7) % 7
     val start = first.minusDays(offset.toLong())
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    val startRange by rememberUpdatedState(onRangeStart)
+    val extendRange by rememberUpdatedState(onRangeExtend)
+    val endRange by rememberUpdatedState(onRangeEnd)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.pointerInput(start) {
+            // Press and hold a day, then drag across the others to pick them all.
+            val gapX = 5.dp.toPx()
+            val rowStep = (CELL_HEIGHT + 6.dp).toPx()
+            fun dayAt(p: Offset): LocalDate {
+                val cell = (size.width - 6 * gapX) / 7f
+                val col = (p.x / (cell + gapX)).toInt().coerceIn(0, 6)
+                val row = (p.y / rowStep).toInt().coerceIn(0, 5)
+                return start.plusDays((row * 7 + col).toLong())
+            }
+            detectDragGesturesAfterLongPress(
+                onDragStart = { startRange(dayAt(it)) },
+                onDrag = { change, _ ->
+                    change.consume()
+                    extendRange(dayAt(change.position))
+                },
+                onDragEnd = { endRange() },
+                onDragCancel = { endRange() },
+            )
+        },
+    ) {
         repeat(6) { week ->
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 repeat(7) { dow ->
@@ -260,6 +378,7 @@ private fun MonthGrid(
                         calendar = calendar,
                         today = today,
                         index = index,
+                        picked = date in picked,
                         onClick = { onDayClick(date) },
                         modifier = Modifier.weight(1f),
                     )
@@ -277,6 +396,7 @@ private fun DayCell(
     calendar: WorkCalendar,
     today: LocalDate,
     index: Int,
+    picked: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -302,18 +422,21 @@ private fun DayCell(
         delay(index * 9L)
         appear.animateTo(1f, spring(dampingRatio = 0.6f, stiffness = 380f))
     }
-    // A little pop when a shift is (re)assigned while planning.
+    // A little pop when a shift is (re)assigned, a type changes or the day is picked.
     val pop = remember(date) { Animatable(1f) }
-    LaunchedEffect(shift?.id) {
+    LaunchedEffect(shift?.id, type, picked) {
         if (appear.value >= 0.99f) {
             pop.snapTo(0.8f)
             pop.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 500f))
         }
     }
+    val cellColor by animateColorAsState(background, tween(350), label = "cell-color")
+    val pick by animateFloatAsState(if (picked) 1f else 0f, spring(dampingRatio = 0.55f, stiffness = 500f), label = "cell-pick")
+    val primary = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = modifier
-            .height(54.dp)
+            .height(CELL_HEIGHT)
             .graphicsLayer {
                 val v = appear.value
                 alpha = (if (inMonth) 1f else 0.32f) * v.coerceIn(0f, 1f)
@@ -321,11 +444,28 @@ private fun DayCell(
                 scaleY = scaleX
             }
             .clip(RoundedCornerShape(16.dp))
-            .background(background)
-            .then(if (isToday) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)) else Modifier)
+            .background(cellColor)
+            .then(if (isToday) Modifier.border(2.dp, primary, RoundedCornerShape(16.dp)) else Modifier)
+            .then(if (pick > 0.01f) Modifier.border(3.dp, primary.copy(alpha = pick), RoundedCornerShape(16.dp)) else Modifier)
             .bouncyClickable(enabled = inMonth, pressed = 0.88f, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
+        if (pick > 0.01f) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(3.dp)
+                    .size(15.dp)
+                    .graphicsLayer {
+                        scaleX = pick
+                        scaleY = pick
+                    }
+                    .background(primary, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(11.dp))
+            }
+        }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = date.dayOfMonth.toString(),

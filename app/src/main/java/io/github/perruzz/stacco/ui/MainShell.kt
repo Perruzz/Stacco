@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.StampSlot
 import io.github.perruzz.stacco.ui.bank.BankScreen
 import io.github.perruzz.stacco.ui.calendar.CalendarScreen
@@ -71,6 +72,9 @@ import io.github.perruzz.stacco.ui.components.ConfettiBurst
 import io.github.perruzz.stacco.ui.components.bouncyClickable
 import io.github.perruzz.stacco.ui.settings.SettingsScreen
 import io.github.perruzz.stacco.ui.today.TodayScreen
+import io.github.perruzz.stacco.ui.bank.vacationHours
+import io.github.perruzz.stacco.ui.today.AutoTypeIcon
+import io.github.perruzz.stacco.ui.today.label
 import io.github.perruzz.stacco.ui.today.icon
 import io.github.perruzz.stacco.ui.today.stampedMessage
 import io.github.perruzz.stacco.ui.util.Fmt
@@ -130,6 +134,26 @@ fun MainShell(viewModel: MainViewModel) {
                     message = resources.getString(R.string.toast_day_done, Fmt.duration(event.worked), Fmt.duration(event.delta, signed = true)),
                 )
                 is UiEvent.Info -> toast.show(Icons.Rounded.CheckCircle, resources.getString(event.message))
+                is UiEvent.DaysMarked -> {
+                    val type = event.type
+                    val base = if (type == null) {
+                        resources.getQuantityString(R.plurals.days_reset, event.count, event.count)
+                    } else {
+                        resources.getQuantityString(R.plurals.days_marked, event.count, resources.getString(type.label), event.count)
+                    }
+                    val touchedVacation = type == DayType.VACATION || event.previous.values.any { it?.type == DayType.VACATION }
+                    val left = event.vacationLeft
+                    toast.show(
+                        icon = type?.icon ?: AutoTypeIcon,
+                        message = if (touchedVacation && left != null) {
+                            resources.getString(R.string.days_marked_vacation_left, base, vacationHours(left))
+                        } else {
+                            base
+                        },
+                        actionLabel = resources.getString(R.string.action_undo),
+                        onAction = { viewModel.restoreDays(event.previous) },
+                    )
+                }
             }
         }
     }

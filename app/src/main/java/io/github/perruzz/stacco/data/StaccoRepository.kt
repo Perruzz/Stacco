@@ -14,6 +14,7 @@ import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.domain.ShiftTemplate
+import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.StampSlot
@@ -119,6 +120,30 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
 
     suspend fun setDayType(date: LocalDate, type: DayType?) {
         updateDay(date) { it.copy(type = type) }
+    }
+
+    /** Writes [type] on every day of [dates]; returns those days as they were, for undo. */
+    suspend fun setDayTypes(dates: Collection<LocalDate>, type: DayType?): Map<LocalDate, DayRecord?> {
+        var previous: Map<LocalDate, DayRecord?> = emptyMap()
+        update { data ->
+            previous = dates.associateWith { data.days[it.toString()] }
+            dates.fold(data) { acc, date -> acc.withDay(date) { it.copy(type = type) } }
+        }
+        return previous
+    }
+
+    suspend fun restoreDays(previous: Map<LocalDate, DayRecord?>) {
+        update { data -> previous.entries.fold(data) { acc, (date, record) -> acc.withDay(date) { record ?: DayRecord.EMPTY } } }
+    }
+
+    /** Makes the vacation hours available today equal to [target] minutes. */
+    suspend fun setVacationAvailable(target: Int, today: LocalDate) {
+        update { data ->
+            val key = today.year.toString()
+            val adjustment = VacationCalculator.adjustmentFor(target, data, today)
+            val adjustments = if (adjustment == 0) data.vacation.adjustments - key else data.vacation.adjustments + (key to adjustment)
+            data.copy(vacation = data.vacation.copy(adjustments = adjustments))
+        }
     }
 
     suspend fun clearDay(date: LocalDate) {

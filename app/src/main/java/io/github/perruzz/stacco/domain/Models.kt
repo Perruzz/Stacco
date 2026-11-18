@@ -20,6 +20,7 @@ data class StaccoData(
     val days: Map<String, DayRecord> = emptyMap(),
     val adjustments: List<BankAdjustment> = emptyList(),
     val alerts: AlertsState = AlertsState(),
+    val vacation: VacationSettings = VacationSettings(),
 )
 
 @Serializable
@@ -71,6 +72,19 @@ data class ShiftTemplate(
 @Serializable
 enum class ExpiryPeriod(val months: Int) {
     NEVER(0), MONTHLY(1), BIMONTHLY(2), QUARTERLY(3), FOUR_MONTHLY(4), SEMIANNUAL(6), ANNUAL(12)
+}
+
+/** Yearly vacation hours: vacation days and leave (permit) hours are drawn from them. */
+@Serializable
+data class VacationSettings(
+    /** Hours granted every calendar year, in minutes; 0 when not tracked. */
+    val annualMinutes: Int = 0,
+    /** Hours left at the end of a year move to the next one. */
+    val carryOver: Boolean = true,
+    /** Corrections per year ("2026" -> minutes), e.g. to match the payslip when starting mid-year. */
+    val adjustments: Map<String, Int> = emptyMap(),
+) {
+    val tracked: Boolean get() = annualMinutes > 0 || adjustments.isNotEmpty()
 }
 
 @Serializable

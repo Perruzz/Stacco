@@ -12,6 +12,7 @@ import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.domain.StaccoData
+import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.StampSlot
 import io.github.perruzz.stacco.domain.TodaySnapshot
 import io.github.perruzz.stacco.domain.WorkCalendar
@@ -36,6 +37,9 @@ sealed interface UiEvent {
     data class Stamped(val slot: StampSlot, val minutes: Int, val date: LocalDate, val previous: DayRecord) : UiEvent
     data class DayCompleted(val delta: Int, val worked: Int) : UiEvent
     data class Info(val message: Int) : UiEvent
+
+    /** A type was written on several days at once; [previous] restores them. */
+    data class DaysMarked(val type: DayType?, val count: Int, val previous: Map<LocalDate, DayRecord?>, val vacationLeft: Int?) : UiEvent
 }
 
 private data class Core(val data: StaccoData, val ledger: BankLedger)
@@ -126,6 +130,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearDay(date: LocalDate) {
         viewModelScope.launch { repo.clearDay(date) }
+    }
+
+    /** Marks many days at once (days off are skipped, see [WorkCalendar.daysToMark]). */
+    fun setDayTypes(dates: Collection<LocalDate>, type: DayType?) {
+        viewModelScope.launch {
+            val targets = WorkCalendar.from(repo.current()).daysToMark(dates, type)
+            if (targets.isEmpty()) return@launch
+            val previous = repo.setDayTypes(targets, type)
+            val after = repo.current()
+            val vacationLeft = if (after.vacation.tracked) VacationCalculator.balance(after, LocalDate.now()).remaining else null
+            _events.emit(UiEvent.DaysMarked(type, targets.size, previous, vacationLeft))
+        }
+    }
+
+    fun restoreDays(previous: Map<LocalDate, DayRecord?>) {
+        viewModelScope.launch { repo.restoreDays(previous) }
+    }
+
+    fun setVacationAvailable(target: Int) {
+        viewModelScope.launch { repo.setVacationAvailable(target, LocalDate.now()) }
     }
 
     fun setLeave(date: LocalDate, minutes: Int) {

@@ -73,6 +73,7 @@ import io.github.perruzz.stacco.domain.BankLedger
 import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.Movement
 import io.github.perruzz.stacco.domain.MovementKind
+import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.ui.MainViewModel
 import io.github.perruzz.stacco.ui.components.ConfirmDialog
@@ -101,6 +102,8 @@ fun BankScreen(viewModel: MainViewModel) {
     val today = LocalDate.now()
 
     var setting by remember { mutableStateOf(false) }
+    var editingVacation by remember { mutableStateOf(false) }
+    var settingVacation by remember { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Movement?>(null) }
     var range by remember { mutableIntStateOf(30) }
@@ -178,12 +181,17 @@ fun BankScreen(viewModel: MainViewModel) {
                 }
             }
         }
+        item(key = "vacation") {
+            Appear(4) {
+                VacationCard(data, onSetAvailable = { settingVacation = true }, onAnnual = { editingVacation = true })
+            }
+        }
         item(key = "movements-title") {
-            Appear(4) { SectionLabel(stringResource(R.string.bank_movements), Modifier.padding(top = 8.dp)) }
+            Appear(5) { SectionLabel(stringResource(R.string.bank_movements), Modifier.padding(top = 8.dp)) }
         }
         if (movements.isEmpty()) {
             item(key = "empty") {
-                Appear(5) {
+                Appear(6) {
                     Text(
                         stringResource(R.string.bank_no_movements),
                         style = MaterialTheme.typography.bodyMedium,
@@ -229,6 +237,27 @@ fun BankScreen(viewModel: MainViewModel) {
             onConfirm = {
                 viewModel.setBalance(it)
                 setting = false
+            },
+        )
+    }
+    if (editingVacation) {
+        VacationAnnualDialog(
+            settings = data.vacation,
+            dayMinutes = VacationCalculator.typicalDay(data.work),
+            onDismiss = { editingVacation = false },
+            onConfirm = { minutes, carry ->
+                viewModel.updateData { it.copy(vacation = it.vacation.copy(annualMinutes = minutes, carryOver = carry)) }
+                editingVacation = false
+            },
+        )
+    }
+    if (settingVacation) {
+        VacationAvailableDialog(
+            current = VacationCalculator.balance(data, today).available,
+            onDismiss = { settingVacation = false },
+            onConfirm = {
+                viewModel.setVacationAvailable(it)
+                settingVacation = false
             },
         )
     }

@@ -193,7 +193,7 @@
     <string name="day_break">Pausa</string>
     <string name="day_bank">Banca ore</string>
     <string name="day_leave">Permesso / ROL</string>
-    <string name="day_leave_sub">Riduce le ore da fare senza toccare la banca ore</string>
+    <string name="day_leave_sub">Scala dalle ferie; con un permesso le ore in più non vanno in banca ore</string>
     <string name="day_rest_hint">Giorno di riposo. Se lavori, ogni minuto finisce in banca ore.</string>
     <string name="day_note">Note</string>
     <string name="day_clear">Cancella giornata</string>
@@ -467,4 +467,52 @@
     <string name="ob_shifts_explainer">Poi, nel Calendario, scegli un turno e tocca i giorni per pianificare il mese. Stacco ti avvisa prima di ogni turno e conta gli straordinari.</string>
     <string name="notif_shift_title">Turno %1$s alle %2$s</string>
     <string name="notif_shift_text">Inizia tra %1$d minuti. Buon lavoro!</string>
+    <!-- Vacation hours -->
+    <string name="vacation_title">Ferie e permessi %1$d</string>
+    <string name="vacation_setup">Tieni il conto delle ore di ferie: ogni giorno di ferie e ogni ora di permesso le scalano.</string>
+    <string name="vacation_setup_action">Imposta ore annue</string>
+    <string name="vacation_available">Disponibili oggi</string>
+    <string name="vacation_days_approx">circa %1$s giorni</string>
+    <string name="vacation_used">Godute</string>
+    <string name="vacation_planned">Pianificate</string>
+    <string name="vacation_after_planned">Restano</string>
+    <string name="vacation_annual_short">Annue %1$s</string>
+    <string name="vacation_carried_short">dall\'anno prima %1$s</string>
+    <string name="vacation_adjust_short">correzione %1$s</string>
+    <string name="vacation_leave_note">di cui permessi %1$s</string>
+    <string name="vacation_set_available">Imposta residuo</string>
+    <string name="vacation_annual">Ore annue</string>
+    <string name="vacation_annual_title">Ferie all\'anno</string>
+    <string name="vacation_annual_sub">Ore di ferie che maturi dal 1° gennaio al 31 dicembre</string>
+    <string name="vacation_carry">Riporta il residuo all\'anno nuovo</string>
+    <string name="vacation_carry_sub">Le ore non godute il 31 dicembre si aggiungono a quelle dell\'anno dopo</string>
+    <string name="vacation_set_title">Ferie disponibili oggi</string>
+    <string name="vacation_set_sub">Come sulla busta paga: da qui in avanti ci pensa Stacco</string>
+    <string name="settings_vacation_section">Ferie e permessi</string>
+    <string name="settings_vacation">Ferie annue</string>
+    <string name="settings_vacation_sub">Le scalano i giorni di ferie e le ore di permesso</string>
+    <string name="away_vacation_left">Ferie disponibili: %1$s</string>
+    <plurals name="days_marked">
+        <item quantity="one">%1$s su %2$d giorno</item>
+        <item quantity="other">%1$s su %2$d giorni</item>
+        <item quantity="many">%1$s su %2$d giorni</item>
+    </plurals>
+    <plurals name="days_reset">
+        <item quantity="one">%d giorno tornato automatico</item>
+        <item quantity="other">%d giorni tornati automatici</item>
+        <item quantity="many">%d giorni tornati automatici</item>
+    </plurals>
+    <string name="days_marked_vacation_left">%1$s · restano %2$s di ferie</string>
+
+    <!-- Selecting several days in the calendar -->
+    <string name="select_days">Seleziona più giorni</string>
+    <string name="select_hint">Tocca i giorni, oppure tieni premuto e trascina</string>
+    <plurals name="select_count">
+        <item quantity="one">%d giorno selezionato</item>
+        <item quantity="other">%d giorni selezionati</item>
+        <item quantity="many">%d giorni selezionati</item>
+    </plurals>
+    <string name="select_none">Nessun giorno selezionato</string>
+    <string name="select_vacation_preview">Ferie disponibili: %1$s → %2$s</string>
+    <string name="select_days_off">Sabati, domeniche e festivi restano liberi</string>
 </resources>

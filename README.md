@@ -56,6 +56,7 @@ Sai sempre a che ora puoi *staccare*.
   - **Pausa conteggiata**: se non timbri la pausa si applica la minima; se è più corta della minima conta comunque la minima; se è più lunga conta per intero e l'uscita si sposta di conseguenza.
   - **Con la banca ore**: con saldo positivo ti dice quanto prima puoi uscire, rispettando le **ore minime** giornaliere; con saldo negativo ti dice fino a che ora restare per recuperare (e quanto recuperare al giorno fino a fine mese).
   - **Uscita minima**: l'orario più presto consentito dalle ore minime.
+  - **Con un permesso**: le ore da fare si riducono e il permesso si scala dalle ferie. Quel giorno la banca ore può scendere ma non salire: se lavori più del necessario, il permesso era in più (8h con 4h di permesso: 5h lavorate → ±0, 3h lavorate → −1h).
 - Giornata conclusa? **Coriandoli** 🎉, ore lavorate e saldo della giornata.
 - **Uscita dimenticata?** Se in un giorno recente c'è l'entrata ma manca l'uscita, *Oggi* te lo segnala e ti propone l'orario più probabile. Finché manca, quella giornata resta fuori dalla banca ore.
 
@@ -72,6 +73,7 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 - **Trasferta**: come lo smart working, non serve timbrare; la giornata vale come lavorata e la banca ore resta ferma.
 - Ogni giorno in sede mostra il **saldo della giornata** (+12m, −20m…).
 - Tocca un giorno per vedere/modificare **le timbrature**, aggiungere un **permesso/ROL** o una nota.
+- **Seleziona più giorni**: tieni premuto un giorno e trascina il dito sugli altri (oppure tocca *Seleziona più giorni*), poi scegli *Ferie*, *Smart working*, *Trasferta*… e li segni tutti insieme. Sabati, domeniche e festivi restano liberi; un messaggio con *Annulla* ti permette di tornare indietro.
 - **Quota smart working** del mese (o della settimana) con avviso quando superi il limite del contratto.
 - Riepilogo mensile: giorni in sede, smart, trasferte, assenze, ore lavorate e saldo del mese.
 
@@ -80,6 +82,12 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 - **Scadenze**: quanto ti scade e quando, quanti giorni in sede ti servono per usarlo tutto.
 - **Movimenti**: ogni giornata, rettifica manuale (es. straordinario approvato), azzeramenti e scadenze.
 - Imposta il saldo in qualsiasi momento per allinearti a quello aziendale.
+
+### 🏖️ Ferie e permessi
+- Imposta le **ore di ferie dell'anno** (dal 1° gennaio al 31 dicembre): ogni giorno di ferie scala le ore giornaliere (o il turno previsto), ogni permesso le sue ore. Sabati, domeniche e festivi non costano nulla.
+- Vedi le ore **disponibili oggi** (anche in giorni), quelle **godute**, quelle già **pianificate** nel calendario e quante ne **restano**.
+- Il residuo passa all'anno nuovo (si può disattivare) e con *Imposta residuo* ti allinei alla busta paga.
+- Mentre selezioni più giorni vedi subito quante ferie ti resterebbero.
 
 ### 🔔 Notifiche, widget e scorciatoie
 - **Promemoria di stacco** (all'orario o 5/10/15 minuti prima), con il pulsante *Timbra uscita* direttamente nella notifica.
@@ -112,6 +120,7 @@ Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 | Negativo da recuperare | Entro fine mese | Avvisi di recupero; a fine mese il negativo si azzera o si riporta |
 | Anticipo extra degli avvisi | 3 giorni | Giorni in sede in più rispetto a quelli strettamente necessari |
 | Smart working | 10 al mese | Oppure N a settimana |
+| Ferie annue | 160h | Le scalano i giorni di ferie e le ore di permesso; il residuo passa all'anno dopo |
 
 > **Esempio** — oggi è il 14 novembre e hai **5h** in banca ore con scadenza trimestrale. Con 8h giornaliere e 7h minime puoi uscire al massimo 1h prima al giorno, quindi per usarle tutte ti servono **5 giorni in sede**. Stacco te lo mostra (*"5h scadono il 31 dicembre · uscendo fino a 1h prima ti servono 5 giorni in sede"*) e, con un anticipo extra di 3 giorni, ti manda la notifica quando i giorni in sede rimasti prima del 31 dicembre scendono a **8** (5 + 3).<br/>
 > Vale anche per il negativo: con **−45m** da recuperare entro fine mese basta 1 giorno, quindi l'avviso arriva quando restano 4 giorni in sede.
@@ -196,8 +205,9 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 - Stamp with a **rotary dial**: the button shows the current time like a clock; turn the bezel to adjust the minutes (one haptic tick per minute), then tap the centre. After 10 seconds without stamping it springs back to the current time.
 - Live countdown to your exit time; exit time calculation with company rules: minimum lunch break, daily and minimum hours, early exit using the hour bank (capped by the minimum hours) or later exit to recover a negative balance.
 - **Shift work** mode (nurses, factories…): customizable shifts (morning 7–14, afternoon 14–21, night 21–7 out of the box), monthly planning by tapping days, night shifts across midnight, shift start reminders.
-- Monthly calendar with office / remote / business trip / vacation / sick / holiday days, remote-work quota and per-day details.
+- Monthly calendar with office / remote / business trip / vacation / sick / holiday days, remote-work quota and per-day details; press and drag to mark many days at once.
 - Hour bank with chart, movements, manual adjustments and configurable rules (positive balance expiry per month/quarter/…; negative balance to recover by month end).
+- Yearly vacation hours: vacation days and hours of leave are taken from them (taken, planned, left, carry-over). A day with leave can lower the hour bank but never raise it.
 - Smart alerts whose timing adapts to how many hours you need to use or recover; exit reminders; Android 16 Live Update countdown, also on the lock screen; home screen widget; Quick Settings tile.
 - Forgotten exit stamps are pointed out (with a suggested time), Italian holidays plus your town's patron saint's day, and a daily check for new versions on GitHub (the app's only network access).
 - Light/dark/system theme with a circular reveal, Material You colors, Italian and English.

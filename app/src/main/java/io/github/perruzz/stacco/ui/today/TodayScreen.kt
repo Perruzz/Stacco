@@ -91,10 +91,12 @@ import io.github.perruzz.stacco.domain.SmartPeriod
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.StampSlot
 import io.github.perruzz.stacco.domain.TodaySnapshot
+import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.ui.MainTab
 import io.github.perruzz.stacco.ui.MainViewModel
 import io.github.perruzz.stacco.ui.components.DayRing
+import io.github.perruzz.stacco.ui.bank.vacationHours
 import io.github.perruzz.stacco.ui.components.IconBubble
 import io.github.perruzz.stacco.ui.components.InfoRow
 import io.github.perruzz.stacco.ui.components.MorphBadge
@@ -1059,6 +1061,16 @@ private fun AwayCard(s: TodaySnapshot, onChange: () -> Unit) {
             Text(title, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
             Spacer(Modifier.height(6.dp))
             Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            if (type == DayType.VACATION && s.data.vacation.tracked) {
+                val left = remember(s.data, s.date) { VacationCalculator.balance(s.data, s.date).available }
+                Spacer(Modifier.height(12.dp))
+                Pill(
+                    stringResource(R.string.away_vacation_left, vacationHours(left)),
+                    icon = DayType.VACATION.icon,
+                    color = type.container(),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                )
+            }
             Spacer(Modifier.height(10.dp))
             TextButton(onClick = onChange) { Text(stringResource(R.string.away_change)) }
         }

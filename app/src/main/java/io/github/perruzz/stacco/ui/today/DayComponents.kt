@@ -250,6 +250,7 @@ fun DayTypeSelector(
     onSelect: (DayType?) -> Unit,
     modifier: Modifier = Modifier,
     smartBadge: String? = null,
+    vacationBadge: String? = null,
 ) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
@@ -272,7 +273,11 @@ fun DayTypeSelector(
                 tint = type.tint(),
                 container = type.container(),
                 selected = selected == type,
-                badge = if (type == DayType.SMART) smartBadge else null,
+                badge = when (type) {
+                    DayType.SMART -> smartBadge
+                    DayType.VACATION -> vacationBadge
+                    else -> null
+                },
                 onClick = { onSelect(type) },
             )
         }
