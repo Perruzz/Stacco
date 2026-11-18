@@ -734,12 +734,16 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
                     val shiftName = calendar.shift(date)?.name
                     val breakText = if (shiftName != null && b.deducted == 0) {
                         stringResource(R.string.calendar_shift_line, shiftName)
+                    } else if (b.assumed && b.deducted == 0) {
+                        null // no break due on the day (up to 6h) and none stamped
                     } else if (b.assumed) {
                         stringResource(R.string.calendar_break_assumed, Fmt.duration(b.deducted))
                     } else {
                         stringResource(R.string.calendar_break, Fmt.time(record.breakOut), Fmt.time(record.breakIn))
                     }
-                    Text(breakText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (breakText != null) {
+                        Text(breakText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 if (result != null) {
                     Column(horizontalAlignment = Alignment.End) {

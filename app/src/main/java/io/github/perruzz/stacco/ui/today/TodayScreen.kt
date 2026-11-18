@@ -805,13 +805,16 @@ private fun CalculationCard(s: TodaySnapshot) {
                 emphasized = true,
                 supporting = stringResource(R.string.calc_standard_sub, Fmt.duration(p.required), Fmt.duration(b.deducted)),
             )
-            InfoRow(
-                icon = Icons.Rounded.Restaurant,
-                iconTint = c.lunch,
-                title = stringResource(R.string.calc_break),
-                value = Fmt.duration(b.deducted),
-                supporting = breakSupport(b),
-            )
+            // As with shifts: no row when no break is due (days up to 6h) and none was stamped.
+            if (b.deducted > 0 || !b.assumed) {
+                InfoRow(
+                    icon = Icons.Rounded.Restaurant,
+                    iconTint = c.lunch,
+                    title = stringResource(R.string.calc_break),
+                    value = Fmt.duration(b.deducted),
+                    supporting = breakSupport(b),
+                )
+            }
 
             val bankBefore = p.bankBefore
             val bankExit = p.bankExit

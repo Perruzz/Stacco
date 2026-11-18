@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -143,6 +144,9 @@ import io.github.perruzz.stacco.ui.components.DayOfYearPickerDialog
 import io.github.perruzz.stacco.ui.components.DurationPickerDialog
 import io.github.perruzz.stacco.ui.components.MorphBadge
 import io.github.perruzz.stacco.ui.components.SectionLabel
+import io.github.perruzz.stacco.ui.components.SegmentLabel
+import io.github.perruzz.stacco.ui.components.SegmentPadding
+import io.github.perruzz.stacco.ui.components.SegmentRowModifier
 import io.github.perruzz.stacco.ui.components.StaccoCard
 import io.github.perruzz.stacco.ui.components.StaccoDialog
 import io.github.perruzz.stacco.ui.components.TextInputDialog
@@ -508,36 +512,38 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     AnimatedVisibility(data.notifications.exitReminder, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         Column(Modifier.padding(start = 54.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(stringResource(R.string.settings_exit_lead), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                            SingleChoiceSegmentedButtonRow(SegmentRowModifier) {
                                 val options = listOf(0, 5, 10, 15)
                                 options.forEachIndexed { index, minutes ->
                                     SegmentedButton(
                                         selected = data.notifications.exitReminderLeadMinutes == minutes,
                                         onClick = { update { it.copy(notifications = it.notifications.copy(exitReminderLeadMinutes = minutes)) } },
                                         shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                                        modifier = Modifier.fillMaxHeight(),
+                                        contentPadding = SegmentPadding,
                                         icon = {},
                                     ) {
-                                        Text(
+                                        SegmentLabel(
                                             if (minutes == 0) stringResource(R.string.settings_exit_lead_now) else "${minutes}m",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            maxLines = 1,
-                                            softWrap = false,
+                                            MaterialTheme.typography.labelMedium,
                                         )
                                     }
                                 }
                             }
                             Text(stringResource(R.string.settings_exit_target), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                            SingleChoiceSegmentedButtonRow(SegmentRowModifier) {
                                 SegmentedButton(
                                     selected = data.notifications.exitTarget == ExitTarget.STANDARD,
                                     onClick = { update { it.copy(notifications = it.notifications.copy(exitTarget = ExitTarget.STANDARD)) } },
                                     shape = SegmentedButtonDefaults.itemShape(0, 2),
-                                ) { Text(stringResource(R.string.target_standard)) }
+                                    modifier = Modifier.fillMaxHeight(),
+                                ) { SegmentLabel(stringResource(R.string.target_standard)) }
                                 SegmentedButton(
                                     selected = data.notifications.exitTarget == ExitTarget.BANK,
                                     onClick = { update { it.copy(notifications = it.notifications.copy(exitTarget = ExitTarget.BANK)) } },
                                     shape = SegmentedButtonDefaults.itemShape(1, 2),
-                                ) { Text(stringResource(R.string.target_bank_long)) }
+                                    modifier = Modifier.fillMaxHeight(),
+                                ) { SegmentLabel(stringResource(R.string.target_bank_long)) }
                             }
                             if (!exactAlarms) {
                                 PermissionBanner(

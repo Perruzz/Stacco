@@ -77,7 +77,7 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 - **Seleziona più giorni**: tieni premuto un giorno e trascina il dito sugli altri (oppure tocca *Seleziona più giorni*), poi scegli *Ferie*, *Smart working*, *Trasferta*… e li segni tutti insieme. Sabati, domeniche e festivi restano liberi; un messaggio con *Annulla* ti permette di tornare indietro.
 - **Quota smart working** del mese (o della settimana) con avviso quando superi il limite del contratto.
 - Riepilogo mensile: giorni in sede, smart, trasferte, assenze, ore lavorate e saldo del mese.
-- **Esporta il mese in CSV** (pulsante nel riepilogo): una riga per giorno con tipo, turno, timbrature, permesso, pausa conteggiata, ore lavorate, previste e saldo, più i totali e la banca ore. Si apre direttamente in Excel, Numbers o Fogli Google.
+- **Esporta il mese in CSV** (pulsante nel riepilogo): una riga per giorno con tipo, turno, timbrature, permesso, pausa conteggiata, ore lavorate, previste e saldo, più i totali e la banca ore. Con gli arrotondamenti attivi ci sono anche l'entrata e l'uscita conteggiate, così ogni riga torna al minuto con il calendario. Si apre direttamente in Excel, Numbers o Fogli Google.
 
 ### 🐷 Banca ore
 - Saldo attuale con **grafico** degli ultimi 30/90 giorni.

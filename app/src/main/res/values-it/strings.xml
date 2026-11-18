@@ -558,6 +558,8 @@
         <item>Saldo</item>
         <item>Note</item>
     </string-array>
+    <string name="csv_counted_entry">Entrata conteggiata</string>
+    <string name="csv_counted_exit">Uscita conteggiata</string>
     <string name="csv_date_pattern">dd/MM/yyyy</string>
     <string name="csv_total">Totale</string>
     <string name="csv_office_days">Giorni in sede</string>

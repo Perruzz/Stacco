@@ -58,7 +58,8 @@ object VacationCalculator {
         val record = calendar.record(date) ?: return 0
         return when {
             record.type == DayType.VACATION -> dayLength(calendar, date)
-            record.leaveMinutes > 0 && calendar.effectiveType(date) == DayType.OFFICE -> record.leaveMinutes
+            // A permit never costs more than its day (e.g. 8h recorded on what became a 4h Friday).
+            record.leaveMinutes > 0 && calendar.effectiveType(date) == DayType.OFFICE -> minOf(record.leaveMinutes, dayLength(calendar, date))
             else -> 0
         }
     }

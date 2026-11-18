@@ -5,6 +5,7 @@ import io.github.perruzz.stacco.domain.DayCalculator
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Holiday
 import io.github.perruzz.stacco.domain.StaccoData
+import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.WorkCalendar
 import java.time.LocalDate
 import java.time.YearMonth
@@ -14,6 +15,8 @@ import kotlin.math.abs
 class CsvLabels(
     /** Date, weekday, type, shift, entry, break out, break in, exit, leave, break, worked, planned, balance, note. */
     val headers: List<String>,
+    /** Counted entry and exit, added after the real stamps when badge times are rounded. */
+    val countedHeaders: List<String>,
     val type: (DayType?) -> String,
     val holiday: (Holiday) -> String,
     val date: (LocalDate) -> String,
@@ -62,7 +65,12 @@ object MonthCsv {
 
     fun build(data: StaccoData, month: YearMonth, labels: CsvLabels, today: LocalDate = LocalDate.now()): String {
         val calendar = WorkCalendar.from(data)
-        val rows = mutableListOf(labels.headers)
+        // With rounding the hours are counted from the rounded times: show them next to the real
+        // stamps, so that every row adds up on its own.
+        val rounded = data.work.rounding.enabled
+        fun withCounted(row: List<String>, entry: String, exit: String) =
+            if (rounded) row.take(8) + listOf(entry, exit) + row.drop(8) else row
+        val rows = mutableListOf(withCounted(labels.headers, labels.countedHeaders[0], labels.countedHeaders[1]))
         var worked = 0
         var required = 0
         var balance = 0
@@ -90,21 +98,28 @@ object MonthCsv {
                 holiday != null && (type == null || type == DayType.HOLIDAY) -> labels.holiday(holiday)
                 else -> labels.type(type)
             }
-            rows += listOf(
-                labels.date(date),
-                labels.weekday(date),
-                typeText,
-                calendar.shift(date)?.name.orEmpty(),
-                clock(record?.entry),
-                clock(record?.breakOut),
-                clock(record?.breakIn),
-                clock(record?.exit),
-                record?.leaveMinutes?.takeIf { it > 0 && isOffice }?.let { hours(it) }.orEmpty(),
-                pause?.let { hours(it) }.orEmpty(),
-                result?.worked?.let { hours(it) }.orEmpty(),
-                if (planned > 0) hours(planned) else "",
-                result?.delta?.let { hours(it, signed = true) }.orEmpty(),
-                record?.note.orEmpty(),
+            val counted = calendar.counted(date)
+            // The permit as it is taken from the vacation hours (never more than the day).
+            val permit = if (isOffice && (record?.leaveMinutes ?: 0) > 0) VacationCalculator.cost(calendar, date) else 0
+            rows += withCounted(
+                listOf(
+                    labels.date(date),
+                    labels.weekday(date),
+                    typeText,
+                    calendar.shift(date)?.name.orEmpty(),
+                    clock(record?.entry),
+                    clock(record?.breakOut),
+                    clock(record?.breakIn),
+                    clock(record?.exit),
+                    if (permit > 0) hours(permit) else "",
+                    pause?.let { hours(it) }.orEmpty(),
+                    result?.worked?.let { hours(it) }.orEmpty(),
+                    if (planned > 0) hours(planned) else "",
+                    result?.delta?.let { hours(it, signed = true) }.orEmpty(),
+                    record?.note.orEmpty(),
+                ),
+                clock(counted?.entry),
+                clock(counted?.exit),
             )
 
             if (result != null) {
@@ -120,17 +135,21 @@ object MonthCsv {
                 DayType.SICK -> sick++
                 else -> Unit
             }
-            if (isOffice) leave += record?.leaveMinutes ?: 0
+            leave += permit
         }
 
         val blank = List(labels.headers.size) { "" }
-        rows += blank
-        rows += blank.toMutableList().also {
-            it[0] = labels.total
-            it[10] = hours(worked)
-            it[11] = hours(required)
-            it[12] = hours(balance, signed = true)
-        }
+        rows += withCounted(blank, "", "")
+        rows += withCounted(
+            blank.toMutableList().also {
+                it[0] = labels.total
+                it[10] = hours(worked)
+                it[11] = hours(required)
+                it[12] = hours(balance, signed = true)
+            },
+            "",
+            "",
+        )
         rows += listOf(labels.officeDays, office.toString())
         rows += listOf(labels.smartDays, smart.toString())
         rows += listOf(labels.travelDays, travel.toString())

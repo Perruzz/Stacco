@@ -552,6 +552,8 @@
         <item>Balance</item>
         <item>Note</item>
     </string-array>
+    <string name="csv_counted_entry">Counted entry</string>
+    <string name="csv_counted_exit">Counted exit</string>
     <string name="csv_date_pattern">yyyy-MM-dd</string>
     <string name="csv_total">Total</string>
     <string name="csv_office_days">Office days</string>

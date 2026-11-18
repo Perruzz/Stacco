@@ -19,17 +19,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,8 +52,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.takeOrElse
 
 /** Squishy press feedback: everything tappable in Stacco gives a little under the finger. */
 fun Modifier.pressScale(interaction: MutableInteractionSource, pressed: Float = 0.94f): Modifier = composed {
@@ -264,4 +271,29 @@ fun BigPillButton(
             }
         }
     }
+}
+
+// --- Segmented buttons that hold up with large fonts --------------------------------------------
+
+/** A segmented row whose segments are all as tall as the tallest, so a label on two lines keeps it even. */
+val SegmentRowModifier: Modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+
+/** Less side padding than the default 12dp: short labels like "15 min" still fit on one line at 130%. */
+val SegmentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+
+/**
+ * A segment or button label that is never cut with very large fonts: several words go on two
+ * centred lines, a single word ("Quarter") stays whole and shrinks a little only if it must.
+ */
+@Composable
+fun SegmentLabel(text: String, style: TextStyle = LocalTextStyle.current) {
+    val singleWord = text.trim().none { it.isWhitespace() }
+    Text(
+        text,
+        style = style,
+        textAlign = TextAlign.Center,
+        maxLines = if (singleWord) 1 else 2,
+        softWrap = !singleWord,
+        autoSize = if (singleWord) TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = style.fontSize.takeOrElse { 14.sp }) else null,
+    )
 }

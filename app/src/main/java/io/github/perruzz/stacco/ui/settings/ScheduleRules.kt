@@ -9,8 +9,11 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -43,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -62,6 +64,9 @@ import io.github.perruzz.stacco.ui.components.DurationPickerDialog
 import io.github.perruzz.stacco.ui.components.IconBubble
 import io.github.perruzz.stacco.ui.components.RollingText
 import io.github.perruzz.stacco.ui.components.SectionLabel
+import io.github.perruzz.stacco.ui.components.SegmentLabel
+import io.github.perruzz.stacco.ui.components.SegmentPadding
+import io.github.perruzz.stacco.ui.components.SegmentRowModifier
 import io.github.perruzz.stacco.ui.components.StaccoDialog
 import io.github.perruzz.stacco.ui.components.bouncyClickable
 import io.github.perruzz.stacco.ui.util.Fmt
@@ -185,19 +190,19 @@ fun RoundingSection(rounding: RoundingSettings, onChange: (RoundingSettings) -> 
         modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 12.dp),
     )
     val steps = listOf(0, 5, 10, 15, 30)
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    SingleChoiceSegmentedButtonRow(SegmentRowModifier) {
         steps.forEachIndexed { index, step ->
             SegmentedButton(
                 selected = rounding.stepMinutes == step || (step == 0 && !rounding.enabled),
                 onClick = { onChange(rounding.copy(stepMinutes = step, toleranceMinutes = rounding.toleranceMinutes.coerceAtMost((step - 1).coerceAtLeast(0)))) },
                 shape = SegmentedButtonDefaults.itemShape(index, steps.size),
+                modifier = Modifier.fillMaxHeight(),
+                contentPadding = SegmentPadding,
                 icon = {},
             ) {
-                Text(
+                SegmentLabel(
                     if (step == 0) stringResource(R.string.rounding_off) else stringResource(R.string.rounding_minutes, step),
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                    softWrap = false,
+                    MaterialTheme.typography.labelMedium,
                 )
             }
         }
@@ -262,15 +267,17 @@ private fun DirectionChoice(title: String, icon: androidx.compose.ui.graphics.ve
         RoundingDirection.NEAREST to R.string.rounding_nearest,
         RoundingDirection.UP to R.string.rounding_up,
     )
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    SingleChoiceSegmentedButtonRow(SegmentRowModifier) {
         options.forEachIndexed { index, (direction, label) ->
             SegmentedButton(
                 selected = value == direction,
                 onClick = { onChange(direction) },
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                modifier = Modifier.fillMaxHeight(),
+                contentPadding = SegmentPadding,
                 icon = {},
             ) {
-                Text(stringResource(label), style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false, color = Color.Unspecified)
+                SegmentLabel(stringResource(label), MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -322,15 +329,20 @@ fun SchedulePendingBar(onToday: () -> Unit, onPickDate: () -> Unit, onDiscard: (
                 }
             }
             Spacer(Modifier.height(10.dp))
-            Row(Modifier.padding(end = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = onToday, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.schedule_from_today), maxLines = 1) }
-                androidx.compose.material3.FilledTonalButton(onClick = onPickDate, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.schedule_from_date), maxLines = 1)
+            // Even buttons: with large fonts "Scegli il giorno" goes on two lines instead of being cut.
+            Row(Modifier.padding(end = 10.dp).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = onToday, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PendingButtonPadding) {
+                    SegmentLabel(stringResource(R.string.schedule_from_today))
+                }
+                androidx.compose.material3.FilledTonalButton(onClick = onPickDate, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PendingButtonPadding) {
+                    SegmentLabel(stringResource(R.string.schedule_from_date))
                 }
             }
         }
     }
 }
+
+private val PendingButtonPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
 
 /** Picks the first day of the new schedule; "Always" rewrites the past too. */
 @OptIn(ExperimentalMaterial3Api::class)

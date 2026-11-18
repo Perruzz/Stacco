@@ -14,6 +14,7 @@ fun csvLabels(context: Context): CsvLabels {
     val dates = DateTimeFormatter.ofPattern(res.getString(R.string.csv_date_pattern), locale)
     return CsvLabels(
         headers = res.getStringArray(R.array.csv_headers).toList(),
+        countedHeaders = listOf(res.getString(R.string.csv_counted_entry), res.getString(R.string.csv_counted_exit)),
         type = { res.getString(it.label) },
         holiday = { res.getString(it.label) },
         date = { dates.format(it) },

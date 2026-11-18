@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -118,6 +119,9 @@ import io.github.perruzz.stacco.ui.components.AuroraBackground
 import io.github.perruzz.stacco.ui.components.ConfettiBurst
 import io.github.perruzz.stacco.ui.components.DurationPickerDialog
 import io.github.perruzz.stacco.ui.components.MorphBadge
+import io.github.perruzz.stacco.ui.components.SegmentLabel
+import io.github.perruzz.stacco.ui.components.SegmentPadding
+import io.github.perruzz.stacco.ui.components.SegmentRowModifier
 import io.github.perruzz.stacco.ui.components.StaccoCard
 import io.github.perruzz.stacco.ui.settings.SettingRow
 import io.github.perruzz.stacco.ui.settings.StepperRow
@@ -587,15 +591,17 @@ private fun Explainer(text: String) {
 @Composable
 private fun ExpiryChips(selected: ExpiryPeriod, onSelect: (ExpiryPeriod) -> Unit) {
     val options = listOf(ExpiryPeriod.NEVER, ExpiryPeriod.MONTHLY, ExpiryPeriod.QUARTERLY, ExpiryPeriod.SEMIANNUAL, ExpiryPeriod.ANNUAL)
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    SingleChoiceSegmentedButtonRow(SegmentRowModifier) {
         options.forEachIndexed { index, period ->
             SegmentedButton(
                 selected = selected == period,
                 onClick = { onSelect(period) },
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                modifier = Modifier.fillMaxHeight(),
+                contentPadding = SegmentPadding,
                 icon = {},
             ) {
-                Text(stringResource(period.shortLabel), style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                SegmentLabel(stringResource(period.shortLabel), MaterialTheme.typography.labelMedium)
             }
         }
     }

@@ -13,6 +13,7 @@ class MonthCsvTest {
 
     private val labels = CsvLabels(
         headers = listOf("Data", "Giorno", "Tipo", "Turno", "Entrata", "Inizio pausa", "Fine pausa", "Uscita", "Permesso", "Pausa", "Lavorato", "Previsto", "Saldo", "Note"),
+        countedHeaders = listOf("Entrata conteggiata", "Uscita conteggiata"),
         type = { it?.name ?: "REST" },
         holiday = { it.name },
         date = { it.toString() },
