@@ -59,6 +59,7 @@ import io.github.perruzz.stacco.ui.components.RollingText
 import io.github.perruzz.stacco.ui.components.bouncyClickable
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 fun SettingRow(
@@ -251,6 +252,9 @@ fun OptionCard(
     }
 }
 
+/** How long a press must last before it counts as holding the button. */
+private const val HOLD_GRACE_MS = 120L
+
 /**
  * A destructive button that must be held down: the fill sweeps across while you hold it.
  */
@@ -272,6 +276,9 @@ fun HoldToConfirmButton(text: String, holdingText: String, onConfirmed: () -> Un
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
+                        // A scroll that happens to start on the button is not a hold: give it a
+                        // moment to turn into one before the fill (and the buzz) begins.
+                        if (withTimeoutOrNull(HOLD_GRACE_MS) { tryAwaitRelease() } != null) return@detectTapGestures
                         var job: Job? = null
                         job = scope.launch {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)

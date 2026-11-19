@@ -16,7 +16,10 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -113,6 +116,8 @@ fun StampDial(
     val countdown = remember { Animatable(0f) }
     var dragging by remember { mutableStateOf(false) }
     var returning by remember { mutableStateOf(false) }
+    // Only the user's own turns click: the bezel going back home by itself stays silent.
+    var userTurning by remember { mutableStateOf(false) }
     var lastTouch by remember { mutableLongStateOf(0L) }
     var lastAngle by remember { mutableFloatStateOf(0f) }
     val currentStamp by rememberUpdatedState(onStamp)
@@ -125,7 +130,7 @@ fun StampDial(
     LaunchedEffect(Unit) {
         snapshotFlow { (rotation.value / DEG_PER_MINUTE).roundToInt() }
             .drop(1)
-            .collect { haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) }
+            .collect { if (userTurning) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) }
     }
 
     /**
@@ -135,6 +140,7 @@ fun StampDial(
      */
     fun returnHome(stiffness: Float = 140f) {
         returning = true
+        userTurning = false
         scope.launch {
             try {
                 // Damped enough not to overshoot past the previous minute.
@@ -164,6 +170,7 @@ fun StampDial(
 
     fun nudge(minutes: Int) {
         returning = false
+        userTurning = true
         lastTouch = System.nanoTime()
         val target = ((offset + minutes).coerceIn(MIN_OFFSET, MAX_OFFSET)) * DEG_PER_MINUTE
         scope.launch { rotation.animateTo(target, spring(dampingRatio = 0.7f, stiffness = 500f)) }
@@ -188,31 +195,48 @@ fun StampDial(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     val center = Offset(this.size.width / 2f, this.size.height / 2f)
+                    // The bezel and a little around it; the corners of the square are not the dial.
+                    val reach = minOf(this.size.width, this.size.height) / 2f + 4.dp.toPx()
                     fun angleOf(p: Offset) = (atan2(p.y - center.y, p.x - center.x) * 180f / PI.toFloat())
-                    detectDragGestures(
-                        onDragStart = { start ->
-                            dragging = true
-                            returning = false
-                            lastAngle = angleOf(start)
-                            scope.launch { rotation.stop() }
-                        },
-                        onDragEnd = { settle() },
-                        onDragCancel = { settle() },
-                        onDrag = { change, _ ->
-                            val angle = angleOf(change.position)
-                            var delta = angle - lastAngle
-                            if (delta > 180f) delta -= 360f
-                            if (delta < -180f) delta += 360f
-                            lastAngle = angle
-                            val min = MIN_OFFSET * DEG_PER_MINUTE
-                            val max = MAX_OFFSET * DEG_PER_MINUTE
-                            val current = rotation.value
-                            // Rubber band beyond the limits.
-                            val resisted = if ((current <= min && delta < 0) || (current >= max && delta > 0)) delta * 0.25f else delta
-                            scope.launch { rotation.snapTo(current + resisted) }
+                    fun turnTo(position: Offset) {
+                        val angle = angleOf(position)
+                        var delta = angle - lastAngle
+                        if (delta > 180f) delta -= 360f
+                        if (delta < -180f) delta += 360f
+                        lastAngle = angle
+                        val min = MIN_OFFSET * DEG_PER_MINUTE
+                        val max = MAX_OFFSET * DEG_PER_MINUTE
+                        val current = rotation.value
+                        // Rubber band beyond the limits.
+                        val resisted = if ((current <= min && delta < 0) || (current >= max && delta > 0)) delta * 0.25f else delta
+                        scope.launch { rotation.snapTo(current + resisted) }
+                    }
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val fromCenter = down.position - center
+                        val distance = fromCenter.getDistance()
+                        if (distance > reach || distance == 0f) return@awaitEachGesture
+                        // The bezel turns when the finger goes around it; a swipe across the dial
+                        // (up or down over its top or bottom) is left to the page, which scrolls.
+                        val radial = fromCenter / distance
+                        val start = awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                            val moved = change.position - down.position
+                            val across = abs(moved.x * radial.x + moved.y * radial.y)
+                            val around = abs(moved.y * radial.x - moved.x * radial.y)
+                            if (around >= across) change.consume()
+                        } ?: return@awaitEachGesture
+                        dragging = true
+                        returning = false
+                        userTurning = true
+                        lastAngle = angleOf(down.position)
+                        scope.launch { rotation.stop() }
+                        turnTo(start.position)
+                        drag(start.id) { change ->
+                            turnTo(change.position)
                             change.consume()
-                        },
-                    )
+                        }
+                        settle()
+                    }
                 },
         ) {
             val outer = this.size.minDimension / 2f - 6.dp.toPx()

@@ -8,18 +8,15 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.EventBusy
@@ -42,8 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
@@ -68,6 +63,8 @@ import io.github.perruzz.stacco.ui.components.DurationPickerDialog
 import io.github.perruzz.stacco.ui.components.Pill
 import io.github.perruzz.stacco.ui.components.RollingText
 import io.github.perruzz.stacco.ui.components.SectionLabel
+import io.github.perruzz.stacco.ui.components.SheetColumn
+import io.github.perruzz.stacco.ui.components.SheetInsets
 import io.github.perruzz.stacco.ui.components.TimePickerDialog
 import io.github.perruzz.stacco.ui.components.bouncyClickable
 import io.github.perruzz.stacco.ui.theme.StaccoTheme
@@ -118,24 +115,15 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
         }
     }
 
-    // A sheet tall enough to reach the status bar gets pushed down by it while it moves: its height
-    // then depends on its own position, so it crept up slowly when opening and bounced when
-    // dragged (long office days are taller than the screen). Kept clear of the top it stays stable.
-    val maxHeight = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * 0.86f).toDp() }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        // The body handles the insets: the sheet must keep its size wherever it is (see SheetInsets).
+        contentWindowInsets = { SheetInsets },
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(max = maxHeight)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .navigationBarsPadding()
-                .padding(bottom = 24.dp),
+        SheetColumn(
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

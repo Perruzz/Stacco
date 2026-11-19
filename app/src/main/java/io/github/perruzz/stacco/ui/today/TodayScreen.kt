@@ -141,11 +141,25 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
 
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val scroll = rememberScrollState()
+
+    val working = s.isOffice || s.record.hasStamps
+    // On call: the timer goes first, unless the working day is under way and nothing is running.
+    val onCall = s.onCall
+    val dayUnderWay = working && s.projection.phase in setOf(DayPhase.MORNING, DayPhase.ON_BREAK, DayPhase.AFTERNOON)
+    val onCallFirst = onCall != null && onCall.onDuty && (onCall.running != null || !dayUnderWay)
+    // Starting an intervention from the card below the stamps moves it to the top: follow it there
+    // instead of leaving the screen on what slid up into its place.
+    var wasFirst by remember { mutableStateOf(onCallFirst) }
+    LaunchedEffect(onCallFirst) {
+        if (onCallFirst && !wasFirst) scroll.animateScrollTo(0, spring(dampingRatio = 0.9f, stiffness = 220f))
+        wasFirst = onCallFirst
+    }
 
     Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scroll)
             .padding(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -172,11 +186,6 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
             }
         }
 
-        val working = s.isOffice || s.record.hasStamps
-        // On call: the timer goes first, unless the working day is under way and nothing is running.
-        val onCall = s.onCall
-        val dayUnderWay = working && s.projection.phase in setOf(DayPhase.MORNING, DayPhase.ON_BREAK, DayPhase.AFTERNOON)
-        val onCallFirst = onCall != null && onCall.onDuty && (onCall.running != null || !dayUnderWay)
         val onCallCard: @Composable () -> Unit = {
             if (onCall != null) {
                 OnCallCard(
