@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.PhoneInTalk
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -101,17 +102,23 @@ val OnCallIcon: ImageVector get() = Icons.Rounded.PhoneInTalk
 /** Recovery hours: time off earned by the interventions. */
 val RecoveryIcon: ImageVector get() = Icons.Rounded.Weekend
 
-/** The badge of an on-call day in the calendar: a small phone in the corner, over any kind of day. */
+/** Size of [OnCallBadge]: as big as the dots of the calendar legend. */
+val OnCallBadgeSize = 10.dp
+
+/**
+ * The badge of an on-call day in the calendar: a small phone dot, over any kind of day, with a
+ * plain handset that still reads at this size.
+ */
 @Composable
 fun OnCallBadge(modifier: Modifier = Modifier) {
     val c = StaccoTheme.colors
     Box(
         modifier
-            .size(12.dp)
+            .size(OnCallBadgeSize)
             .background(c.onCall, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(OnCallIcon, contentDescription = null, tint = c.onCallContainer, modifier = Modifier.size(8.dp))
+        Icon(Icons.Rounded.Call, contentDescription = null, tint = c.onCallContainer, modifier = Modifier.size(7.dp))
     }
 }
 

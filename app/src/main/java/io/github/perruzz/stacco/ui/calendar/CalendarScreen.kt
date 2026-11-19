@@ -74,6 +74,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -102,6 +103,7 @@ import io.github.perruzz.stacco.domain.parsedDays
 import io.github.perruzz.stacco.export.MonthCsv
 import io.github.perruzz.stacco.domain.OnCall
 import io.github.perruzz.stacco.ui.oncall.OnCallBadge
+import io.github.perruzz.stacco.ui.oncall.OnCallBadgeSize
 import io.github.perruzz.stacco.ui.oncall.OnCallLegendEntry
 import io.github.perruzz.stacco.ui.oncall.OnCallMonthTile
 import io.github.perruzz.stacco.ui.oncall.RecoveryIcon
@@ -135,6 +137,10 @@ import java.time.YearMonth
 private const val PAGES = 241
 private const val CENTER = 120
 private val CELL_HEIGHT = 54.dp
+
+/** The on-call dot in a day cell: its distance from the left edge and from the number. */
+private val BADGE_INSET = 2.dp
+private val BADGE_GAP = 2.dp
 
 @Composable
 fun CalendarScreen(viewModel: MainViewModel) {
@@ -532,14 +538,6 @@ private fun DayCell(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (inMonth && data.onCall.enabled && record?.onCall == true) {
-            // In the very corner: with large fonts the day number grows towards it.
-            OnCallBadge(
-                Modifier
-                    .align(Alignment.TopStart)
-                    .padding(2.dp),
-            )
-        }
         if (pick > 0.01f) {
             Box(
                 Modifier
@@ -557,16 +555,41 @@ private fun DayCell(
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Bold,
-                color = when {
-                    isToday -> MaterialTheme.colorScheme.primary
-                    scheduled || explicitOrWorked -> MaterialTheme.colorScheme.onSurface
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                },
-            )
+            // On call: a dot on the left edge, level with the number. Between the two rounded
+            // corners the edge is straight, so nothing cuts it (in the corner it was clipped). The
+            // number stays centred, and only moves right when large fonts would bring it closer
+            // than 2dp to the dot.
+            val onCallDay = inMonth && data.onCall.enabled && record?.onCall == true
+            Box(Modifier.fillMaxWidth()) {
+                if (onCallDay) {
+                    OnCallBadge(
+                        Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = BADGE_INSET),
+                    )
+                }
+                Text(
+                    text = date.dayOfMonth.toString(),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Bold,
+                    color = when {
+                        isToday -> MaterialTheme.colorScheme.primary
+                        scheduled || explicitOrWorked -> MaterialTheme.colorScheme.onSurface
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    },
+                    modifier = Modifier.layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints.copy(minWidth = 0))
+                        val width = constraints.maxWidth
+                        val centred = (width - placeable.width) / 2
+                        val x = if (onCallDay) {
+                            centred.coerceAtLeast((BADGE_INSET + OnCallBadgeSize + BADGE_GAP).roundToPx()).coerceAtMost(width - placeable.width)
+                        } else {
+                            centred
+                        }
+                        layout(width, placeable.height) { placeable.place(x.coerceAtLeast(0), 0) }
+                    },
+                )
+            }
             when {
                 shift != null && type == DayType.OFFICE -> Text(
                     if (delta != null && delta != 0) Fmt.compact(delta) else shift.code,
