@@ -99,6 +99,8 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
     val smartRange = calendar.smartRange(date, data.smart.period, Engine.firstDayOfWeek())
     val smartUsed = calendar.smartUsed(smartRange)
     val holiday = calendar.holiday(date)
+    // As it counts: a permit never takes more than its day (after a contract change too).
+    val permit = VacationCalculator.permitHeld(calendar, date)
     val vacationLeft = remember(data) {
         if (data.vacation.tracked) VacationCalculator.balance(data, LocalDate.now()).remaining else null
     }
@@ -229,11 +231,11 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
                                 Text(stringResource(R.string.day_leave_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text(
-                                if (record.leaveMinutes > 0) Fmt.duration(record.leaveMinutes) else "—",
+                                if (permit > 0) Fmt.duration(permit) else "—",
                                 style = MaterialTheme.typography.titleMedium,
                             )
                         }
-                        if (onCallOn) RecoveryRow(record.recoveryMinutes, onClick = { editingRecovery = true })
+                        if (onCallOn) RecoveryRow(OnCall.recoveryHeld(calendar, date), onClick = { editingRecovery = true })
                     }
                 }
             }
@@ -302,7 +304,7 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
         DurationPickerDialog(
             title = stringResource(R.string.day_leave),
             subtitle = stringResource(R.string.day_leave_sub),
-            initialMinutes = record.leaveMinutes,
+            initialMinutes = permit,
             icon = Icons.Rounded.EventBusy,
             maxHours = 12,
             onDismiss = { editingLeave = false },
@@ -331,7 +333,10 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
     if (confirmClear) {
         ConfirmDialog(
             title = stringResource(R.string.day_clear_title),
-            text = stringResource(R.string.day_clear_text),
+            // Clearing a day also removes its on-call duty: say so when there is some.
+            text = stringResource(
+                if (record.onCall || record.interventions.isNotEmpty() || record.recoveryMinutes > 0) R.string.day_clear_text_on_call else R.string.day_clear_text,
+            ),
             confirmLabel = stringResource(R.string.action_delete),
             icon = Icons.Rounded.DeleteOutline,
             destructive = true,

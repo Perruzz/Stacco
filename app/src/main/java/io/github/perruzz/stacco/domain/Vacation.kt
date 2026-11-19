@@ -58,11 +58,17 @@ object VacationCalculator {
         val record = calendar.record(date) ?: return 0
         return when {
             record.type == DayType.VACATION -> dayLength(calendar, date)
-            // A permit never costs more than its day (e.g. 8h recorded on what became a 4h Friday).
-            record.leaveMinutes > 0 && calendar.effectiveType(date) == DayType.OFFICE -> minOf(record.leaveMinutes, dayLength(calendar, date))
+            record.leaveMinutes > 0 && calendar.effectiveType(date) == DayType.OFFICE -> permitHeld(calendar, date)
             else -> 0
         }
     }
+
+    /**
+     * The permit of [date] as it counts: never more than its day (e.g. 8h recorded on what became
+     * a 4h Friday). This is also what the day shows.
+     */
+    fun permitHeld(calendar: WorkCalendar, date: LocalDate): Int =
+        minOf(calendar.record(date)?.leaveMinutes ?: 0, dayLength(calendar, date))
 
     fun balance(data: StaccoData, today: LocalDate, year: Int = today.year): VacationBalance {
         val settings = data.vacation

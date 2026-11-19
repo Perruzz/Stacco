@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.StaccoApp
 import io.github.perruzz.stacco.data.Backup
+import io.github.perruzz.stacco.data.StaccoRepository
 import io.github.perruzz.stacco.data.day
 import io.github.perruzz.stacco.domain.BankLedger
 import io.github.perruzz.stacco.domain.DayPhase
@@ -44,6 +45,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 sealed interface UiEvent {
+    /** A stamp was recorded; [previous] holds the stamps as they were, for undo. */
     data class Stamped(val slot: StampSlot, val minutes: Int, val date: LocalDate, val previous: DayRecord) : UiEvent
     data class DayCompleted(val delta: Int, val worked: Int) : UiEvent
     data class Info(val message: Int) : UiEvent
@@ -54,8 +56,8 @@ sealed interface UiEvent {
     /** Several days marked (or unmarked) as on call; [previous] restores them. */
     data class OnCallMarked(val on: Boolean, val count: Int, val previous: Map<LocalDate, DayRecord?>) : UiEvent
 
-    /** An intervention timer was stopped; [previous] puts it back running. */
-    data class InterventionStopped(val real: Int, val credited: Int, val date: LocalDate, val previous: DayRecord) : UiEvent
+    /** An intervention timer was stopped; intervention [id] of [date] can run again (null: no undo). */
+    data class InterventionStopped(val real: Int, val credited: Int, val date: LocalDate, val id: Long?) : UiEvent
 }
 
 private data class Core(val data: StaccoData, val ledger: BankLedger, val recovery: RecoveryLedger)
@@ -143,8 +145,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repo.deleteShiftTemplate(id) }
     }
 
-    fun restoreDay(date: LocalDate, record: DayRecord) {
-        viewModelScope.launch { repo.updateDay(date) { record } }
+    /** Undo of a stamp: only the stamps go back, an intervention started meanwhile stays. */
+    fun undoStamp(date: LocalDate, previous: DayRecord) {
+        viewModelScope.launch { repo.undoStamp(date, previous) }
     }
 
     fun setDayType(date: LocalDate, type: DayType?) {
@@ -212,7 +215,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- On-call duty ---------------------------------------------------------------------------
 
-    fun setOnCallEnabled(on: Boolean) = updateData { it.copy(onCall = it.onCall.copy(enabled = on)) }
+    /** Off, a timer still running is stopped (it would go on unseen): the toast says so, without undo. */
+    fun setOnCallEnabled(on: Boolean) {
+        viewModelScope.launch {
+            val change = repo.setOnCallEnabled(on, LocalDateTime.now()) ?: return@launch
+            emitStopped(change, undo = false)
+        }
+    }
 
     fun setOnCall(date: LocalDate, on: Boolean) {
         viewModelScope.launch { repo.updateDay(date) { it.copy(onCall = on) } }
@@ -234,9 +243,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun stopIntervention() {
         viewModelScope.launch {
             val change = repo.stopIntervention(LocalDateTime.now()) ?: return@launch
-            val real = OnCall.realMinutes(change.date, change.intervention) ?: 0
-            _events.emit(UiEvent.InterventionStopped(real, OnCall.credited(real), change.date, change.previous))
+            emitStopped(change, undo = true)
         }
+    }
+
+    private suspend fun emitStopped(change: StaccoRepository.InterventionChange, undo: Boolean) {
+        val real = OnCall.realMinutes(change.date, change.intervention) ?: 0
+        _events.emit(UiEvent.InterventionStopped(real, OnCall.credited(real), change.date, change.intervention.id.takeIf { undo }))
+    }
+
+    /** Undo of a stop: the timer runs again from its start (the stamps of the day are not touched). */
+    fun resumeIntervention(date: LocalDate, id: Long) {
+        viewModelScope.launch { repo.resumeIntervention(date, id, LocalDateTime.now()) }
     }
 
     fun saveIntervention(date: LocalDate, intervention: Intervention) {
@@ -330,6 +348,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun importJson(text: String): Boolean {
         val parsed = Backup.decode(text) ?: return false
         repo.replaceAll(parsed)
+        // A backup saying "don't show again" hides the coffee card at once.
+        if (repo.current().support.dismissed) _support.value = false
         return true
     }
 }

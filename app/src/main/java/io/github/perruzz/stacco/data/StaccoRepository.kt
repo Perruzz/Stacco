@@ -22,6 +22,7 @@ import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.WorkCalendar
 import io.github.perruzz.stacco.domain.StaccoData
 import io.github.perruzz.stacco.domain.StampSlot
+import io.github.perruzz.stacco.domain.SupportRules
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -102,6 +103,16 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
 
     suspend fun stampNow(now: LocalDateTime, forceSlot: StampSlot? = null): StampSlot? = stampAt(now, forceSlot)?.slot
 
+    /**
+     * Takes a stamp back: the stamps and the day type return to [previous], while the rest of the
+     * day stays as it is now (an intervention started or stopped meanwhile is kept).
+     */
+    suspend fun undoStamp(date: LocalDate, previous: DayRecord) {
+        updateDay(date) { day ->
+            day.copy(type = previous.type, entry = previous.entry, breakOut = previous.breakOut, breakIn = previous.breakIn, exit = previous.exit)
+        }
+    }
+
     suspend fun setShift(date: LocalDate, shiftId: String?) {
         updateDay(date) { it.copy(shiftId = shiftId) }
     }
@@ -172,10 +183,38 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
     suspend fun stopIntervention(now: LocalDateTime): InterventionChange? {
         var change: InterventionChange? = null
         update { data ->
-            val (date, running) = OnCall.running(data, now.toLocalDate()) ?: return@update data
-            val done = running.copy(end = max(running.start, OnCall.minutesOf(date, now)))
-            change = InterventionChange(date, done, data.days[date.toString()] ?: DayRecord.EMPTY)
-            data.withDay(date) { day -> day.copy(interventions = day.interventions.map { if (it.id == running.id) done else it }) }
+            val (stopped, done) = stopRunning(data, now) ?: return@update data
+            change = done
+            stopped
+        }
+        return change
+    }
+
+    /** [data] with the running timer stopped at [now], or null if none is running. */
+    private fun stopRunning(data: StaccoData, now: LocalDateTime): Pair<StaccoData, InterventionChange>? {
+        val (date, running) = OnCall.running(data, now.toLocalDate()) ?: return null
+        val done = running.copy(end = max(running.start, OnCall.minutesOf(date, now)))
+        val change = InterventionChange(date, done, data.days[date.toString()] ?: DayRecord.EMPTY)
+        return data.withDay(date) { day -> day.copy(interventions = day.interventions.map { if (it.id == running.id) done else it }) } to change
+    }
+
+    /** Takes a stop back: intervention [id] of [date] runs again, unless another timer was started meanwhile. */
+    suspend fun resumeIntervention(date: LocalDate, id: Long, now: LocalDateTime) {
+        update { data ->
+            if (OnCall.running(data, now.toLocalDate()) != null) return@update data
+            data.withDay(date) { day -> day.copy(interventions = day.interventions.map { if (it.id == id) it.copy(end = null) else it }) }
+        }
+    }
+
+    /**
+     * Turns on-call duty on or off. Off, nothing of it shows any more, so a timer still running is
+     * stopped right then instead of going on unseen; it is returned for the user to know.
+     */
+    suspend fun setOnCallEnabled(on: Boolean, now: LocalDateTime): InterventionChange? {
+        var change: InterventionChange? = null
+        update { data ->
+            val base = if (on) data else stopRunning(data, now)?.let { (stopped, done) -> change = done; stopped } ?: data
+            base.copy(onCall = base.onCall.copy(enabled = on))
         }
         return change
     }
@@ -247,8 +286,9 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
         update { StaccoData() }
     }
 
+    /** Restores a backup; the coffee card keeps the choices already made on this phone. */
     suspend fun replaceAll(newData: StaccoData) {
-        update { newData.copy(onboardingDone = true) }
+        update { current -> newData.copy(onboardingDone = true, support = SupportRules.restored(current.support, newData.support)) }
     }
 
     companion object {

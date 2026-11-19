@@ -202,7 +202,8 @@
     <string name="day_note">Notes</string>
     <string name="day_clear">Clear day</string>
     <string name="day_clear_title">Clear this day?</string>
-    <string name="day_clear_text">Stamps, type and notes of this day will be deleted.</string>
+    <string name="day_clear_text">Stamps, type, leave hours and notes of this day will be deleted.</string>
+    <string name="day_clear_text_on_call">Stamps, type, leave hours and notes of this day will be deleted, together with its on-call duty: interventions and recovery included.</string>
 
     <!-- Bank screen -->
     <string name="bank_title">Hour bank</string>

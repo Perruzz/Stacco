@@ -35,7 +35,7 @@ object LiveDayNotifier {
         val active = s.data.notifications.liveNotification && s.isOffice && running && p.isValid &&
             target != null && entry != null
         if (!active) {
-            Notifications.cancel(context, Notifications.ID_LIVE)
+            Notifications.cancelAlone(context, Notifications.ID_LIVE, Notifications.ID_LIVE_SUMMARY)
             cancelRefresh(context)
             return
         }
@@ -128,7 +128,7 @@ object LiveDayNotifier {
         style.setProgress((s.nowMinutes - entry).coerceIn(0, total))
         builder.setStyle(style)
 
-        Notifications.post(context, Notifications.ID_LIVE, builder)
+        Notifications.postAlone(context, Notifications.ID_LIVE, Notifications.ID_LIVE_SUMMARY, Notifications.GROUP_LIVE, Notifications.CHANNEL_LIVE, builder)
         scheduleRefresh(context)
     }
 

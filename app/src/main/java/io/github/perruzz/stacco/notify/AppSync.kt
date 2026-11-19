@@ -33,8 +33,8 @@ object AppSync {
             combine(repository.data, minutes) { data, minute -> data to minute }
                 .collectLatest { (data, minute) ->
                     if (!data.onboardingDone) {
-                        Notifications.cancel(app, Notifications.ID_LIVE)
-                        Notifications.cancel(app, Notifications.ID_INTERVENTION)
+                        Notifications.cancelAlone(app, Notifications.ID_LIVE, Notifications.ID_LIVE_SUMMARY)
+                        Notifications.cancelAlone(app, Notifications.ID_INTERVENTION, Notifications.ID_INTERVENTION_SUMMARY)
                         return@collectLatest
                     }
                     val snapshot = Engine.snapshot(data)

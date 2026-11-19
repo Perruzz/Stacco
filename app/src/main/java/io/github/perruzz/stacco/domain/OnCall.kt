@@ -75,9 +75,17 @@ object OnCall {
      * left of the day once a permit is counted.
      */
     fun recoveryCost(calendar: WorkCalendar, date: LocalDate): Int {
-        val record = calendar.record(date) ?: return 0
-        if (record.recoveryMinutes <= 0 || calendar.effectiveType(date) != DayType.OFFICE) return 0
-        return min(record.recoveryMinutes, recoveryRoom(calendar, date))
+        if (calendar.effectiveType(date) != DayType.OFFICE) return 0
+        return recoveryHeld(calendar, date)
+    }
+
+    /**
+     * The recovery of [date] as it counts: what the day holds once its permit is in, whichever was
+     * entered first, and after a contract change too. This is also what the day shows.
+     */
+    fun recoveryHeld(calendar: WorkCalendar, date: LocalDate): Int {
+        val recovery = calendar.record(date)?.recoveryMinutes ?: 0
+        return if (recovery <= 0) 0 else min(recovery, recoveryRoom(calendar, date))
     }
 
     /** How much recovery [date] can take: the planned day minus its permit (nothing on a day off). */

@@ -92,11 +92,11 @@ Per chi non ha un orario fisso (infermieri, OSS, operai, vigilanza…): al primo
 - Mentre selezioni più giorni vedi subito quante ferie ti resterebbero.
 
 ### 📞 Reperibilità e recupero interventi
-Per chi è reperibile (IT, impianti, sanità…). È un modulo **spento di default**: finché non lo accendi in *Impostazioni → Reperibilità* l'app resta identica.
+Per chi è reperibile (IT, impianti, sanità…). È un modulo **spento di default**: finché non lo accendi in *Impostazioni → Reperibilità* l'app resta identica. Se lo spegni i dati restano; un intervento ancora in corso viene chiuso in quel momento.
 - **Giorni reperibili** dal calendario, dalla scheda del giorno o con la selezione multipla (weekend e festivi compresi). Il giorno può essere in sede, in smart working o di riposo: la reperibilità è un'indicazione in più, con un piccolo telefono nell'angolo della cella.
-- **Timer dell'intervento** H24: nei giorni di reperibilità *Oggi* mostra *Avvia intervento*. Il cronometro gira anche nella notifica, a schermo bloccato, con il pulsante *Termina*. Un intervento nelle prime ore dopo un giorno di reperibilità resta in quella notte (*23:30 → 00:40 +1*).
+- **Timer dell'intervento** H24: nei giorni di reperibilità *Oggi* mostra *Avvia intervento*. Il cronometro gira anche nella notifica, a schermo bloccato, con il pulsante *Termina*; se l'intervento cade durante la giornata in sede, le due notifiche restano separate, ognuna con i suoi pulsanti. Un intervento nelle prime ore dopo un giorno di reperibilità resta in quella notte (*23:30 → 00:40 +1*).
 - **Quarto d'ora per eccesso**: ogni intervento è accreditato arrotondato al quarto d'ora successivo (32 minuti → 45), con accanto il tempo reale. Gli interventi si possono anche inserire o correggere a mano.
-- **Recupero interventi**: un saldo **separato** dalla banca ore e dalle ferie. Lo usi in una giornata lavorativa a blocchi di 30 minuti, fino alla giornata intera: per esempio 1h lavorata + 7h di recupero fanno le 8h e la giornata va in pari senza toccare la banca ore.
+- **Recupero interventi**: un saldo **separato** dalla banca ore e dalle ferie. Lo usi in una giornata lavorativa a blocchi di 30 minuti, fino alla giornata intera: per esempio 1h lavorata + 7h di recupero fanno le 8h e la giornata va in pari senza toccare la banca ore. Con un permesso nello stesso giorno il recupero copre solo il resto della giornata, anche dopo un cambio di orario.
 - **Scadenza**: le ore di ogni mese vanno usate entro la fine del secondo mese successivo (intervento a novembre → 31 gennaio). Si usano prima quelle che scadono prima, con avviso in app e notifica quando rischi di perderle.
 - Nella scheda *Banca ore* trovi saldo, scadenze mese per mese e ultimi interventi; nel calendario e nell'export CSV i giorni di reperibilità, le ore maturate e quelle fruite.
 

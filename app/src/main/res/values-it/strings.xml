@@ -204,7 +204,8 @@
     <string name="day_note">Note</string>
     <string name="day_clear">Cancella giornata</string>
     <string name="day_clear_title">Cancellare la giornata?</string>
-    <string name="day_clear_text">Timbrature, tipo e note di questo giorno verranno eliminati.</string>
+    <string name="day_clear_text">Timbrature, tipo, permesso e note di questo giorno verranno eliminati.</string>
+    <string name="day_clear_text_on_call">Timbrature, tipo, permesso e note di questo giorno verranno eliminati insieme alla reperibilità: interventi e recupero compresi.</string>
 
     <!-- Bank screen -->
     <string name="bank_title">Banca ore</string>

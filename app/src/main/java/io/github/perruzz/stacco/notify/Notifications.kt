@@ -46,6 +46,12 @@ object Notifications {
     const val ID_INTERVENTION_DONE = 1009
     const val ID_RECOVERY = 1010
 
+    /** The workday and the intervention timer each live in a group of their own: see [postAlone]. */
+    const val ID_LIVE_SUMMARY = 1011
+    const val ID_INTERVENTION_SUMMARY = 1012
+    const val GROUP_LIVE = "stacco_live"
+    const val GROUP_INTERVENTION = "stacco_intervention"
+
     const val COLOR = 0xFF1F6E52.toInt()
 
     fun createChannels(base: Context) {
@@ -96,6 +102,33 @@ object Notifications {
 
     fun cancel(context: Context, id: Int) {
         NotificationManagerCompat.from(context).cancel(id)
+    }
+
+    /**
+     * Posts an ongoing notification as the only child of a group of its own, with a silent summary
+     * that Android never shows for a group of one. Android 16+ bundles two or more notifications of
+     * an app that have no group (or a group without a summary) into one collapsed group: with an
+     * intervention running during the working day, both timers and their buttons ended up hidden
+     * behind it.
+     */
+    fun postAlone(context: Context, id: Int, summaryId: Int, group: String, channel: String, builder: NotificationCompat.Builder) {
+        post(context, id, builder.setGroup(group))
+        post(
+            context,
+            summaryId,
+            base(context, channel)
+                .setGroup(group)
+                .setGroupSummary(true)
+                .setOngoing(true)
+                .setSilent(true)
+                .setOnlyAlertOnce(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC),
+        )
+    }
+
+    fun cancelAlone(context: Context, id: Int, summaryId: Int) {
+        cancel(context, id)
+        cancel(context, summaryId)
     }
 
     fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(

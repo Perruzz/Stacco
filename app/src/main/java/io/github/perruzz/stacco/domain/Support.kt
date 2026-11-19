@@ -23,4 +23,17 @@ object SupportRules {
     /** The prompt once shown or postponed on [today]: it may come back in 21–30 days. */
     fun postponed(prompt: SupportPrompt, today: LocalDate, random: Random = Random.Default): SupportPrompt =
         prompt.copy(nextAt = today.plusDays(random.nextInt(GAP_DAYS.first, GAP_DAYS.last + 1).toLong()).toString())
+
+    /**
+     * The prompt once a backup is restored over [current]: a "don't show again" or a later turn,
+     * whether decided on this phone or in the backup, still holds (an older backup never brings
+     * the card back early).
+     */
+    fun restored(current: SupportPrompt, backup: SupportPrompt): SupportPrompt = SupportPrompt(
+        nextAt = listOfNotNull(current.nextAt, backup.nextAt)
+            .mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
+            .maxOrNull()
+            ?.toString(),
+        dismissed = current.dismissed || backup.dismissed,
+    )
 }

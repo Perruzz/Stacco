@@ -126,7 +126,7 @@ fun MainShell(viewModel: MainViewModel) {
                         icon = event.slot.icon,
                         message = resources.getString(event.slot.stampedMessage, Fmt.time(event.minutes)),
                         actionLabel = resources.getString(R.string.action_undo),
-                        onAction = { viewModel.restoreDay(event.date, event.previous) },
+                        onAction = { viewModel.undoStamp(event.date, event.previous) },
                     )
                     if (event.slot == StampSlot.EXIT) confetti++
                 }
@@ -161,12 +161,15 @@ fun MainShell(viewModel: MainViewModel) {
                     actionLabel = resources.getString(R.string.action_undo),
                     onAction = { viewModel.restoreDays(event.previous) },
                 )
-                is UiEvent.InterventionStopped -> toast.show(
-                    icon = OnCallIcon,
-                    message = resources.getString(R.string.intervention_done_toast, Fmt.duration(event.real), Fmt.duration(event.credited)),
-                    actionLabel = resources.getString(R.string.action_undo),
-                    onAction = { viewModel.restoreDay(event.date, event.previous) },
-                )
+                is UiEvent.InterventionStopped -> {
+                    val id = event.id
+                    toast.show(
+                        icon = OnCallIcon,
+                        message = resources.getString(R.string.intervention_done_toast, Fmt.duration(event.real), Fmt.duration(event.credited)),
+                        actionLabel = if (id != null) resources.getString(R.string.action_undo) else null,
+                        onAction = if (id != null) ({ viewModel.resumeIntervention(event.date, id) }) else null,
+                    )
+                }
             }
         }
     }

@@ -23,7 +23,7 @@ object InterventionNotifier {
     fun update(base: Context, s: TodaySnapshot) {
         val context = base.localized()
         val (date, intervention) = s.onCall?.running ?: run {
-            Notifications.cancel(context, Notifications.ID_INTERVENTION)
+            Notifications.cancelAlone(context, Notifications.ID_INTERVENTION, Notifications.ID_INTERVENTION_SUMMARY)
             return
         }
         val started = Notifications.epochMillis(date, intervention.start) + intervention.startSecond * 1000L
@@ -44,7 +44,9 @@ object InterventionNotifier {
             // Android 14+ lets ongoing notifications be swiped away: it comes back while the timer runs.
             .setDeleteIntent(InterventionReceiver.intent(context, InterventionReceiver.ACTION_REPOST))
             .addAction(R.drawable.ic_stat_stacco, context.getString(R.string.intervention_stop), InterventionReceiver.intent(context, InterventionReceiver.ACTION_STOP))
-        Notifications.post(context, Notifications.ID_INTERVENTION, builder)
+        Notifications.postAlone(
+            context, Notifications.ID_INTERVENTION, Notifications.ID_INTERVENTION_SUMMARY, Notifications.GROUP_INTERVENTION, Notifications.CHANNEL_ON_CALL, builder,
+        )
     }
 }
 
