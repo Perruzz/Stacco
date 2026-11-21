@@ -46,8 +46,8 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -149,102 +149,118 @@ private fun TimelineRow(
         label = "halo",
     )
 
-    Row(
-        modifier = Modifier
+    // The halo of the next stamp grows past the row: it is drawn around the row, outside the clip
+    // that rounds the row's press feedback, so the whole ring stays round at every step.
+    Box(
+        Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .clip(RoundedCornerShape(18.dp))
-            .bouncyClickable(pressed = 0.98f, onClick = onClick)
-            .padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .drawBehind {
+                if (isNext) {
+                    val scale = 1f + halo * NODE_HALO_GROWTH
+                    val stroke = 2.dp.toPx() * scale
+                    drawCircle(
+                        color = primary.copy(alpha = 1f - halo),
+                        radius = (NODE_SIZE / 2).toPx() * scale - stroke / 2f,
+                        center = Offset((ROW_PADDING + NODE_COLUMN / 2).toPx(), size.height / 2f),
+                        style = Stroke(width = stroke),
+                    )
+                }
+            },
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .width(44.dp)
-                .fillMaxHeight()
-                .drawBehind {
-                    val x = size.width / 2f
-                    val dotRadius = 20.dp.toPx()
-                    val stroke = 3.dp.toPx()
-                    val dash = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 6.dp.toPx()))
-                    lineAbove?.let { solid ->
-                        drawLine(
-                            color = if (solid) primary else idle,
-                            start = Offset(x, 0f),
-                            end = Offset(x, size.height / 2f - dotRadius),
-                            strokeWidth = stroke,
-                            cap = StrokeCap.Round,
-                            pathEffect = if (solid) null else dash,
-                        )
-                    }
-                    lineBelow?.let { solid ->
-                        drawLine(
-                            color = if (solid) primary else idle,
-                            start = Offset(x, size.height / 2f + dotRadius),
-                            end = Offset(x, size.height),
-                            strokeWidth = stroke,
-                            cap = StrokeCap.Round,
-                            pathEffect = if (solid) null else dash,
-                        )
-                    }
-                },
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+                .clip(RoundedCornerShape(18.dp))
+                .bouncyClickable(pressed = 0.98f, onClick = onClick)
+                .padding(horizontal = ROW_PADDING),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (isNext) {
-                Box(
-                    Modifier
-                        .size(40.dp)
-                        .graphicsLayer {
-                            scaleX = 1f + halo * 0.45f
-                            scaleY = scaleX
-                            alpha = 1f - halo
-                        }
-                        .border(2.dp, primary, CircleShape),
-                )
-            }
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .graphicsLayer { scaleX = pop.value; scaleY = pop.value }
-                    .background(dotColor, CircleShape)
-                    .border(2.dp, if (filled) primary else if (isNext) primary else idle, CircleShape),
+                    .width(NODE_COLUMN)
+                    .fillMaxHeight()
+                    .drawBehind {
+                        // Each row draws its half of the connectors, from its node to its edge: green
+                        // between stamps already taken, grey towards the ones still to come. Both are
+                        // continuous, so the two halves always meet (a dash pattern started again in
+                        // each half and left gaps next to the nodes).
+                        val x = size.width / 2f
+                        val dotRadius = (NODE_SIZE / 2).toPx()
+                        val stroke = 3.dp.toPx()
+                        lineAbove?.let { done ->
+                            drawLine(
+                                color = if (done) primary else idle,
+                                start = Offset(x, 0f),
+                                end = Offset(x, size.height / 2f - dotRadius),
+                                strokeWidth = stroke,
+                                cap = StrokeCap.Round,
+                            )
+                        }
+                        lineBelow?.let { done ->
+                            drawLine(
+                                color = if (done) primary else idle,
+                                start = Offset(x, size.height / 2f + dotRadius),
+                                end = Offset(x, size.height),
+                                strokeWidth = stroke,
+                                cap = StrokeCap.Round,
+                            )
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(slot.icon, contentDescription = null, tint = if (isNext && !filled) primary else iconColor, modifier = Modifier.size(20.dp))
+                Box(
+                    modifier = Modifier
+                        .size(NODE_SIZE)
+                        .graphicsLayer { scaleX = pop.value; scaleY = pop.value }
+                        .background(dotColor, CircleShape)
+                        .border(2.dp, if (filled) primary else if (isNext) primary else idle, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(slot.icon, contentDescription = null, tint = if (isNext && !filled) primary else iconColor, modifier = Modifier.size(20.dp))
+                }
             }
-        }
-        Spacer(Modifier.width(14.dp))
-        Column(
-            Modifier
-                .weight(1f)
-                .padding(vertical = 14.dp),
-        ) {
-            Text(stringResource(slot.label), style = MaterialTheme.typography.titleSmall)
-            if (supporting != null) {
-                Text(
-                    supporting,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Spacer(Modifier.width(14.dp))
+            Column(
+                Modifier
+                    .weight(1f)
+                    .padding(vertical = 14.dp),
+            ) {
+                Text(stringResource(slot.label), style = MaterialTheme.typography.titleSmall)
+                if (supporting != null) {
+                    Text(
+                        supporting,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
+            RollingText(
+                text = Fmt.time(minutes),
+                style = MaterialTheme.typography.headlineMedium,
+                color = if (filled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+            )
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.Rounded.Edit,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
         }
-        RollingText(
-            text = Fmt.time(minutes),
-            style = MaterialTheme.typography.headlineMedium,
-            color = if (filled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
-        )
-        Spacer(Modifier.width(8.dp))
-        Icon(
-            Icons.Rounded.Edit,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(8.dp))
     }
 }
+
+/** The circle of a stamp, the column it sits in and the row's side padding. */
+private val NODE_SIZE = 40.dp
+private val NODE_COLUMN = 44.dp
+private val ROW_PADDING = 4.dp
+
+/** How much the halo of the next stamp grows (1.45× the circle). */
+private const val NODE_HALO_GROWTH = 0.45f
 
 /** Chips to choose what kind of day it is. `null` means "follow the calendar". */
 @OptIn(ExperimentalLayoutApi::class)
