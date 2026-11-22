@@ -1,0 +1,135 @@
+{
+    "schemaVersion": 1,
+    "onboardingDone": true,
+    "profile": {
+        "name": "Giulia"
+    },
+    "work": {
+        "dailyMinutes": 480,
+        "minDailyMinutes": 420,
+        "minBreakMinutes": 30,
+        "maxBreakMinutes": 90,
+        "workDays": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "italianHolidays": true
+    },
+    "bank": {
+        "positiveExpiry": "QUARTERLY",
+        "negativeMustBeRecovered": true,
+        "resetNegativeAtMonthEnd": true,
+        "alertLeadDays": 3
+    },
+    "smart": {
+        "allowance": 10,
+        "period": "MONTH"
+    },
+    "notifications": {
+        "exitReminder": true,
+        "exitReminderLeadMinutes": 10,
+        "exitTarget": "BANK",
+        "liveNotification": true,
+        "bankAlerts": true
+    },
+    "appearance": {
+        "theme": "DARK",
+        "dynamicColor": false
+    },
+    "days": {
+        "2026-11-02": {
+            "entry": 510,
+            "breakOut": 750,
+            "breakIn": 780,
+            "exit": 1025,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-03": {
+            "entry": 480,
+            "breakOut": 720,
+            "breakIn": 740,
+            "exit": 1000,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-04": {
+            "type": "SMART",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-05": {
+            "entry": 540,
+            "exit": 1020,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-06": {
+            "type": "VACATION",
+            "leaveMinutes": 0,
+            "note": "Ponte"
+        },
+        "2026-11-07": {
+            "entry": 540,
+            "exit": 720,
+            "leaveMinutes": 0,
+            "note": "Sabato in ufficio"
+        },
+        "2026-11-09": {
+            "type": "SICK",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-10": {
+            "entry": 480,
+            "breakOut": 720,
+            "breakIn": 780,
+            "exit": 1020,
+            "leaveMinutes": 60,
+            "note": ""
+        },
+        "2026-11-11": {
+            "entry": 480,
+            "breakOut": 720,
+            "exit": 1020,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-12": {
+            "entry": 495,
+            "breakOut": 750,
+            "breakIn": 780,
+            "exit": 1050,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-13": {
+            "entry": 480,
+            "leaveMinutes": 0,
+            "note": ""
+        }
+    },
+    "adjustments": [
+        {
+            "id": 1762041600000,
+            "date": "2026-11-02",
+            "kind": "SET_BALANCE",
+            "minutes": 120,
+            "note": "Saldo iniziale"
+        },
+        {
+            "id": 1762905600000,
+            "date": "2026-11-12",
+            "kind": "MANUAL",
+            "minutes": -15,
+            "note": "Correzione"
+        }
+    ],
+    "alerts": {
+        "expiryLastDate": "2026-11-10",
+        "expiryPeriod": "2026-QUARTERLY-3"
+    }
+}

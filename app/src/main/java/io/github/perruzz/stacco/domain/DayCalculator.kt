@@ -116,8 +116,15 @@ object DayCalculator {
      * Result of a completed day, or null if the day is incomplete or inconsistent.
      * [clockShift] is how far the clocks moved during the day (daylight saving, see
      * [WorkCalendar.result]): the stamps are clock times, the worked time is real time.
+     * [covered] says whether a permit or recovery hours count on the day ([WorkCalendar.covered]).
      */
-    fun result(r: DayRecord, rules: BreakRules, required: Int, clockShift: Int = 0): DayResult? {
+    fun result(
+        r: DayRecord,
+        rules: BreakRules,
+        required: Int,
+        clockShift: Int = 0,
+        covered: Boolean = r.coveredMinutes > 0,
+    ): DayResult? {
         val entry = r.entry ?: return null
         val exit = r.exit ?: return null
         if (issues(r).isNotEmpty()) return null
@@ -125,7 +132,7 @@ object DayCalculator {
         val worked = max(0, exit - entry - b.deducted - clockShift)
         // With a permit (or on-call recovery hours) the day can only cost hours, never add them:
         // time worked beyond the reduced day does not go to the bank (that cover was not needed).
-        val delta = if (r.coveredMinutes > 0) min(0, worked - required) else worked - required
+        val delta = if (covered) min(0, worked - required) else worked - required
         return DayResult(worked = worked, required = required, delta = delta)
     }
 
@@ -157,7 +164,11 @@ object DayCalculator {
 
     /**
      * @param plannedStart / [plannedEnd] the planned shift (shift mode). With a shift the target exit
-     * is simply the end of the shift and the hour bank cannot shorten the day.
+     * is simply the end of the shift (earlier by a permit or recovery hours) and the hour bank cannot
+     * shorten the day.
+     * @param covered whether a permit or recovery hours count on the day ([WorkCalendar.covered]).
+     * @param clockShift how far the clocks move between two times of the day ([clockShift]): on the
+     * nights the clocks change, the time worked and the exits follow the real time, as the result does.
      */
     fun project(
         r: DayRecord,
@@ -168,6 +179,8 @@ object DayCalculator {
         now: Int,
         plannedStart: Int? = null,
         plannedEnd: Int? = null,
+        covered: Boolean = r.coveredMinutes > 0,
+        clockShift: (from: Int, to: Int) -> Int = { _, _ -> 0 },
     ): DayProjection {
         val issues = issues(r)
         val b = breakInfo(r, rules, required, now)
@@ -189,25 +202,33 @@ object DayCalculator {
             )
         }
 
+        // The clock time at which [worked] minutes of work are done: an hour later (or earlier)
+        // across the night the clocks go forward (or back).
+        fun exitAfter(worked: Int): Int = (entry + b.deducted + worked).let { it + clockShift(entry, it) }
+
         val standardExit: Int
         val minimumExit: Int?
         val bankExit: Int?
         val bankUsage: Int
         if (plannedEnd != null) {
-            standardExit = plannedEnd
+            // A permit or recovery hours shorten the shift: at its end, or at its start when the
+            // entry comes later.
+            standardExit = if (covered) min(plannedEnd, exitAfter(required)) else plannedEnd
             minimumExit = null
             bankExit = null
             bankUsage = 0
         } else {
-            standardExit = entry + required + b.deducted
-            minimumExit = entry + minimum + b.deducted
+            standardExit = exitAfter(required)
+            minimumExit = exitAfter(minimum)
             // Worked minutes that bring the bank back to zero, never below the daily minimum.
             // With a permit staying longer recovers nothing, so never past the standard exit.
             val recovery = max(minimum, required - bankBefore)
-            val bankTargetWorked = if (r.coveredMinutes > 0) min(recovery, required) else recovery
-            bankExit = entry + b.deducted + bankTargetWorked
+            val bankTargetWorked = if (covered) min(recovery, required) else recovery
+            bankExit = exitAfter(bankTargetWorked)
             bankUsage = required - bankTargetWorked
         }
+        val end = r.exit?.let { min(now, it) } ?: now
+        val worked = workedAt(r, now).let { if (end > entry) max(0, it - clockShift(entry, end)) else it }
 
         return DayProjection(
             phase = phase,
@@ -219,11 +240,11 @@ object DayCalculator {
             bankExit = bankExit,
             bankUsage = bankUsage,
             bankBefore = bankBefore,
-            workedSoFar = workedAt(r, now),
+            workedSoFar = worked,
             earliestReturn = earliestReturn,
             plannedStart = plannedStart,
             plannedEnd = plannedEnd,
-            result = if (phase == DayPhase.DONE) result(r, rules, required) else null,
+            result = if (phase == DayPhase.DONE) result(r, rules, required, clockShift(entry, r.exit ?: now), covered) else null,
             issues = issues,
         )
     }

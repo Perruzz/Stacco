@@ -16,6 +16,7 @@ import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.domain.Intervention
 import io.github.perruzz.stacco.domain.OnCall
 import io.github.perruzz.stacco.domain.Schedule
+import io.github.perruzz.stacco.domain.SchedulePeriod
 import io.github.perruzz.stacco.domain.ScheduleHistory
 import io.github.perruzz.stacco.domain.ShiftTemplate
 import io.github.perruzz.stacco.domain.VacationCalculator
@@ -26,9 +27,14 @@ import io.github.perruzz.stacco.domain.SupportRules
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.SerializationException
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
+import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
@@ -42,19 +48,70 @@ val StaccoJson = Json {
     prettyPrint = false
 }
 
-object StaccoDataSerializer : Serializer<StaccoData> {
+/** The mark some editors put in front of a text file they save. */
+private const val BOM = "\uFEFF"
+
+/** For a damaged data file only: an unknown or missing value takes its default instead of failing. */
+private val SalvageJson = Json(from = StaccoJson) { coerceInputValues = true }
+
+/**
+ * The app's data file. One that does not read as it is (a value this version does not know, a
+ * damaged day…) is read part by part, keeping everything that still reads; its original bytes go
+ * to [keepDamaged] first, so that nothing is thrown away for good. Only a file with nothing left
+ * to read is reported as corrupt (and replaced by an empty one).
+ */
+class StaccoDataSerializer(private val keepDamaged: (ByteArray) -> Unit = {}) : Serializer<StaccoData> {
     override val defaultValue: StaccoData = StaccoData()
 
-    override suspend fun readFrom(input: InputStream): StaccoData = try {
-        StaccoJson.decodeFromString(StaccoData.serializer(), input.readBytes().decodeToString())
-    } catch (e: SerializationException) {
-        throw CorruptionException("Unable to read Stacco data", e)
-    } catch (e: IllegalArgumentException) {
-        throw CorruptionException("Unable to read Stacco data", e)
+    override suspend fun readFrom(input: InputStream): StaccoData {
+        val bytes = input.readBytes()
+        val text = bytes.decodeToString().removePrefix(BOM)
+        StoredData.read(text)?.let { return it }
+        if (text.isNotBlank()) runCatching { keepDamaged(bytes) }
+        return StoredData.salvage(text) ?: throw CorruptionException("Unable to read Stacco data")
     }
 
     override suspend fun writeTo(t: StaccoData, output: OutputStream) {
         output.write(StaccoJson.encodeToString(StaccoData.serializer(), t).encodeToByteArray())
+    }
+}
+
+/** The stored JSON turned into data the app can count on (see [Sanitizer]). */
+internal object StoredData {
+
+    /** [text] decoded as it is, or null. */
+    fun read(text: String): StaccoData? =
+        unreadableAsNull { StaccoJson.decodeFromString(StaccoData.serializer(), text) }?.let(Sanitizer::clean)
+
+    /** What still reads of [text]: every section, day, adjustment and contract period that decodes on its own. */
+    fun salvage(text: String): StaccoData? = unreadableAsNull {
+        val root = StaccoJson.parseToJsonElement(text).jsonObject
+        val kept = buildMap {
+            for ((key, value) in root) {
+                val part = when {
+                    key == "days" && value is JsonObject -> JsonObject(value.filterValues { decodes(DayRecord.serializer(), it) })
+                    key == "adjustments" && value is JsonArray -> JsonArray(value.filter { decodes(BankAdjustment.serializer(), it) })
+                    key == "scheduleHistory" && value is JsonArray -> JsonArray(value.filter { decodes(SchedulePeriod.serializer(), it) })
+                    else -> value
+                }
+                if (decodes(StaccoData.serializer(), JsonObject(mapOf(key to part)))) put(key, part)
+            }
+        }
+        Sanitizer.clean(SalvageJson.decodeFromJsonElement(StaccoData.serializer(), JsonObject(kept)))
+    }
+
+    private fun <T> decodes(serializer: KSerializer<T>, element: JsonElement): Boolean =
+        unreadableAsNull { SalvageJson.decodeFromJsonElement(serializer, element) } != null
+
+    /**
+     * Null when the JSON does not decode (malformed, wrong types: all IllegalArgumentException).
+     * Anything else, such as running out of memory, is no proof that the file is damaged: it goes
+     * up as before, and the file stays as it is.
+     */
+    private inline fun <T> unreadableAsNull(decode: () -> T): T? = try {
+        decode()
+    } catch (e: IllegalArgumentException) {
+        null
     }
 }
 
@@ -239,10 +296,11 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
      * A new contract (hours, weekdays, fixed or shifts) from [from] on; null rewrites every date.
      * Days before keep being counted with the rules they had.
      */
-    suspend fun changeSchedule(next: Schedule, from: LocalDate?) {
+    suspend fun changeSchedule(next: Schedule, from: LocalDate?, today: LocalDate = LocalDate.now()) {
         update { data ->
-            // With nothing recorded before the change there is no past to protect.
-            val effectiveFrom = from?.takeIf { day -> data.days.keys.any { it < day.toString() } }
+            // The days before the change keep their rules: those recorded, and with a change still
+            // to come, today and the days until then. Otherwise there is no past to protect.
+            val effectiveFrom = from?.takeIf { day -> day.isAfter(today) || data.days.keys.any { it < day.toString() } }
             val history = ScheduleHistory.change(data.scheduleHistory, data.work.schedule, next, effectiveFrom)
             data.copy(work = data.work.withSchedule(next), scheduleHistory = history)
         }
@@ -293,11 +351,14 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
 
     companion object {
         fun create(context: Context, scope: CoroutineScope): StaccoRepository {
+            val file = context.dataStoreFile("stacco.json")
+            // A copy of a data file that had to be repaired, kept beside it.
+            val damaged = File(file.parentFile, "stacco-damaged.json")
             val store = DataStoreFactory.create(
-                serializer = StaccoDataSerializer,
+                serializer = StaccoDataSerializer(keepDamaged = { damaged.writeBytes(it) }),
                 corruptionHandler = ReplaceFileCorruptionHandler { StaccoData() },
                 scope = scope,
-                produceFile = { context.dataStoreFile("stacco.json") },
+                produceFile = { file },
             )
             return StaccoRepository(store)
         }
@@ -315,16 +376,33 @@ fun StaccoData.withDay(date: LocalDate, transform: (DayRecord) -> DayRecord): St
 object Backup {
     private val pretty = Json(from = StaccoJson) { prettyPrint = true }
 
+    /** Ten years of days take about 2 MB; anything this large is not a Stacco backup. */
+    const val MAX_BYTES = 16 * 1024 * 1024
+
     fun encode(data: StaccoData): String = pretty.encodeToString(StaccoData.serializer(), data)
+
+    /** The text of a file picked for import, or null when it is far too large to be a backup. */
+    fun read(input: InputStream): String? {
+        val bytes = ByteArrayOutputStream()
+        val buffer = ByteArray(64 * 1024)
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            bytes.write(buffer, 0, n)
+            if (bytes.size() > MAX_BYTES) return null
+        }
+        return bytes.toByteArray().decodeToString()
+    }
 
     /**
      * A Stacco backup, or null. Any JSON object would otherwise decode (unknown keys are ignored)
      * into empty defaults and an import would wipe every day: a real backup always carries
-     * "schemaVersion" together with the work settings.
+     * "schemaVersion" together with the work settings. Backups of every version since 1.0 read,
+     * also once an editor has saved them again; impossible values are brought back in range.
      */
     fun decode(text: String): StaccoData? = runCatching {
-        val root = StaccoJson.parseToJsonElement(text).jsonObject
+        val root = StaccoJson.parseToJsonElement(text.removePrefix(BOM)).jsonObject
         if ("schemaVersion" !in root || "work" !in root) return null
-        StaccoJson.decodeFromJsonElement(StaccoData.serializer(), root)
+        Sanitizer.clean(StaccoJson.decodeFromJsonElement(StaccoData.serializer(), root))
     }.getOrNull()
 }

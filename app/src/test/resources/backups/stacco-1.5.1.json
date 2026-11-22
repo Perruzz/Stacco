@@ -1,0 +1,149 @@
+{
+    "schemaVersion": 2,
+    "onboardingDone": true,
+    "profile": {
+        "name": ""
+    },
+    "work": {
+        "mode": "FIXED",
+        "dailyMinutes": 360,
+        "minDailyMinutes": 300,
+        "minBreakMinutes": 30,
+        "workDays": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "italianHolidays": true,
+        "patronDay": 0,
+        "shifts": [
+            {
+                "id": "m",
+                "name": "Mattina",
+                "start": 360,
+                "end": 840,
+                "breakMinutes": 0,
+                "color": 1
+            },
+            {
+                "id": "n",
+                "name": "Notte",
+                "start": 1320,
+                "end": 360,
+                "breakMinutes": 0,
+                "color": 3
+            }
+        ],
+        "dailyByDay": {
+            "5": 240
+        },
+        "rounding": {
+            "stepMinutes": 0,
+            "entry": "UP",
+            "exit": "DOWN",
+            "toleranceMinutes": 0
+        }
+    },
+    "bank": {
+        "positiveExpiry": "QUARTERLY",
+        "negativeMustBeRecovered": true,
+        "resetNegativeAtMonthEnd": true,
+        "alertLeadDays": 3
+    },
+    "smart": {
+        "allowance": 10,
+        "period": "MONTH"
+    },
+    "notifications": {
+        "exitReminder": true,
+        "exitReminderLeadMinutes": 5,
+        "exitTarget": "STANDARD",
+        "liveNotification": true,
+        "bankAlerts": true,
+        "shiftStartReminder": true,
+        "shiftStartLeadMinutes": 30,
+        "updateCheck": true
+    },
+    "appearance": {
+        "theme": "SYSTEM",
+        "dynamicColor": false
+    },
+    "days": {
+        "2026-10-26": {
+            "shiftId": "m",
+            "entry": 360,
+            "exit": 850,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-10-27": {
+            "shiftId": "n",
+            "entry": 1320,
+            "exit": 1800,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-10-30": {
+            "type": "VACATION",
+            "shiftId": "m",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-02": {
+            "entry": 540,
+            "exit": 900,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-06": {
+            "type": "VACATION",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-09": {
+            "entry": 540,
+            "exit": 930,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-13": {
+            "entry": 540,
+            "exit": 780,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-16": {
+            "entry": 540,
+            "exit": 780,
+            "leaveMinutes": 120,
+            "note": ""
+        }
+    },
+    "adjustments": [],
+    "alerts": {},
+    "vacation": {
+        "annualMinutes": 7200,
+        "carryOver": true,
+        "adjustments": {}
+    },
+    "scheduleHistory": [
+        {
+            "until": "2026-10-31",
+            "schedule": {
+                "mode": "SHIFTS",
+                "dailyMinutes": 480,
+                "minDailyMinutes": 420,
+                "dailyByDay": {},
+                "workDays": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                ]
+            }
+        }
+    ]
+}

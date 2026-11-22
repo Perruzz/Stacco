@@ -51,8 +51,11 @@ data class TodaySnapshot(
     /** Exit time chosen by the user as reference for countdown and reminders. */
     val targetExit: Int? get() = projection.targetExit(data.notifications.exitTarget)
 
-    /** Seconds left to [minutes] of the working day (negative once it has passed). */
-    fun secondsTo(minutes: Int): Int = minutes * 60 - nowSeconds
+    /**
+     * Seconds left to [minutes] of the working day (negative once it has passed), in real time:
+     * an hour less up to a clock that goes forward in the night, an hour more up to one that goes back.
+     */
+    fun secondsTo(minutes: Int): Int = minutes * 60 - nowSeconds - clockShift(date, nowMinutes, minutes) * 60
 
     /** A recent day whose exit was never stamped (it stays out of the hour bank until fixed). */
     val missingExit: LocalDate? get() = Engine.missingExit(data, date)
@@ -81,7 +84,7 @@ data class OnCallState(
 
 object Engine {
 
-    /** How long after the end of a night shift it still counts as "current". */
+    /** How long after its expected end a working day still counts as "current" past midnight. */
     private const val NIGHT_GRACE_MINUTES = 4 * 60
 
     fun firstDayOfWeek(locale: Locale = Locale.getDefault()): DayOfWeek = WeekFields.of(locale).firstDayOfWeek
@@ -116,8 +119,9 @@ object Engine {
             .firstOrNull { day -> data.days[day.toString()]?.let { it.entry != null && it.exit == null } == true }
 
     /**
-     * Today, unless yesterday's working day crosses midnight and is not over yet
-     * (a night shift, or a day whose exit is projected after midnight).
+     * Today, unless yesterday's working day is not over yet: without an exit it stays the current
+     * one until four hours after its expected end (a night shift, an evening that runs past
+     * midnight), so that the exit stamped after midnight still closes it.
      */
     fun activeDay(data: StaccoData, now: LocalDateTime): ActiveDay {
         val today = now.toLocalDate()
@@ -130,7 +134,7 @@ object Engine {
                 val b = DayCalculator.breakInfo(record, calendar.breakRules(yesterday), calendar.required(yesterday), null)
                 entry + calendar.required(yesterday) + b.deducted
             }
-            if (end != null && end > 1440 && minutes + 1440 < end + NIGHT_GRACE_MINUTES) {
+            if (end != null && minutes + 1440 < end + NIGHT_GRACE_MINUTES) {
                 return ActiveDay(yesterday, minutes + 1440, now.second)
             }
         }
@@ -157,6 +161,8 @@ object Engine {
             now = active.minutes,
             plannedStart = calendar.plannedStart(date),
             plannedEnd = calendar.plannedEnd(date),
+            covered = calendar.covered(date) > 0,
+            clockShift = { from, to -> clockShift(date, from, to) },
         )
         // A finished day reads the same as in the calendar and the bank (daylight saving included).
         val projection = if (projected.result != null) projected.copy(result = calendar.result(date)) else projected
@@ -200,8 +206,11 @@ object Engine {
     ): OnCallState {
         val (dutyDate, _) = OnCall.dutyDay(data, now)
         val running = OnCall.running(data, now.toLocalDate())
+        // In real time, as the intervention is credited once stopped (daylight saving nights too).
         val seconds = running?.let { (date, intervention) ->
-            (OnCall.minutesOf(date, now) * 60 + now.second - intervention.start * 60 - intervention.startSecond).coerceAtLeast(0)
+            val minutes = OnCall.minutesOf(date, now)
+            val clock = minutes * 60 + now.second - intervention.start * 60 - intervention.startSecond
+            (clock - clockShift(date, intervention.start, minutes) * 60).coerceAtLeast(0)
         }
         val record = data.days[dutyDate.toString()]
         return OnCallState(

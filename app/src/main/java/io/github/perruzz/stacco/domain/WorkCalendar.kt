@@ -222,8 +222,15 @@ class WorkCalendar(
         val record = counted(date) ?: return null
         val entry = record.entry ?: return null
         val exit = record.exit ?: return null
-        return DayCalculator.result(record, breakRules(date), required(date), clockShift(date, entry, exit, zone))
+        return DayCalculator.result(record, breakRules(date), required(date), clockShift(date, entry, exit, zone), covered(date) > 0)
     }
+
+    /**
+     * The part of [date] covered without working, as it counts: its permit and its recovery hours.
+     * Nothing on a day that is not planned as working (a shift taken off the plan, a weekday the
+     * contract dropped): there a permit left behind neither costs vacation nor holds back overtime.
+     */
+    fun covered(date: LocalDate): Int = VacationCalculator.permitHeld(this, date) + OnCall.recoveryHeld(this, date)
 
     /** The day as it is counted: entry and exit rounded by the company rules, if any. */
     fun counted(date: LocalDate): DayRecord? = days[date]?.let { Rounding.counted(it, work.rounding) }

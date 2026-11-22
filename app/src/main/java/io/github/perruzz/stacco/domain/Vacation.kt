@@ -65,10 +65,13 @@ object VacationCalculator {
 
     /**
      * The permit of [date] as it counts: never more than its day (e.g. 8h recorded on what became
-     * a 4h Friday). This is also what the day shows.
+     * a 4h Friday), and nothing on a day no longer planned as working (a shift taken off the plan),
+     * where the day does not show it either.
      */
-    fun permitHeld(calendar: WorkCalendar, date: LocalDate): Int =
-        minOf(calendar.record(date)?.leaveMinutes ?: 0, dayLength(calendar, date))
+    fun permitHeld(calendar: WorkCalendar, date: LocalDate): Int {
+        if (!calendar.isScheduled(date)) return 0
+        return minOf(calendar.record(date)?.leaveMinutes ?: 0, dayLength(calendar, date))
+    }
 
     fun balance(data: StaccoData, today: LocalDate, year: Int = today.year): VacationBalance {
         val settings = data.vacation

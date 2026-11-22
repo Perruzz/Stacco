@@ -13,6 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.rounded.History
+import io.github.perruzz.stacco.data.Backup
 import io.github.perruzz.stacco.domain.Schedule
 import io.github.perruzz.stacco.domain.ScheduleHistory
 import io.github.perruzz.stacco.domain.VacationCalculator
@@ -212,7 +213,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
         if (uri != null) {
             scope.launch {
                 val text = withContext(Dispatchers.IO) {
-                    runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }.getOrNull()
+                    runCatching { context.contentResolver.openInputStream(uri)?.use(Backup::read) }.getOrNull()
                 }
                 if (text == null) viewModel.notify(R.string.backup_error) else confirmImport = text
             }

@@ -1,0 +1,98 @@
+{
+    "schemaVersion": 2,
+    "onboardingDone": true,
+    "profile": {
+        "name": ""
+    },
+    "work": {
+        "mode": "FIXED",
+        "dailyMinutes": 480,
+        "minDailyMinutes": 420,
+        "minBreakMinutes": 30,
+        "workDays": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "italianHolidays": true,
+        "patronDay": 0,
+        "shifts": [],
+        "dailyByDay": {
+            "5": 360
+        },
+        "rounding": {
+            "stepMinutes": 15,
+            "entry": "UP",
+            "exit": "DOWN",
+            "toleranceMinutes": 5
+        }
+    },
+    "bank": {
+        "positiveExpiry": "QUARTERLY",
+        "negativeMustBeRecovered": true,
+        "resetNegativeAtMonthEnd": true,
+        "alertLeadDays": 3
+    },
+    "smart": {
+        "allowance": 10,
+        "period": "MONTH"
+    },
+    "notifications": {
+        "exitReminder": true,
+        "exitReminderLeadMinutes": 5,
+        "exitTarget": "STANDARD",
+        "liveNotification": true,
+        "bankAlerts": true,
+        "shiftStartReminder": true,
+        "shiftStartLeadMinutes": 30,
+        "updateCheck": true
+    },
+    "appearance": {
+        "theme": "SYSTEM",
+        "dynamicColor": false
+    },
+    "days": {
+        "2026-11-06": {
+            "type": "VACATION",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-09": {
+            "entry": 484,
+            "breakOut": 750,
+            "breakIn": 780,
+            "exit": 1016,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-10": {
+            "entry": 486,
+            "exit": 998,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-12": {
+            "entry": 480,
+            "breakOut": 720,
+            "breakIn": 750,
+            "exit": 930,
+            "leaveMinutes": 60,
+            "note": ""
+        },
+        "2026-11-13": {
+            "entry": 480,
+            "exit": 840,
+            "leaveMinutes": 0,
+            "note": ""
+        }
+    },
+    "adjustments": [],
+    "alerts": {},
+    "vacation": {
+        "annualMinutes": 9600,
+        "carryOver": true,
+        "adjustments": {}
+    }
+}

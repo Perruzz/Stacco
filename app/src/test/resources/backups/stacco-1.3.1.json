@@ -1,0 +1,101 @@
+{
+    "schemaVersion": 2,
+    "onboardingDone": true,
+    "profile": {
+        "name": ""
+    },
+    "work": {
+        "mode": "FIXED",
+        "dailyMinutes": 432,
+        "minDailyMinutes": 372,
+        "minBreakMinutes": 45,
+        "workDays": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "italianHolidays": true,
+        "patronDay": 0,
+        "shifts": []
+    },
+    "bank": {
+        "positiveExpiry": "QUARTERLY",
+        "negativeMustBeRecovered": true,
+        "resetNegativeAtMonthEnd": true,
+        "alertLeadDays": 3
+    },
+    "smart": {
+        "allowance": 10,
+        "period": "MONTH"
+    },
+    "notifications": {
+        "exitReminder": true,
+        "exitReminderLeadMinutes": 5,
+        "exitTarget": "STANDARD",
+        "liveNotification": true,
+        "bankAlerts": true,
+        "shiftStartReminder": true,
+        "shiftStartLeadMinutes": 30,
+        "updateCheck": true
+    },
+    "appearance": {
+        "theme": "SYSTEM",
+        "dynamicColor": false
+    },
+    "days": {
+        "2026-11-01": {
+            "type": "VACATION",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-02": {
+            "type": "VACATION",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-03": {
+            "type": "VACATION",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-04": {
+            "entry": 480,
+            "breakOut": 750,
+            "breakIn": 795,
+            "exit": 960,
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-11-05": {
+            "entry": 480,
+            "exit": 792,
+            "leaveMinutes": 120,
+            "note": "Visita medica"
+        },
+        "2026-11-06": {
+            "leaveMinutes": 432,
+            "note": ""
+        },
+        "2026-12-24": {
+            "type": "VACATION",
+            "leaveMinutes": 0,
+            "note": ""
+        },
+        "2026-12-31": {
+            "type": "VACATION",
+            "leaveMinutes": 0,
+            "note": ""
+        }
+    },
+    "adjustments": [],
+    "alerts": {},
+    "vacation": {
+        "annualMinutes": 11232,
+        "carryOver": true,
+        "adjustments": {
+            "2026": 1200
+        }
+    }
+}

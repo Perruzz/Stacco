@@ -1,0 +1,182 @@
+{
+    "schemaVersion": 2,
+    "onboardingDone": true,
+    "profile": {
+        "name": ""
+    },
+    "work": {
+        "mode": "FIXED",
+        "dailyMinutes": 480,
+        "minDailyMinutes": 420,
+        "minBreakMinutes": 30,
+        "workDays": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "italianHolidays": true,
+        "patronDay": 0,
+        "shifts": [],
+        "dailyByDay": {},
+        "rounding": {
+            "stepMinutes": 0,
+            "entry": "UP",
+            "exit": "DOWN",
+            "toleranceMinutes": 0
+        }
+    },
+    "bank": {
+        "positiveExpiry": "QUARTERLY",
+        "negativeMustBeRecovered": true,
+        "resetNegativeAtMonthEnd": true,
+        "alertLeadDays": 3
+    },
+    "smart": {
+        "allowance": 10,
+        "period": "MONTH"
+    },
+    "notifications": {
+        "exitReminder": true,
+        "exitReminderLeadMinutes": 5,
+        "exitTarget": "STANDARD",
+        "liveNotification": true,
+        "bankAlerts": true,
+        "shiftStartReminder": true,
+        "shiftStartLeadMinutes": 30,
+        "updateCheck": true
+    },
+    "appearance": {
+        "theme": "SYSTEM",
+        "dynamicColor": false
+    },
+    "days": {
+        "2026-10-03": {
+            "leaveMinutes": 0,
+            "note": "",
+            "onCall": true,
+            "interventions": [
+                {
+                    "id": 1759485600000,
+                    "start": 600,
+                    "end": 680,
+                    "startSecond": 0,
+                    "note": "Server"
+                }
+            ],
+            "recoveryMinutes": 0
+        },
+        "2026-10-24": {
+            "leaveMinutes": 0,
+            "note": "",
+            "onCall": true,
+            "interventions": [
+                {
+                    "id": 1761348600000,
+                    "start": 1530,
+                    "end": 1650,
+                    "startSecond": 15,
+                    "note": ""
+                }
+            ],
+            "recoveryMinutes": 0
+        },
+        "2026-11-01": {
+            "leaveMinutes": 0,
+            "note": "Ognissanti",
+            "onCall": false,
+            "interventions": [],
+            "recoveryMinutes": 0
+        },
+        "2026-11-02": {
+            "entry": 480,
+            "exit": 990,
+            "leaveMinutes": 0,
+            "note": "",
+            "onCall": false,
+            "interventions": [],
+            "recoveryMinutes": 60
+        },
+        "2026-11-07": {
+            "leaveMinutes": 0,
+            "note": "",
+            "onCall": true,
+            "interventions": [
+                {
+                    "id": 1762554600000,
+                    "start": 1410,
+                    "end": 1485,
+                    "startSecond": 0,
+                    "note": ""
+                }
+            ],
+            "recoveryMinutes": 0
+        },
+        "2026-11-09": {
+            "entry": 480,
+            "exit": 720,
+            "leaveMinutes": 0,
+            "note": "",
+            "onCall": false,
+            "interventions": [],
+            "recoveryMinutes": 240
+        },
+        "2026-11-10": {
+            "entry": 480,
+            "exit": 990,
+            "leaveMinutes": 0,
+            "note": "",
+            "onCall": false,
+            "interventions": [],
+            "recoveryMinutes": 0
+        },
+        "2026-11-14": {
+            "leaveMinutes": 0,
+            "note": "",
+            "onCall": true,
+            "interventions": [],
+            "recoveryMinutes": 0
+        },
+        "2026-11-20": {
+            "leaveMinutes": 0,
+            "note": "",
+            "onCall": true,
+            "interventions": [
+                {
+                    "id": 1763665200000,
+                    "start": 1200,
+                    "startSecond": 12,
+                    "note": ""
+                }
+            ],
+            "recoveryMinutes": 0
+        }
+    },
+    "adjustments": [
+        {
+            "id": 1761955200000,
+            "date": "2026-11-01",
+            "kind": "SET_BALANCE",
+            "minutes": -45,
+            "note": "Dal cedolino"
+        }
+    ],
+    "alerts": {
+        "recoveryLastDate": "2026-11-20",
+        "recoveryPeriod": "2026-12-31"
+    },
+    "vacation": {
+        "annualMinutes": 0,
+        "carryOver": true,
+        "adjustments": {}
+    },
+    "scheduleHistory": [],
+    "onCall": {
+        "enabled": true
+    },
+    "support": {
+        "nextAt": "2026-12-10",
+        "dismissed": false
+    }
+}
