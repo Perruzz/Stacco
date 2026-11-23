@@ -1,5 +1,17 @@
 package io.github.perruzz.stacco.ui
 
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.platform.LocalAccessibilityManager
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
@@ -178,6 +190,9 @@ fun MainShell(viewModel: MainViewModel) {
         AuroraBackground()
         AnimatedContent(
             targetState = tab,
+            // In landscape the navigation buttons (Android 8–9, three-button navigation) and the
+            // camera cutout sit on a side: the screens keep clear of them, the background does not.
+            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
             transitionSpec = {
                 val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
                 (fadeIn(tween(320, delayMillis = 70)) + slideInHorizontally(spring(dampingRatio = 0.9f, stiffness = 380f)) { dir * it / 7 } +
@@ -229,12 +244,23 @@ fun StatusBarScrim(modifier: Modifier = Modifier) {
     )
 }
 
+private const val TOAST_MILLIS = 4_200L
+
 @Composable
 private fun ToastHost(state: ToastState, modifier: Modifier = Modifier) {
     val current = state.current
+    // With TalkBack and similar services on, the system may ask for longer (and an action
+    // like "Undo" must stay reachable): the same rule as Material snackbars.
+    val accessibility = LocalAccessibilityManager.current
     LaunchedEffect(current?.id) {
         if (current != null) {
-            delay(4_200)
+            val millis = accessibility?.calculateRecommendedTimeoutMillis(
+                TOAST_MILLIS,
+                containsIcons = true,
+                containsText = true,
+                containsControls = current.actionLabel != null,
+            ) ?: TOAST_MILLIS
+            delay(millis)
             if (state.current?.id == current.id) state.dismiss()
         }
     }
@@ -253,7 +279,10 @@ private fun ToastHost(state: ToastState, modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.inverseSurface,
                 contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                 shadowElevation = 8.dp,
-                modifier = Modifier.widthIn(max = 520.dp),
+                // Read out as it appears, without moving the TalkBack focus away.
+                modifier = Modifier
+                    .widthIn(max = 520.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
             ) {
                 Row(
                     Modifier.padding(start = 18.dp, end = if (data.actionLabel != null) 6.dp else 20.dp, top = 6.dp, bottom = 6.dp),
@@ -282,7 +311,7 @@ private fun ToastHost(state: ToastState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun StaccoNavBar(selected: MainTab, onSelect: (MainTab) -> Unit, modifier: Modifier = Modifier) {
+internal fun StaccoNavBar(selected: MainTab, onSelect: (MainTab) -> Unit, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier
             .navigationBarsPadding()
@@ -293,16 +322,29 @@ private fun StaccoNavBar(selected: MainTab, onSelect: (MainTab) -> Unit, modifie
         shadowElevation = 12.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
     ) {
-        Row(Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .padding(6.dp)
+                .selectableGroup(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             MainTab.entries.forEach { tab ->
-                NavItem(tab = tab, selected = tab == selected, onClick = { onSelect(tab) })
+                val isSelected = tab == selected
+                NavItem(
+                    tab = tab,
+                    selected = isSelected,
+                    onClick = { onSelect(tab) },
+                    // Measured after the others: on a narrow screen with large fonts the label
+                    // shrinks instead of pushing the last tab out of the bar.
+                    modifier = if (isSelected) Modifier.weight(1f, fill = false) else Modifier,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun NavItem(tab: MainTab, selected: Boolean, onClick: () -> Unit) {
+private fun NavItem(tab: MainTab, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val background by animateColorAsState(
         if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
         spring(stiffness = 500f),
@@ -320,17 +362,19 @@ private fun NavItem(tab: MainTab, selected: Boolean, onClick: () -> Unit) {
         }
     }
     Row(
-        modifier = Modifier
+        modifier = modifier
             .clip(CircleShape)
             .background(background)
-            .bouncyClickable(pressed = 0.9f, onClick = onClick)
+            .bouncyClickable(pressed = 0.9f, role = Role.Tab, onClick = onClick)
+            .semantics { this.selected = selected }
             .animateContentSize(spring(dampingRatio = 0.75f, stiffness = 500f))
             .padding(horizontal = if (selected) 18.dp else 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = tab.icon,
-            contentDescription = stringResource(tab.label),
+            // Once selected the name is written beside it: said once, not twice.
+            contentDescription = if (selected) null else stringResource(tab.label),
             tint = foreground,
             modifier = Modifier
                 .size(24.dp)
@@ -338,7 +382,14 @@ private fun NavItem(tab: MainTab, selected: Boolean, onClick: () -> Unit) {
         )
         if (selected) {
             Spacer(Modifier.width(8.dp))
-            Text(stringResource(tab.label), style = MaterialTheme.typography.labelLarge, color = foreground, maxLines = 1)
+            Text(
+                stringResource(tab.label),
+                style = MaterialTheme.typography.labelLarge,
+                color = foreground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
         }
     }
 }

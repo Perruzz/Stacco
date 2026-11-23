@@ -1,5 +1,12 @@
 package io.github.perruzz.stacco.ui.bank
 
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import io.github.perruzz.stacco.ui.components.MaxContentWidth
+import io.github.perruzz.stacco.ui.components.AdaptiveRow
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -68,6 +75,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.perruzz.stacco.R
+import io.github.perruzz.stacco.ui.calendar.DaySheet
+import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.ui.oncall.RecoveryCard
 import io.github.perruzz.stacco.domain.AlertPlanner
 import io.github.perruzz.stacco.domain.BankLedger
@@ -89,6 +98,7 @@ import io.github.perruzz.stacco.ui.today.AlertBanner
 import io.github.perruzz.stacco.ui.today.Appear
 import io.github.perruzz.stacco.ui.util.Fmt
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 import kotlin.math.max
 import kotlin.math.min
@@ -108,6 +118,9 @@ fun BankScreen(viewModel: MainViewModel) {
     var adding by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Movement?>(null) }
     var range by remember { mutableIntStateOf(30) }
+    var fixing by remember { mutableStateOf<LocalDate?>(null) }
+    // Before the working day under way (yesterday's during a night shift): those days are over.
+    val toFix = remember(data) { Engine.daysToFix(data, Engine.activeDay(data, LocalDateTime.now()).date) }
 
     val alerts = remember(ledger, data, todayDone) {
         AlertPlanner.plan(
@@ -128,17 +141,28 @@ fun BankScreen(viewModel: MainViewModel) {
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
+    // On a tablet or in landscape the cards stay within the readable width, centred.
+    var listWidth by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val side = with(density) { maxOf(20.dp, (listWidth.toDp() - MaxContentWidth) / 2 + 20.dp) }
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .onSizeChanged { listWidth = it.width },
+        contentPadding = PaddingValues(start = side, end = side, top = top + 12.dp, bottom = bottom + 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item(key = "title") {
-            Appear(0) { Text(stringResource(R.string.bank_title), style = MaterialTheme.typography.headlineLarge) }
+            Appear(0) { Text(stringResource(R.string.bank_title), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.semantics { heading() }) }
         }
         item(key = "balance") {
             Appear(1) {
                 BalanceHero(ledger, onSet = { setting = true }, onAdd = { adding = true })
+            }
+        }
+        if (toFix.isNotEmpty()) {
+            item(key = "to-fix") {
+                Appear(2) { DaysToFixCard(toFix, today, onOpen = { fixing = it }, modifier = Modifier.animateItem()) }
             }
         }
         item(key = "chart") {
@@ -234,6 +258,9 @@ fun BankScreen(viewModel: MainViewModel) {
         }
     }
 
+    fixing?.let { date ->
+        DaySheet(date = date, data = data, viewModel = viewModel, onDismiss = { fixing = null })
+    }
     if (setting) {
         DurationPickerDialog(
             title = stringResource(R.string.bank_set_title),
@@ -339,9 +366,10 @@ private fun BalanceHero(ledger: BankLedger, onSet: () -> Unit, onAdd: () -> Unit
             )
         }
         Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SoftButton(stringResource(R.string.bank_set), Icons.Rounded.EditCalendar, onSet, Modifier.weight(1f))
-            SoftButton(stringResource(R.string.bank_add), Icons.Rounded.Add, onAdd, Modifier.weight(1f))
+        // Side by side when both fit whole, one under the other with large fonts on a narrow phone.
+        AdaptiveRow {
+            SoftButton(stringResource(R.string.bank_set), Icons.Rounded.EditCalendar, onSet)
+            SoftButton(stringResource(R.string.bank_add), Icons.Rounded.Add, onAdd)
         }
     }
 }
@@ -468,7 +496,7 @@ private fun MovementRow(movement: Movement, onDelete: (() -> Unit)?, modifier: M
         IconBubble(icon, tint = tint, container = tint.copy(alpha = 0.14f), size = 40.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(
                 stringResource(R.string.movement_meta, Fmt.shortDate(movement.date), Fmt.duration(movement.balanceAfter, signed = true)),
                 style = MaterialTheme.typography.bodySmall,
@@ -486,7 +514,7 @@ private fun MovementRow(movement: Movement, onDelete: (() -> Unit)?, modifier: M
             )
         }
         if (onDelete != null) {
-            IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = onDelete) {
                 Icon(Icons.Rounded.DeleteOutline, contentDescription = stringResource(R.string.action_delete), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
         }

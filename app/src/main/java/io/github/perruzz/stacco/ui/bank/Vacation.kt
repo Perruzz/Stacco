@@ -1,5 +1,6 @@
 package io.github.perruzz.stacco.ui.bank
 
+import io.github.perruzz.stacco.ui.components.AdaptiveRow
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -140,14 +141,14 @@ private fun VacationDetails(balance: VacationBalance, dayMinutes: Int, tint: Col
         Spacer(Modifier.height(14.dp))
         VacationBar(balance, tint)
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            VacationStat(stringResource(R.string.vacation_used), vacationHours(balance.used), tint, Modifier.weight(1f))
-            VacationStat(stringResource(R.string.vacation_planned), vacationHours(balance.planned), tint.copy(alpha = 0.7f), Modifier.weight(1f))
+        // Three in a row; with large fonts on a narrow phone fewer per line instead of "Pianific".
+        AdaptiveRow(spacing = 8.dp) {
+            VacationStat(stringResource(R.string.vacation_used), vacationHours(balance.used), tint)
+            VacationStat(stringResource(R.string.vacation_planned), vacationHours(balance.planned), tint.copy(alpha = 0.7f))
             VacationStat(
                 stringResource(R.string.vacation_after_planned),
                 vacationHours(balance.remaining),
                 if (balance.remaining < 0) StaccoTheme.colors.negative else MaterialTheme.colorScheme.primary,
-                Modifier.weight(1f),
             )
         }
         Spacer(Modifier.height(10.dp))
@@ -159,9 +160,10 @@ private fun VacationDetails(balance: VacationBalance, dayMinutes: Int, tint: Col
         }
         Text(parts.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SoftButton(stringResource(R.string.vacation_set_available), Icons.Rounded.EditCalendar, onSetAvailable, Modifier.weight(1f))
-            SoftButton(stringResource(R.string.vacation_annual), Icons.Rounded.Tune, onAnnual, Modifier.weight(1f))
+        // Side by side when they fit, one under the other with large fonts on a narrow phone.
+        AdaptiveRow {
+            SoftButton(stringResource(R.string.vacation_set_available), Icons.Rounded.EditCalendar, onSetAvailable)
+            SoftButton(stringResource(R.string.vacation_annual), Icons.Rounded.Tune, onAnnual)
         }
     }
 }

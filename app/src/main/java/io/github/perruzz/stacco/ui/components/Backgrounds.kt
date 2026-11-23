@@ -1,10 +1,13 @@
 package io.github.perruzz.stacco.ui.components
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.delay
+import androidx.compose.ui.MotionDurationScale
+import androidx.compose.runtime.withFrameMillis
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -20,21 +23,36 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+/** One full turn of the aurora. */
+private const val AURORA_PERIOD_MS = 26_000L
+
+/** About 20 steps a second: the light moves a few pixels a step, too slowly to see them. */
+private const val AURORA_STEP_MS = 50L
+
 /**
  * A slow, breathing aurora of soft green light behind the content.
- * Animated values are only read in the draw phase, so it never recomposes.
+ * Its time is only read in the draw phase, so it never recomposes. It moves 20 times a second
+ * rather than at every frame of the display (up to 120 on a phone), so a still screen costs
+ * almost nothing; with the system's animations turned off it stays still.
  */
 @Composable
 fun AuroraBackground(modifier: Modifier = Modifier, intensity: Float = 1f) {
     val colors = StaccoTheme.colors
     val base = MaterialTheme.colorScheme.background
-    val transition = rememberInfiniteTransition(label = "aurora")
-    val t by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(26_000, easing = LinearEasing)),
-        label = "aurora-t",
-    )
+    var t by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        var elapsed = 0f
+        var last = withFrameMillis { it }
+        while (true) {
+            val now = withFrameMillis { it }
+            // The system's animation speed: 0 when animations are turned off.
+            val speed = coroutineContext[MotionDurationScale]?.scaleFactor?.let { if (it > 0f) 1f / it else 0f } ?: 1f
+            elapsed += (now - last) * speed
+            last = now
+            t = (elapsed % AURORA_PERIOD_MS) / AURORA_PERIOD_MS
+            delay(AURORA_STEP_MS)
+        }
+    }
     Canvas(modifier.fillMaxSize()) {
         drawRect(base)
         val w = size.width

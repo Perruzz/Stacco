@@ -1,5 +1,6 @@
 package io.github.perruzz.stacco.ui.settings
 
+import io.github.perruzz.stacco.ui.components.DialogButtons
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
@@ -152,16 +153,15 @@ fun WeekHoursDialog(work: WorkSettings, onDismiss: () -> Unit, onSave: (Map<Int,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(
-                onClick = { hours = days.associate { it.value to work.dailyMinutes } },
-                enabled = hours.values.any { it != work.dailyMinutes },
-            ) { Text(stringResource(R.string.action_restore)) }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = { onSave(hours.filterValues { it != work.dailyMinutes }) }) { Text(stringResource(R.string.action_save)) }
-        }
+        DialogButtons(
+            onDismiss = onDismiss,
+            onConfirm = { onSave(hours.filterValues { it != work.dailyMinutes }) },
+            confirmLabel = stringResource(R.string.action_save),
+            onExtra = { hours = days.associate { it.value to work.dailyMinutes } },
+            extraLabel = stringResource(R.string.action_restore),
+            extraDestructive = false,
+            extraEnabled = hours.values.any { it != work.dailyMinutes },
+        )
     }
 
     picking?.let { day ->

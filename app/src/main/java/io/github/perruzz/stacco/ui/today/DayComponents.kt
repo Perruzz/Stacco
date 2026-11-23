@@ -1,5 +1,6 @@
 package io.github.perruzz.stacco.ui.today
 
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -170,6 +171,8 @@ private fun TimelineRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                // A full touch target even when the text is short (47dp at normal size).
+                .heightIn(min = 48.dp)
                 .height(IntrinsicSize.Min)
                 .clip(RoundedCornerShape(18.dp))
                 .bouncyClickable(pressed = 0.98f, onClick = onClick)
@@ -232,8 +235,6 @@ private fun TimelineRow(
                         supporting,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

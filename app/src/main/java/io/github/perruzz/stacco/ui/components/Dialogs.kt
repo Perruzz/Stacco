@@ -1,5 +1,9 @@
 package io.github.perruzz.stacco.ui.components
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.Layout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.spring
@@ -113,24 +117,65 @@ internal fun DialogButtons(
     destructive: Boolean = false,
     onExtra: (() -> Unit)? = null,
     extraLabel: String? = null,
+    extraDestructive: Boolean = true,
+    extraEnabled: Boolean = true,
+    confirmEnabled: Boolean = true,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        if (onExtra != null && extraLabel != null) {
-            TextButton(onClick = onExtra) {
-                Text(extraLabel, color = MaterialTheme.colorScheme.error)
+    val extra = if (onExtra != null && extraLabel != null) onExtra to extraLabel else null
+    Layout(
+        content = {
+            extra?.let { (action, label) ->
+                TextButton(onClick = action, enabled = extraEnabled) {
+                    Text(label, color = if (extraDestructive && extraEnabled) MaterialTheme.colorScheme.error else Color.Unspecified)
+                }
+            }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            Button(
+                onClick = onConfirm,
+                enabled = confirmEnabled,
+                colors = if (destructive) {
+                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
+                } else {
+                    ButtonDefaults.buttonColors()
+                },
+            ) { Text(confirmLabel) }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) { measurables, constraints ->
+        // One row when everything fits (the extra action on the left); otherwise the extra action
+        // above Cancel and Confirm; with very large fonts one button per line. Never a squeezed
+        // "C-o-n-f-e-r-m-a".
+        val width = constraints.maxWidth
+        val gap = 8.dp.roundToPx()
+        val lineGap = 4.dp.roundToPx()
+        val buttons = measurables.map { it.measure(Constraints(maxWidth = width)) }
+        val extraButton = if (extra != null) buttons.first() else null
+        val (cancel, confirm) = buttons.takeLast(2)
+        val pair = cancel.width + gap + confirm.width
+        val lines: List<List<Placeable>> = when {
+            (extraButton?.let { it.width + gap } ?: 0) + pair <= width -> listOf(buttons)
+            pair <= width -> listOfNotNull(extraButton?.let { listOf(it) }, listOf(cancel, confirm))
+            else -> buttons.map { listOf(it) }
+        }
+        val heights = lines.map { line -> line.maxOf { it.height } }
+        val height = heights.sum() + lineGap * (lines.size - 1)
+        layout(width, height) {
+            var y = 0
+            lines.forEachIndexed { index, line ->
+                val lineHeight = heights[index]
+                // The extra action starts the line it is on; everything else ends at the right.
+                var x = width - (line.filter { it !== extraButton }.sumOf { it.width } + gap * (line.count { it !== extraButton } - 1))
+                for (button in line) {
+                    if (button === extraButton) {
+                        button.place(0, y + (lineHeight - button.height) / 2)
+                    } else {
+                        button.place(x, y + (lineHeight - button.height) / 2)
+                        x += button.width + gap
+                    }
+                }
+                y += lineHeight + lineGap
             }
         }
-        Spacer(Modifier.weight(1f))
-        TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        Spacer(Modifier.width(8.dp))
-        Button(
-            onClick = onConfirm,
-            colors = if (destructive) {
-                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
-            } else {
-                ButtonDefaults.buttonColors()
-            },
-        ) { Text(confirmLabel) }
     }
 }
 

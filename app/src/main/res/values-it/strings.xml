@@ -221,6 +221,15 @@
     <string name="bank_all_good_zero">Saldo a zero: sei perfettamente in pari.</string>
     <string name="bank_movements">Movimenti</string>
     <string name="bank_no_movements">Ancora nessun movimento. Timbra la tua prima giornata!</string>
+    <plurals name="days_to_fix_title">
+        <item quantity="one">%d giornata fuori dal saldo</item>
+        <item quantity="other">%d giornate fuori dal saldo</item>
+        <item quantity="many">%d giornate fuori dal saldo</item>
+    </plurals>
+    <string name="days_to_fix_body">Hanno timbrature incomplete o che non tornano, quindi il saldo non le conta ancora. Apri una giornata per sistemarla, o cambiane il tipo se non eri al lavoro.</string>
+    <string name="days_to_fix_inconsistent">Timbrature che non tornano</string>
+    <string name="days_to_fix_more">Mostra tutte (%d)</string>
+    <string name="days_to_fix_less">Mostra meno</string>
     <string name="bank_set_title">Imposta il saldo</string>
     <string name="bank_set_sub">Il saldo di adesso, come risulta in azienda</string>
     <string name="bank_add_title">Nuova rettifica</string>
@@ -681,4 +690,38 @@
     <string name="support_action">Offrimi un caffè</string>
     <string name="support_later">Più tardi</string>
     <string name="support_never">Non mostrare più</string>
+    <!-- TalkBack -->
+    <string name="a11y_decrease">Diminuisci: %1$s</string>
+    <string name="a11y_increase">Aumenta: %1$s</string>
+    <plurals name="a11y_minutes_less">
+        <item quantity="one">%d minuto in meno</item>
+        <item quantity="other">%d minuti in meno</item>
+        <item quantity="many">%d minuti in meno</item>
+    </plurals>
+    <plurals name="a11y_minutes_more">
+        <item quantity="one">%d minuto in più</item>
+        <item quantity="other">%d minuti in più</item>
+        <item quantity="many">%d minuti in più</item>
+    </plurals>
+    <string name="a11y_day_on_call">in reperibilità</string>
+    <string name="a11y_day_bank">banca ore %1$s</string>
+    <string name="a11y_day_open">aprire la giornata</string>
+    <string name="a11y_select_days">selezionare più giorni</string>
+    <string name="a11y_shift_color">Colore %1$d</string>
+    <string name="a11y_erase_everything">cancellare tutto</string>
+    <string name="a11y_dial">Orario da timbrare</string>
+    <string name="a11y_dial_adjust">girare la ghiera</string>
+    <plurals name="a11y_hours">
+        <item quantity="one">%d ora</item>
+        <item quantity="other">%d ore</item>
+        <item quantity="many">%d ore</item>
+    </plurals>
+    <plurals name="a11y_minutes">
+        <item quantity="one">%d minuto</item>
+        <item quantity="other">%d minuti</item>
+        <item quantity="many">%d minuti</item>
+    </plurals>
+    <string name="a11y_and">%1$s e %2$s</string>
+    <string name="a11y_plus">più %1$s</string>
+    <string name="a11y_minus">meno %1$s</string>
 </resources>

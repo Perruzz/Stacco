@@ -1,5 +1,12 @@
 package io.github.perruzz.stacco.ui.onboarding
 
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -175,6 +182,7 @@ fun OnboardingScreen(viewModel: MainViewModel) {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                 .imePadding(),
         ) {
             // Top bar: back + progress dots
@@ -560,7 +568,7 @@ private fun Page(icon: ImageVector, title: Int, body: Int, content: @Composable 
         size = if (compact) 64.dp else 128.dp,
     )
     Spacer(Modifier.height(if (compact) 12.dp else 28.dp))
-    Text(stringResource(title), style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
+    Text(stringResource(title), style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
     Spacer(Modifier.height(10.dp))
     Text(
         stringResource(body),

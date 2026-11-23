@@ -1,5 +1,14 @@
 package io.github.perruzz.stacco.ui.components
 
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.animateFloatAsState
@@ -42,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -69,18 +79,29 @@ fun Modifier.pressScale(interaction: MutableInteractionSource, pressed: Float = 
     graphicsLayer { scaleX = scale; scaleY = scale }
 }
 
-/** Clickable with squish + haptic tick. */
+/**
+ * Clickable with squish + haptic tick. [role] and [onClickLabel] tell TalkBack what the element is
+ * and what a double tap does.
+ */
 fun Modifier.bouncyClickable(
     enabled: Boolean = true,
     haptic: Boolean = true,
     pressed: Float = 0.95f,
+    role: Role? = null,
+    onClickLabel: String? = null,
     onClick: () -> Unit,
 ): Modifier = composed {
     val interaction = remember { MutableInteractionSource() }
     val haptics = LocalHapticFeedback.current
     this
         .pressScale(interaction, pressed)
-        .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), enabled = enabled) {
+        .clickable(
+            interactionSource = interaction,
+            indication = androidx.compose.material3.ripple(),
+            enabled = enabled,
+            onClickLabel = onClickLabel,
+            role = role,
+        ) {
             if (haptic) haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
             onClick()
         }
@@ -107,16 +128,80 @@ fun StaccoCard(
     }
 }
 
+/** The widest a screen's content gets: on a tablet or in landscape the cards stay readable. */
+val MaxContentWidth = 720.dp
+
+/** Centres a scrolling screen's content within [MaxContentWidth]; it still scrolls from anywhere. */
+fun Modifier.readableWidth(): Modifier =
+    fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = MaxContentWidth)
+
+/**
+ * Items of the same width side by side, as many per line as the widest one allows: three tiles in
+ * a row on a phone, two and one (or one per line) with large fonts on a narrow screen. A plain row
+ * of weighted items would cut the longest label ("Set balan…", "Pianific…") instead.
+ */
+@Composable
+fun AdaptiveRow(
+    modifier: Modifier = Modifier,
+    spacing: Dp = 10.dp,
+    content: @Composable () -> Unit,
+) {
+    Layout(content = content, modifier = modifier.fillMaxWidth()) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val gap = spacing.roundToPx()
+        if (measurables.isEmpty()) return@Layout layout(width, 0) {}
+        val widest = measurables.maxOf { it.maxIntrinsicWidth(Constraints.Infinity) }
+        val columns = ((width + gap) / (widest + gap)).coerceIn(1, measurables.size)
+        val cell = ((width - gap * (columns - 1)) / columns).coerceAtLeast(0)
+        // Items of a line share its height, like the cells of a table (each measured once).
+        val rows = measurables.chunked(columns)
+        val lines = rows.map { row -> row.maxOf { it.maxIntrinsicHeight(cell) } }
+        val remeasured = rows.mapIndexed { r, row -> row.map { it.measure(Constraints.fixed(cell, lines[r])) } }
+        val height = lines.sum() + gap * (lines.size - 1)
+        layout(width, height) {
+            var y = 0
+            remeasured.forEachIndexed { r, row ->
+                row.forEachIndexed { i, placeable -> placeable.place(i * (cell + gap), y) }
+                y += lines[r] + gap
+            }
+        }
+    }
+}
+
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier, trailing: (@Composable RowScope.() -> Unit)? = null) {
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    val label = @Composable {
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.semantics { heading() },
         )
-        trailing?.invoke(this)
+    }
+    if (trailing == null) {
+        Box(modifier.fillMaxWidth()) { label() }
+        return
+    }
+    // The label keeps at least its longest word whole (no "REPERIBILIT/À" with large fonts on a
+    // narrow phone); what follows gets the rest and wraps in it, a button keeps its size.
+    Layout(
+        content = {
+            label()
+            Row(verticalAlignment = Alignment.CenterVertically, content = trailing)
+        },
+        modifier = modifier.fillMaxWidth(),
+    ) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val gap = 12.dp.roundToPx()
+        val (labelPart, trailingPart) = measurables
+        val longestWord = labelPart.minIntrinsicWidth(constraints.maxHeight)
+        val after = trailingPart.measure(Constraints(maxWidth = (width - longestWord - gap).coerceAtLeast(0)))
+        val before = labelPart.measure(Constraints(maxWidth = (width - after.width - gap).coerceAtLeast(0)))
+        val height = maxOf(before.height, after.height)
+        layout(width, height) {
+            before.place(0, (height - before.height) / 2)
+            after.place(width - after.width, (height - after.height) / 2)
+        }
     }
 }
 
@@ -202,7 +287,8 @@ fun RollingText(
     color: Color = MaterialTheme.colorScheme.onSurface,
     countingDown: Boolean = false,
 ) {
-    Row(modifier) {
+    // TalkBack reads the value whole ("08:02"), not one rolling digit after the other.
+    Row(modifier.clearAndSetSemantics { this.text = AnnotatedString(text) }) {
         text.forEachIndexed { index, char ->
             androidx.compose.runtime.key(index) {
                 AnimatedContent(

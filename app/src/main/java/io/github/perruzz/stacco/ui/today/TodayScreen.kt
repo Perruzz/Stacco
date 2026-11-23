@@ -1,5 +1,8 @@
 package io.github.perruzz.stacco.ui.today
 
+import io.github.perruzz.stacco.ui.components.readableWidth
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.Layout
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -160,6 +163,7 @@ fun TodayScreen(viewModel: MainViewModel, onOpenTab: (MainTab) -> Unit) {
         Modifier
             .fillMaxSize()
             .verticalScroll(scroll)
+            .readableWidth()
             .padding(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -441,8 +445,8 @@ private fun Header(s: TodaySnapshot, onTypeClick: () -> Unit) {
     val spin = rememberInfiniteTransition(label = "sun")
     val angle by spin.animateFloat(0f, 360f, infiniteRepeatable(tween(30_000, easing = LinearEasing)), label = "sun-angle")
 
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
+    HeaderLayout {
+        Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     icon,
@@ -466,7 +470,6 @@ private fun Header(s: TodaySnapshot, onTypeClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
-        Spacer(Modifier.width(12.dp))
         val type = s.type
         val shift = s.shift
         if (shift != null && type == DayType.OFFICE) {
@@ -485,6 +488,36 @@ private fun Header(s: TodaySnapshot, onTypeClick: () -> Unit) {
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 onClick = onTypeClick,
             )
+        }
+    }
+}
+
+/**
+ * The greeting and the day type side by side, the type pill under the greeting when they do not
+ * fit whole: with large fonts on a narrow phone "afternoon," stays one word (no ", Giulia" alone).
+ */
+@Composable
+private fun HeaderLayout(content: @Composable () -> Unit) {
+    Layout(content = content, modifier = Modifier.fillMaxWidth()) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val gap = 12.dp.roundToPx()
+        val (greeting, pill) = measurables
+        val pillP = pill.measure(Constraints(maxWidth = width))
+        val room = width - pillP.width - gap
+        if (room >= greeting.minIntrinsicWidth(Constraints.Infinity)) {
+            val greetingP = greeting.measure(Constraints(maxWidth = room))
+            val height = maxOf(greetingP.height, pillP.height)
+            layout(width, height) {
+                greetingP.place(0, (height - greetingP.height) / 2)
+                pillP.place(width - pillP.width, (height - pillP.height) / 2)
+            }
+        } else {
+            val greetingP = greeting.measure(Constraints(maxWidth = width))
+            val below = 8.dp.roundToPx()
+            layout(width, greetingP.height + below + pillP.height) {
+                greetingP.place(0, 0)
+                pillP.place(0, greetingP.height + below)
+            }
         }
     }
 }

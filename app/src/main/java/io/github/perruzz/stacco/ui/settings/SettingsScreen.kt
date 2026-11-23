@@ -1,5 +1,9 @@
 package io.github.perruzz.stacco.ui.settings
 
+import io.github.perruzz.stacco.ui.components.readableWidth
+import io.github.perruzz.stacco.ui.components.AdaptiveRow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import android.Manifest
 import android.app.AlarmManager
 import android.app.LocaleManager
@@ -231,11 +235,12 @@ fun SettingsScreen(viewModel: MainViewModel) {
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             var i = 0
-            Appear(i++) { Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineLarge) }
+            Appear(i++) { Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.semantics { heading() }) }
 
             Appear(i++) {
                 StaccoCard {
@@ -635,6 +640,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         text = stringResource(R.string.settings_reset),
                         holdingText = stringResource(R.string.settings_reset_holding),
                         onConfirmed = { viewModel.reset() },
+                        actionLabel = stringResource(R.string.a11y_erase_everything),
                     )
                 }
             }
@@ -914,7 +920,8 @@ private fun AppearanceCard(data: StaccoData, onDynamic: (Boolean) -> Unit) {
     StaccoCard {
         SectionLabel(stringResource(R.string.settings_appearance))
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Three in a row; with large fonts on a narrow phone one goes below ("Siste…" otherwise).
+        AdaptiveRow {
             listOf(
                 Triple(ThemeMode.SYSTEM, R.string.theme_system, Icons.Rounded.BrightnessAuto),
                 Triple(ThemeMode.LIGHT, R.string.theme_light, Icons.Rounded.LightMode),
@@ -929,7 +936,6 @@ private fun AppearanceCard(data: StaccoData, onDynamic: (Boolean) -> Unit) {
                         if (data.appearance.theme != mode) switcher?.switch(mode, center)
                     },
                     modifier = Modifier
-                        .weight(1f)
                         .onGloballyPositioned { center = it.boundsInRoot().center },
                     preview = { ThemePreview(mode, icon) },
                 )

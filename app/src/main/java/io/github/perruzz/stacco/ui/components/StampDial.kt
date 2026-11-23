@@ -1,5 +1,13 @@
 package io.github.perruzz.stacco.ui.components
 
+import io.github.perruzz.stacco.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -122,7 +130,8 @@ fun StampDial(
     var lastAngle by remember { mutableFloatStateOf(0f) }
     val currentStamp by rememberUpdatedState(onStamp)
 
-    val offset = (rotation.value / DEG_PER_MINUTE).roundToInt()
+    // Only a new minute recomposes the dial: the bezel itself turns in the draw phase.
+    val offset by remember { derivedStateOf { (rotation.value / DEG_PER_MINUTE).roundToInt() } }
     val nowMinutes = nowSeconds / 60
     val stampMinutes = nowMinutes + offset
 
@@ -184,10 +193,26 @@ fun StampDial(
     val tick = MaterialTheme.colorScheme.onSurfaceVariant
     val pointer = MaterialTheme.colorScheme.onSurface
 
+    // With TalkBack the dial is a slider: swiping up or down moves the time by a minute.
+    val dialLabel = stringResource(R.string.a11y_dial)
+    val adjustLabel = stringResource(R.string.a11y_dial_adjust)
+    val state = listOf(Fmt.time(stampMinutes), if (offset == 0) nowLabel else describe(offset)).filter { it.isNotEmpty() }.joinToString(", ")
     Box(
         modifier = modifier
             .size(size)
-            .semantics { contentDescription = "$actionLabel ${Fmt.time(stampMinutes)}" },
+            .semantics {
+                contentDescription = dialLabel
+                stateDescription = state
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    current = offset.toFloat(),
+                    range = MIN_OFFSET.toFloat()..MAX_OFFSET.toFloat(),
+                    steps = MAX_OFFSET - MIN_OFFSET - 1,
+                )
+                setProgress(label = adjustLabel) { value ->
+                    nudge(value.roundToInt() - offset)
+                    true
+                }
+            },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(
@@ -413,6 +438,7 @@ fun StampDial(
             onClick = { nudge(-1) },
             modifier = Modifier
                 .align(Alignment.BottomStart)
+                .minimumInteractiveComponentSize()
                 .size(40.dp)
                 .graphicsLayer { alpha = 0.9f },
         ) { Icon(Icons.Rounded.Remove, contentDescription = describe(-1), modifier = Modifier.size(18.dp)) }
@@ -420,6 +446,7 @@ fun StampDial(
             onClick = { nudge(1) },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
+                .minimumInteractiveComponentSize()
                 .size(40.dp)
                 .graphicsLayer { alpha = 0.9f },
         ) { Icon(Icons.Rounded.Add, contentDescription = describe(1), modifier = Modifier.size(18.dp)) }

@@ -102,15 +102,37 @@ object Engine {
      * The most recent day before [date] (two weeks) that the bank skips: an entry without exit, or
      * stamps that do not add up (e.g. a break never closed).
      */
-    fun dayToFix(data: StaccoData, date: LocalDate): Pair<LocalDate, DayFix>? =
-        (1L..MISSING_EXIT_DAYS).asSequence().map { date.minusDays(it) }.firstNotNullOfOrNull { day ->
-            val record = data.days[day.toString()] ?: return@firstNotNullOfOrNull null
-            when {
-                record.entry != null && record.exit == null -> day to DayFix.MISSING_EXIT
-                record.hasStamps && DayCalculator.issues(record).isNotEmpty() -> day to DayFix.INCONSISTENT
-                else -> null
-            }
+    fun dayToFix(data: StaccoData, date: LocalDate): Pair<LocalDate, DayFix>? {
+        val calendar = WorkCalendar.from(data)
+        return (1L..MISSING_EXIT_DAYS).asSequence().map { date.minusDays(it) }.firstNotNullOfOrNull { day ->
+            fixOf(calendar, day)?.let { day to it }
         }
+    }
+
+    /**
+     * Every day before [date] that the bank leaves out until it is fixed, the most recent first,
+     * however old: the Today card only points out the last two weeks.
+     */
+    fun daysToFix(data: StaccoData, date: LocalDate): List<Pair<LocalDate, DayFix>> {
+        val calendar = WorkCalendar.from(data)
+        return data.parsedDays().keys.filter { it.isBefore(date) }.sortedDescending().mapNotNull { day ->
+            fixOf(calendar, day)?.let { day to it }
+        }
+    }
+
+    /**
+     * Why [date] stays out of the bank, if it does: only a day that would count once fixed (an
+     * office day), not one marked e.g. as smart working after a stamp.
+     */
+    private fun fixOf(calendar: WorkCalendar, date: LocalDate): DayFix? {
+        val record = calendar.record(date) ?: return null
+        if (!record.hasStamps || calendar.effectiveType(date) != DayType.OFFICE) return null
+        return when {
+            record.entry != null && record.exit == null -> DayFix.MISSING_EXIT
+            DayCalculator.issues(record).isNotEmpty() -> DayFix.INCONSISTENT
+            else -> null
+        }
+    }
 
     /** The most recent day before [date] with an entry but no exit, within two weeks. */
     fun missingExit(data: StaccoData, date: LocalDate): LocalDate? =

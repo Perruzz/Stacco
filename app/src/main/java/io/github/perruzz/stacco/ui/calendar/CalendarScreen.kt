@@ -1,5 +1,15 @@
 package io.github.perruzz.stacco.ui.calendar
 
+import io.github.perruzz.stacco.ui.components.readableWidth
+import androidx.compose.ui.semantics.heading
+import io.github.perruzz.stacco.ui.util.spokenDuration
+import io.github.perruzz.stacco.domain.ShiftTemplate
+import io.github.perruzz.stacco.domain.Holiday
+import io.github.perruzz.stacco.domain.DayRecord
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.platform.LocalResources
+import android.content.res.Resources
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -198,12 +208,13 @@ fun CalendarScreen(viewModel: MainViewModel) {
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottom + 120.dp + barSpace),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Appear(0) {
                 Column {
-                    Text(stringResource(R.string.calendar_title), style = MaterialTheme.typography.headlineLarge)
+                    Text(stringResource(R.string.calendar_title), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.semantics { heading() })
                     Spacer(Modifier.height(12.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         FilledTonalIconButton(onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } }) {
@@ -278,6 +289,7 @@ fun CalendarScreen(viewModel: MainViewModel) {
                             today = today,
                             firstDow = firstDow,
                             picked = picked,
+                            clickLabel = if (selecting || painting) null else stringResource(R.string.a11y_day_open),
                             onDayClick = { date ->
                                 when {
                                     selecting -> {
@@ -398,6 +410,7 @@ private fun MonthGrid(
     today: LocalDate,
     firstDow: DayOfWeek,
     picked: Set<LocalDate>,
+    clickLabel: String?,
     onDayClick: (LocalDate) -> Unit,
     onRangeStart: (LocalDate) -> Unit,
     onRangeExtend: (LocalDate) -> Unit,
@@ -452,6 +465,7 @@ private fun MonthGrid(
                         today = today,
                         index = index,
                         picked = date in picked,
+                        clickLabel = clickLabel,
                         onClick = { onDayClick(date) },
                         onLongClick = { onRangeStart(date) },
                         modifier = Modifier.weight(1f),
@@ -471,11 +485,14 @@ private fun DayCell(
     today: LocalDate,
     index: Int,
     picked: Boolean,
+    clickLabel: String?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val resources = LocalResources.current
+    val selectLabel = stringResource(R.string.a11y_select_days)
     val clickHaptics = LocalHapticFeedback.current
     val record = data.days[date.toString()]
     val type = calendar.effectiveType(date)
@@ -524,18 +541,28 @@ private fun DayCell(
             .background(cellColor)
             .then(if (isToday) Modifier.border(2.dp, primary, RoundedCornerShape(16.dp)) else Modifier)
             .then(if (pick > 0.01f) Modifier.border(3.dp, primary.copy(alpha = pick), RoundedCornerShape(16.dp)) else Modifier)
+            .then(if (inMonth) Modifier else Modifier.clearAndSetSemantics { })
             .pressScale(interaction, 0.88f)
             .combinedClickable(
                 interactionSource = interaction,
                 indication = ripple(),
                 enabled = inMonth,
                 hapticFeedbackEnabled = false,
+                onClickLabel = clickLabel,
+                onLongClickLabel = selectLabel,
                 onLongClick = onLongClick,
                 onClick = {
                     clickHaptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                     onClick()
                 },
-            ),
+            )
+            // TalkBack reads the whole day, not "16 +10m"; the faded days of the months around are skipped.
+            .clearAndSetSemantics {
+                if (inMonth) {
+                    contentDescription = cellDescription(resources, date, today, record, type, shift, holiday, delta, data.onCall.enabled, calendar)
+                    if (picked) selected = true
+                }
+            },
         contentAlignment = Alignment.Center,
     ) {
         if (pick > 0.01f) {
@@ -617,6 +644,32 @@ private fun DayCell(
         }
     }
 }
+
+/** What TalkBack says for a day of the month: the date and everything its cell shows. */
+internal fun cellDescription(
+    resources: Resources,
+    date: LocalDate,
+    today: LocalDate,
+    record: DayRecord?,
+    type: DayType?,
+    shift: ShiftTemplate?,
+    holiday: Holiday?,
+    delta: Int?,
+    onCallOn: Boolean,
+    calendar: WorkCalendar,
+): String = buildList {
+    add(if (date.year == today.year) Fmt.longDate(date) else "${Fmt.longDate(date)} ${date.year}")
+    add(if (shift != null && type == DayType.OFFICE) shift.name else resources.getString(type.label))
+    holiday?.let { add(resources.getString(it.label)) }
+    delta?.let { add(resources.getString(R.string.a11y_day_bank, spokenDuration(resources, it, signed = true))) }
+    if (record?.entry != null && record.exit == null && date.isBefore(today)) add(resources.getString(R.string.calendar_missing_exit))
+    if (onCallOn) {
+        if (record?.onCall == true) add(resources.getString(R.string.a11y_day_on_call))
+        val recovery = OnCall.recoveryHeld(calendar, date)
+        if (recovery > 0) add("${resources.getString(R.string.day_recovery)} ${spokenDuration(resources, recovery)}")
+    }
+    if (date == today) add(resources.getString(R.string.relative_today))
+}.joinToString(", ")
 
 @Composable
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -734,19 +787,20 @@ private fun MonthSummary(month: YearMonth, data: StaccoData, calendar: WorkCalen
 
 @Composable
 private fun StatTile(icon: ImageVector, tint: Color, label: String, value: String, modifier: Modifier = Modifier) {
-    Row(
+    // The label runs under the icon too: the whole width of the tile, so that "Trasferte" fits
+    // with large fonts on a narrow phone (it was cut to "Trasfert").
+    Column(
         modifier
             .clip(RoundedCornerShape(20.dp))
             .background(tint.copy(alpha = 0.10f))
             .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(10.dp))
-        Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
             RollingText(value, style = MaterialTheme.typography.titleLarge)
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         }
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -796,6 +850,16 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
                     if (breakText != null) {
                         Text(breakText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    // What is missing goes under the times: beside them it squeezed "08:40" apart.
+                    when {
+                        result != null -> {}
+                        record.exit == null && date < activeDate ->
+                            Text(stringResource(R.string.calendar_missing_exit), style = MaterialTheme.typography.labelMedium, color = StaccoTheme.colors.vacation)
+                        date < activeDate && DayCalculator.issues(record).isNotEmpty() ->
+                            Text(stringResource(R.string.calendar_fix), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                        else ->
+                            Text(stringResource(R.string.calendar_incomplete), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
+                    }
                 }
                 if (result != null) {
                     Column(horizontalAlignment = Alignment.End) {
@@ -809,12 +873,6 @@ private fun OfficeDaysList(month: YearMonth, data: StaccoData, calendar: WorkCal
                                 .padding(horizontal = 8.dp, vertical = 2.dp),
                         )
                     }
-                } else if (record.exit == null && date < activeDate) {
-                    Text(stringResource(R.string.calendar_missing_exit), style = MaterialTheme.typography.labelMedium, color = StaccoTheme.colors.vacation)
-                } else if (date < activeDate && DayCalculator.issues(record).isNotEmpty()) {
-                    Text(stringResource(R.string.calendar_fix), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
-                } else {
-                    Text(stringResource(R.string.calendar_incomplete), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
                 }
             }
         }

@@ -1,5 +1,11 @@
 package io.github.perruzz.stacco.ui.settings
 
+import io.github.perruzz.stacco.ui.components.DialogButtons
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -181,36 +187,47 @@ fun ShiftEditorDialog(
             onValueChange = { breakMinutes = it * 5 },
         )
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+        Row(Modifier.fillMaxWidth().selectableGroup()) {
             ShiftColorsLight.indices.forEach { index ->
                 val selected = index == color
                 val scale by animateFloatAsState(if (selected) 1.15f else 1f, spring(dampingRatio = 0.45f, stiffness = 500f), label = "swatch")
+                val name = stringResource(R.string.a11y_shift_color, index + 1)
+                // Each colour owns its share of the row (48dp and more on most phones).
                 Box(
                     Modifier
-                        .size(34.dp)
-                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .weight(1f)
+                        .height(48.dp)
                         .clip(CircleShape)
-                        .background(shiftColor(index))
-                        .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
-                        .bouncyClickable(pressed = 0.85f) { color = index },
+                        .bouncyClickable(pressed = 0.85f, role = Role.RadioButton) { color = index }
+                        .semantics {
+                            contentDescription = name
+                            this.selected = selected
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Box(
+                        Modifier
+                            .size(34.dp)
+                            .graphicsLayer { scaleX = scale; scaleY = scale }
+                            .clip(CircleShape)
+                            .background(shiftColor(index))
+                            .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }
         Spacer(Modifier.height(20.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (onDelete != null) {
-                TextButton(onClick = onDelete) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) }
-            }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = { onSave(draft) }, enabled = name.isNotBlank() && draft.durationMinutes > 0) {
-                Text(stringResource(R.string.action_save))
-            }
-        }
+        DialogButtons(
+            onDismiss = onDismiss,
+            onConfirm = { onSave(draft) },
+            confirmLabel = stringResource(R.string.action_save),
+            onExtra = onDelete,
+            extraLabel = stringResource(R.string.action_delete),
+            confirmEnabled = name.isNotBlank() && draft.durationMinutes > 0,
+        )
     }
 
     picking?.let { which ->

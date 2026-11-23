@@ -219,6 +219,14 @@
     <string name="bank_all_good_zero">Balance at zero: you\'re perfectly even.</string>
     <string name="bank_movements">Movements</string>
     <string name="bank_no_movements">No movements yet. Stamp your first day!</string>
+    <plurals name="days_to_fix_title">
+        <item quantity="one">%d day left out of the balance</item>
+        <item quantity="other">%d days left out of the balance</item>
+    </plurals>
+    <string name="days_to_fix_body">Their stamps are incomplete or don\'t add up, so the balance doesn\'t count them yet. Open a day to fix it, or change its type if you weren\'t at work.</string>
+    <string name="days_to_fix_inconsistent">Stamps that don\'t add up</string>
+    <string name="days_to_fix_more">Show all (%d)</string>
+    <string name="days_to_fix_less">Show fewer</string>
     <string name="bank_set_title">Set the balance</string>
     <string name="bank_set_sub">Your balance right now, as your company shows it</string>
     <string name="bank_add_title">New adjustment</string>
@@ -671,4 +679,34 @@
     <string name="support_action">Buy me a coffee</string>
     <string name="support_later">Later</string>
     <string name="support_never">Don\'t show again</string>
+    <!-- TalkBack -->
+    <string name="a11y_decrease">Decrease: %1$s</string>
+    <string name="a11y_increase">Increase: %1$s</string>
+    <plurals name="a11y_minutes_less">
+        <item quantity="one">%d minute less</item>
+        <item quantity="other">%d minutes less</item>
+    </plurals>
+    <plurals name="a11y_minutes_more">
+        <item quantity="one">%d minute more</item>
+        <item quantity="other">%d minutes more</item>
+    </plurals>
+    <string name="a11y_day_on_call">on call</string>
+    <string name="a11y_day_bank">hour bank %1$s</string>
+    <string name="a11y_day_open">open the day</string>
+    <string name="a11y_select_days">select several days</string>
+    <string name="a11y_shift_color">Colour %1$d</string>
+    <string name="a11y_erase_everything">erase everything</string>
+    <string name="a11y_dial">Time to stamp</string>
+    <string name="a11y_dial_adjust">turn the dial</string>
+    <plurals name="a11y_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="a11y_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <string name="a11y_and">%1$s and %2$s</string>
+    <string name="a11y_plus">plus %1$s</string>
+    <string name="a11y_minus">minus %1$s</string>
 </resources>

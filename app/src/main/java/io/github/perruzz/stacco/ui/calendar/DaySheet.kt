@@ -1,5 +1,6 @@
 package io.github.perruzz.stacco.ui.calendar
 
+import io.github.perruzz.stacco.ui.components.AdaptiveRow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -196,10 +197,11 @@ fun DaySheet(date: LocalDate, data: StaccoData, viewModel: MainViewModel, onDism
                         )
                     }
                     if (result != null) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            SheetStat(stringResource(R.string.day_worked), Fmt.duration(result.worked), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                            SheetStat(stringResource(R.string.day_break), Fmt.duration(breakInfo.deducted), StaccoTheme.colors.lunch, Modifier.weight(1f))
-                            SheetStat(stringResource(R.string.day_bank), Fmt.duration(result.delta, signed = true), deltaColor(result.delta), Modifier.weight(1f))
+                        // Three in a row; with large fonts on a narrow phone one goes below ("8h 10r" otherwise).
+                        AdaptiveRow {
+                            SheetStat(stringResource(R.string.day_worked), Fmt.duration(result.worked), MaterialTheme.colorScheme.primary)
+                            SheetStat(stringResource(R.string.day_break), Fmt.duration(breakInfo.deducted), StaccoTheme.colors.lunch)
+                            SheetStat(stringResource(R.string.day_bank), Fmt.duration(result.delta, signed = true), deltaColor(result.delta))
                         }
                     }
                     if (calendar.isScheduled(date)) {

@@ -470,7 +470,7 @@ fun RecoveryDialog(initial: Int, room: Int, available: Int, onDismiss: () -> Uni
         Spacer(Modifier.height(18.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             FilledTonalIconButton(onClick = { value = if (value > 0) (value - 1) / step * step else 0 }, enabled = value > 0) {
-                Icon(Icons.Rounded.Remove, contentDescription = "−${step}m")
+                Icon(Icons.Rounded.Remove, contentDescription = pluralStringResource(R.plurals.a11y_minutes_less, step, step))
             }
             AnimatedContent(
                 targetState = value,
@@ -491,7 +491,7 @@ fun RecoveryDialog(initial: Int, room: Int, available: Int, onDismiss: () -> Uni
                 )
             }
             FilledTonalIconButton(onClick = { value = minOf(room, (value / step + 1) * step) }, enabled = value < room) {
-                Icon(Icons.Rounded.Add, contentDescription = "+${step}m")
+                Icon(Icons.Rounded.Add, contentDescription = pluralStringResource(R.plurals.a11y_minutes_more, step, step))
             }
         }
         Spacer(Modifier.height(14.dp))
@@ -529,6 +529,7 @@ fun OnCallCard(state: OnCallState, today: LocalDate, onStart: () -> Unit, onStop
                 stringResource(if (state.dutyDate == today) R.string.on_call_today else R.string.on_call_last_night),
                 style = MaterialTheme.typography.labelMedium,
                 color = c.onCall,
+                textAlign = TextAlign.End,
             )
         }
         Spacer(Modifier.height(12.dp))
