@@ -1,10 +1,6 @@
 package io.github.perruzz.stacco.ui.today
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import io.github.perruzz.stacco.ui.components.rememberSway
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -48,13 +44,8 @@ private val CoffeeInk = Color(0xFF3A2A00)
 @Composable
 fun SupportCard(onOpen: () -> Unit, onLater: () -> Unit, onNever: () -> Unit) {
     val c = StaccoTheme.colors
-    val sway = rememberInfiniteTransition(label = "coffee")
-    val tilt by sway.animateFloat(
-        initialValue = -8f,
-        targetValue = 8f,
-        animationSpec = infiniteRepeatable(tween(1100, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "coffee-tilt",
-    )
+    // A few swings when the card shows up, then still.
+    val tilt by rememberSway(amplitude = 8f, swingMillis = 1100)
     StaccoCard(color = c.gold.copy(alpha = 0.12f)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(

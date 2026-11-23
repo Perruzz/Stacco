@@ -1,5 +1,13 @@
 package io.github.perruzz.stacco.ui.components
 
+import androidx.compose.ui.layout.onVisibilityChanged
+import androidx.compose.animation.core.Animatable
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.delay
+import androidx.compose.ui.MotionDurationScale
+import androidx.compose.runtime.withFrameMillis
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.State
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -69,26 +77,40 @@ fun MorphBadge(
         )
     }
     val morphs = remember { shapes.indices.map { Morph(shapes[it], shapes[(it + 1) % shapes.size]) } }
-    val transition = rememberInfiniteTransition(label = "morph")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = morphs.size.toFloat(),
-        animationSpec = infiniteRepeatable(tween(morphs.size * periodMillis, easing = LinearEasing)),
-        label = "morph-phase",
-    )
-    val rotation by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(28_000, easing = LinearEasing)),
-        label = "morph-rotation",
-    )
+    // It only moves while it is on screen: further down a page (Settings, About) it kept the
+    // whole screen redrawing at 120 fps.
+    var onScreen by remember { mutableStateOf(false) }
+    val still = remember { mutableFloatStateOf(0f) }
+    val phaseState: State<Float>
+    val rotationState: State<Float>
+    if (onScreen) {
+        val transition = rememberInfiniteTransition(label = "morph")
+        phaseState = transition.animateFloat(
+            initialValue = 0f,
+            targetValue = morphs.size.toFloat(),
+            animationSpec = infiniteRepeatable(tween(morphs.size * periodMillis, easing = LinearEasing)),
+            label = "morph-phase",
+        )
+        rotationState = transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(tween(28_000, easing = LinearEasing)),
+            label = "morph-rotation",
+        )
+    } else {
+        phaseState = still
+        rotationState = still
+    }
     val androidPath = remember { android.graphics.Path() }
     val matrix = remember { android.graphics.Matrix() }
 
     Box(
         modifier = modifier
             .size(size)
+            .onVisibilityChanged(minFractionVisible = 0.01f) { onScreen = it }
             .drawBehind {
+                val phase = phaseState.value
+                val rotation = rotationState.value
                 val index = phase.toInt().coerceIn(0, morphs.lastIndex)
                 val local = FastOutSlowInEasing.transform((phase - index).coerceIn(0f, 1f))
                 androidPath.rewind()
@@ -193,4 +215,48 @@ fun ConfettiBurst(trigger: Int, modifier: Modifier = Modifier, origin: Offset? =
             }
         }
     }
+}
+
+/** Ambient motion moves about 20 times a second: a few pixels a step, too slowly to see them. */
+private const val AMBIENT_STEP_MS = 50L
+
+/**
+ * A phase from 0 to 1 that turns once every [periodMillis], for slow ambient motion (the aurora,
+ * the sun of the greeting). It moves 20 times a second instead of at every frame of the display
+ * (up to 120 on a phone), so a still screen costs almost nothing; it stays still when the
+ * system's animations are turned off, and pauses with the app in the background.
+ */
+@Composable
+fun rememberAmbientPhase(periodMillis: Long): State<Float> {
+    val phase = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(periodMillis) {
+        var elapsed = 0f
+        var last = withFrameMillis { it }
+        while (true) {
+            val now = withFrameMillis { it }
+            // The system's animation speed: 0 when animations are turned off.
+            val speed = coroutineContext[MotionDurationScale]?.scaleFactor?.let { if (it > 0f) 1f / it else 0f } ?: 1f
+            elapsed += (now - last) * speed
+            last = now
+            phase.floatValue = (elapsed % periodMillis) / periodMillis
+            delay(AMBIENT_STEP_MS)
+        }
+    }
+    return phase
+}
+
+/**
+ * A few swings of [amplitude] degrees when the element shows up, then it rests: a greeting, not
+ * an endless motion that keeps the screen redrawing.
+ */
+@Composable
+fun rememberSway(amplitude: Float, swingMillis: Int, swings: Int = 4): State<Float> {
+    val tilt = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        repeat(swings) { i ->
+            tilt.animateTo(if (i % 2 == 0) amplitude else -amplitude, tween(swingMillis, easing = FastOutSlowInEasing))
+        }
+        tilt.animateTo(0f, tween(swingMillis, easing = FastOutSlowInEasing))
+    }
+    return tilt.asState()
 }

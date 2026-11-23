@@ -1,5 +1,6 @@
 package io.github.perruzz.stacco.ui.settings
 
+import io.github.perruzz.stacco.ui.components.rememberSway
 import io.github.perruzz.stacco.ui.components.readableWidth
 import io.github.perruzz.stacco.ui.components.AdaptiveRow
 import androidx.compose.ui.semantics.semantics
@@ -31,12 +32,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -1012,19 +1007,10 @@ private fun ThemePreview(mode: ThemeMode, icon: androidx.compose.ui.graphics.vec
 
 @Composable
 private fun DonateCard(onClick: () -> Unit) {
-    val sway = rememberInfiniteTransition(label = "coffee")
-    val tilt by sway.animateFloat(
-        initialValue = -9f,
-        targetValue = 9f,
-        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "coffee-tilt",
-    )
-    val scale by sway.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(tween(450, easing = LinearEasing), RepeatMode.Reverse),
-        label = "coffee-scale",
-    )
+    // A few swings when the card shows up, then still (it kept Settings redrawing at 120 fps).
+    val sway = rememberSway(amplitude = 9f, swingMillis = 900)
+    val tilt by sway
+    val scale = 1f + 0.1f * kotlin.math.abs(tilt) / 9f
     StaccoCard(
         color = Color.Transparent,
         border = false,

@@ -1,5 +1,6 @@
 package io.github.perruzz.stacco.ui.today
 
+import io.github.perruzz.stacco.ui.components.rememberAmbientPhase
 import io.github.perruzz.stacco.ui.components.readableWidth
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.layout.Layout
@@ -7,7 +8,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.RepeatMode
@@ -442,8 +442,8 @@ private fun Header(s: TodaySnapshot, onTypeClick: () -> Unit) {
         in 18..20 -> Icons.Rounded.WbTwilight
         else -> Icons.Rounded.Bedtime
     }
-    val spin = rememberInfiniteTransition(label = "sun")
-    val angle by spin.animateFloat(0f, 360f, infiniteRepeatable(tween(30_000, easing = LinearEasing)), label = "sun-angle")
+    // A turn every 30 seconds, 20 steps a second: Today does not redraw at 120 fps for it.
+    val sun = rememberAmbientPhase(30_000)
 
     HeaderLayout {
         Column {
@@ -454,7 +454,7 @@ private fun Header(s: TodaySnapshot, onTypeClick: () -> Unit) {
                     tint = StaccoTheme.colors.gold,
                     modifier = Modifier
                         .size(22.dp)
-                        .graphicsLayer { rotationZ = if (icon == Icons.Rounded.WbSunny) angle else 0f },
+                        .graphicsLayer { rotationZ = if (icon == Icons.Rounded.WbSunny) sun.value * 360f else 0f },
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
