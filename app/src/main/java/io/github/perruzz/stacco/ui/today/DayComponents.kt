@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -50,8 +49,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.domain.BreakInfo
@@ -87,7 +88,7 @@ fun StampTimeline(
     } else {
         listOf(StampSlot.ENTRY, StampSlot.EXIT)
     }
-    Column(modifier) {
+    EqualRows(modifier) {
         slots.forEachIndexed { index, slot ->
             val value = record[slot]
             val countedAt = counted?.get(slot)?.takeIf { value != null && it != value }
@@ -113,6 +114,27 @@ fun StampTimeline(
                 supporting = supporting,
                 onClick = { onEdit(slot) },
             )
+        }
+    }
+}
+
+/**
+ * The rows of the timeline, each as tall as the tallest one: a stamp with a line under its name
+ * ("break of 24m", a rounded time) would otherwise move its circle away from the others, while
+ * here every circle sits at the same distance from the next.
+ */
+@Composable
+private fun EqualRows(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Layout(content, modifier) { measurables, constraints ->
+        val width = if (constraints.hasBoundedWidth) {
+            constraints.maxWidth
+        } else {
+            measurables.maxOfOrNull { it.maxIntrinsicWidth(Constraints.Infinity) } ?: 0
+        }
+        val rowHeight = measurables.maxOfOrNull { it.minIntrinsicHeight(width) } ?: 0
+        val rows = measurables.map { it.measure(Constraints.fixed(width, rowHeight)) }
+        layout(width, rowHeight * rows.size) {
+            rows.forEachIndexed { index, row -> row.place(0, index * rowHeight) }
         }
     }
 }
@@ -171,9 +193,10 @@ private fun TimelineRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                // A full touch target even when the text is short (47dp at normal size).
+                // A full touch target even when the text is short (47dp at normal size), as tall as
+                // the other rows of the timeline (see EqualRows).
                 .heightIn(min = 48.dp)
-                .height(IntrinsicSize.Min)
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(18.dp))
                 .bouncyClickable(pressed = 0.98f, onClick = onClick)
                 .padding(horizontal = ROW_PADDING),
@@ -227,7 +250,9 @@ private fun TimelineRow(
             Column(
                 Modifier
                     .weight(1f)
-                    .padding(vertical = 14.dp),
+                    // Little room above and below: with a line under a name every row grows to its
+                    // height (EqualRows), and the timeline stays close to its compact 48dp rhythm.
+                    .padding(vertical = 8.dp),
             ) {
                 Text(stringResource(slot.label), style = MaterialTheme.typography.titleSmall)
                 if (supporting != null) {
