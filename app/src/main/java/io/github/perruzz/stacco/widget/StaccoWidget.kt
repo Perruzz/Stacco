@@ -47,6 +47,7 @@ import androidx.glance.layout.width
 import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import io.github.perruzz.stacco.MainActivity
 import io.github.perruzz.stacco.R
@@ -201,7 +202,9 @@ private fun WidgetBody(s: TodaySnapshot?, ready: Boolean, context: Context) {
             Button(
                 // Too long for the button ("Start lunch break" with large fonts): the stamp's short name.
                 text = (if (fit.longButton) action else short).orEmpty(),
-                style = TextStyle(fontSize = fit.buttonSp.sp, fontWeight = FontWeight.Medium),
+                // Centred in so many words: with a style of its own, before Android 12 the text
+                // went to the top left corner of the button.
+                style = TextStyle(fontSize = fit.buttonSp.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center),
                 onClick = actionRunCallback<StampWidgetAction>(),
                 colors = ButtonDefaults.buttonColors(backgroundColor = colors.primary, contentColor = colors.onPrimary),
                 // A full touch target, whatever the size of the widget.
