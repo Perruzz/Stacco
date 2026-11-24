@@ -3,4 +3,10 @@
     <color name="window_background">#FFF5FAF5</color>
     <color name="splash_ring">#FF1F6E52</color>
     <color name="splash_leaf">#FF3FA37A</color>
+    <!-- The widget's preview in the widget picker: the same colours as the widget (Glance). -->
+    <color name="widget_background">#FFCEE9DA</color>
+    <color name="widget_primary">#FF1F6E52</color>
+    <color name="widget_on_primary">#FFFFFFFF</color>
+    <color name="widget_on_surface">#FF171D1A</color>
+    <color name="widget_on_surface_variant">#FF404943</color>
 </resources>

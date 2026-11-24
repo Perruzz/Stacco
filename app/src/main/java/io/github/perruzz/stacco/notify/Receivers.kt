@@ -9,6 +9,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
+import io.github.perruzz.stacco.BuildConfig
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.localized
 import io.github.perruzz.stacco.domain.DayPhase
@@ -321,7 +322,7 @@ class SystemEventsReceiver : BroadcastReceiver() {
             // The names of the notification categories, in the system settings, follow the language.
             if (action == Intent.ACTION_LOCALE_CHANGED) Notifications.createChannels(context)
             // Updated: "a new version is available" no longer is.
-            if (action == Intent.ACTION_MY_PACKAGE_REPLACED && UpdateChecker.cached(context) == null) {
+            if (action == Intent.ACTION_MY_PACKAGE_REPLACED && (!BuildConfig.GITHUB_UPDATES || UpdateChecker.cached(context) == null)) {
                 Notifications.cancel(context, Notifications.ID_UPDATE)
             }
             AppSync.sync(context)

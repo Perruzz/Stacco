@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Google Play build: no update check on GitHub, no connection at all. -->
+<resources>
+    <string name="about_privacy_sub">All data stays on your phone. No account, no tracking, no Internet connection at all.</string>
+</resources>

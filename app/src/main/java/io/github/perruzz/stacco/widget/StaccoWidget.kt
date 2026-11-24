@@ -153,7 +153,9 @@ private fun WidgetBody(s: TodaySnapshot?, ready: Boolean, context: Context) {
     val short = next?.let { context.getString(it.label) }
     val fit = widgetFit(size.width, size.height, context.resources.configuration.fontScale, big, button = action, shortButton = short)
     val shape = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        GlanceModifier.background(colors.widgetBackground).cornerRadius(28.dp)
+        // The colour resource of the preview in the widget picker (res/layout/widget_preview.xml):
+        // the same theme colour given as day and night values came out lighter on the Pixel launcher.
+        GlanceModifier.background(R.color.widget_background).cornerRadius(28.dp)
     } else {
         // Before Android 12 a widget has no rounded corners of its own: a rounded shape, tinted.
         GlanceModifier.background(ImageProvider(R.drawable.widget_shape), colorFilter = ColorFilter.tint(colors.widgetBackground))

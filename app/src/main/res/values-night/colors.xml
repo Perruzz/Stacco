@@ -3,4 +3,9 @@
     <color name="window_background">#FF0E1411</color>
     <color name="splash_ring">#FF8BD6B3</color>
     <color name="splash_leaf">#FF7FD9A8</color>
+    <color name="widget_background">#FF354B41</color>
+    <color name="widget_primary">#FF8BD6B3</color>
+    <color name="widget_on_primary">#FF003826</color>
+    <color name="widget_on_surface">#FFDEE4DF</color>
+    <color name="widget_on_surface_variant">#FFBFC9C2</color>
 </resources>

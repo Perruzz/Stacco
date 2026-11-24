@@ -25,7 +25,9 @@ class StaccoApp : Application() {
         Notifications.createChannels(this)
         AppSync.start(this, repository, appScope)
         BankAlertWorker.schedule(this)
-        UpdateWorker.schedule(this)
+        // The Google Play build is updated by the store: no daily look at GitHub (and none left
+        // over from a GitHub install it replaced).
+        if (BuildConfig.GITHUB_UPDATES) UpdateWorker.schedule(this) else UpdateWorker.cancel(this)
     }
 }
 

@@ -603,13 +603,16 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         checked = data.notifications.bankAlerts,
                         onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(bankAlerts = on)) } },
                     )
-                    SwitchRow(
-                        icon = Icons.Rounded.SystemUpdate,
-                        title = stringResource(R.string.settings_updates),
-                        subtitle = stringResource(R.string.settings_updates_sub),
-                        checked = data.notifications.updateCheck,
-                        onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(updateCheck = on)) } },
-                    )
+                    // Google Play updates the app by itself: the check on GitHub is only in the GitHub build.
+                    if (BuildConfig.GITHUB_UPDATES) {
+                        SwitchRow(
+                            icon = Icons.Rounded.SystemUpdate,
+                            title = stringResource(R.string.settings_updates),
+                            subtitle = stringResource(R.string.settings_updates_sub),
+                            checked = data.notifications.updateCheck,
+                            onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(updateCheck = on)) } },
+                        )
+                    }
                 }
             }
 
@@ -1089,7 +1092,7 @@ private fun AboutCard(onGithub: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
-            UpdateRow()
+            if (BuildConfig.GITHUB_UPDATES) UpdateRow()
             SettingRow(icon = Icons.Rounded.Code, title = stringResource(R.string.about_github), subtitle = "github.com/Perruzz/Stacco", onClick = onGithub)
             SettingRow(icon = Icons.Rounded.AutoAwesome, title = stringResource(R.string.about_fonts), subtitle = stringResource(R.string.about_fonts_sub))
             SettingRow(icon = Icons.Rounded.DateRange, title = stringResource(R.string.about_privacy), subtitle = stringResource(R.string.about_privacy_sub))

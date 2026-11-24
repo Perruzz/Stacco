@@ -413,6 +413,9 @@
     <!-- Widget, tile, shortcuts -->
     <string name="widget_description">Exit time, hour bank and one-tap stamping</string>
     <string name="widget_bank">Hour bank %1$s</string>
+    <!-- The example shown in the widget picker. -->
+    <string name="widget_preview_bank">Hour bank +1h 10m</string>
+    <string name="widget_preview_time" translatable="false">17:12</string>
     <string name="widget_exit">You leave at</string>
     <string name="widget_break">On break · back from</string>
     <string name="widget_today">Today</string>

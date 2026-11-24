@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import io.github.perruzz.stacco.BuildConfig
 import io.github.perruzz.stacco.MainActivity
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.localized
@@ -74,9 +75,6 @@ object Notifications {
                 NotificationChannel(CHANNEL_BANK, context.getString(R.string.channel_bank), NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = context.getString(R.string.channel_bank_desc)
                 },
-                NotificationChannel(CHANNEL_UPDATES, context.getString(R.string.channel_updates), NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = context.getString(R.string.channel_updates_desc)
-                },
                 NotificationChannel(CHANNEL_ON_CALL, context.getString(R.string.channel_on_call), NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = context.getString(R.string.channel_on_call_desc)
                     setSound(null, null)
@@ -87,6 +85,16 @@ object Notifications {
             ),
         )
         manager.deleteNotificationChannel(LEGACY_CHANNEL_LIVE)
+        // New versions are announced only by the GitHub build: Google Play updates the app by itself.
+        if (BuildConfig.GITHUB_UPDATES) {
+            manager.createNotificationChannel(
+                NotificationChannel(CHANNEL_UPDATES, context.getString(R.string.channel_updates), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = context.getString(R.string.channel_updates_desc)
+                },
+            )
+        } else {
+            manager.deleteNotificationChannel(CHANNEL_UPDATES)
+        }
     }
 
     fun canPost(context: Context): Boolean {

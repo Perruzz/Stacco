@@ -45,8 +45,32 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            // Without keystore.properties the release is left unsigned: never signed with the debug
+            // key by mistake, which would stop every update over the installed app.
+            signingConfig = signingConfigs.findByName("release")
         }
+    }
+
+    // Two ways to get Stacco, same app and same data: Google Play updates it by itself, while the
+    // APK published on GitHub looks there for new versions once a day. Google Play does not allow
+    // an app to update itself from elsewhere, so the Play build carries no update check at all
+    // (and no Internet access: see src/play/AndroidManifest.xml).
+    flavorDimensions += "store"
+    productFlavors {
+        create("github") {
+            dimension = "store"
+            buildConfigField("boolean", "GITHUB_UPDATES", "true")
+        }
+        create("play") {
+            dimension = "store"
+            buildConfigField("boolean", "GITHUB_UPDATES", "false")
+        }
+    }
+
+    bundle {
+        // Every language in every install: Stacco switches between Italian and English from its
+        // own settings, whatever the phone's language (see Localized.kt).
+        language { enableSplit = false }
     }
 
     compileOptions {

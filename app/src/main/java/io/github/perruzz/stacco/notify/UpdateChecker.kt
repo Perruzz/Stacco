@@ -175,6 +175,7 @@ object UpdateChecker {
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        if (!BuildConfig.GITHUB_UPDATES) return Result.success()
         val data = applicationContext.stacco.repository.current()
         if (data.notifications.updateCheck) UpdateChecker.check(applicationContext, notify = true)
         return Result.success()
@@ -189,6 +190,10 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 .setInitialDelay(30, TimeUnit.MINUTES)
                 .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+        }
+
+        fun cancel(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(NAME)
         }
     }
 }

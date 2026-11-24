@@ -416,6 +416,8 @@
     <!-- Widget, tile, shortcuts -->
     <string name="widget_description">Orario di uscita, banca ore e timbratura al volo</string>
     <string name="widget_bank">Banca ore %1$s</string>
+    <!-- The example shown in the widget picker. -->
+    <string name="widget_preview_bank">Banca ore +1h 10m</string>
     <string name="widget_exit">Stacchi alle</string>
     <string name="widget_break">In pausa · rientro dalle</string>
     <string name="widget_today">Oggi</string>

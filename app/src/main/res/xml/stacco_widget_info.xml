@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- previewLayout and targetCell* are for Android 12+; older versions use previewImage and minWidth/minHeight. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:description="@string/widget_description"
     android:initialLayout="@layout/glance_default_loading_layout"
+    android:previewImage="@drawable/widget_preview"
+    android:previewLayout="@layout/widget_preview"
     android:minWidth="160dp"
     android:minHeight="110dp"
     android:minResizeWidth="120dp"
@@ -10,4 +14,5 @@
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    tools:ignore="UnusedAttribute" />

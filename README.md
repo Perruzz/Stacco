@@ -158,15 +158,17 @@ Requisiti: Android 8.0 (API 26) o superiore. Ottimizzata per Android 16/17 (Pixe
 
 Nessun account, nessun server, nessun tracciamento: **tutti i dati restano sul telefono** (e nel backup Android del tuo account, se attivo). Da *Impostazioni → Dati* puoi esportare e importare un backup JSON.
 
-L'unica connessione a Internet è il **controllo degli aggiornamenti**: una volta al giorno Stacco chiede a GitHub qual è l'ultima versione pubblicata, senza inviare nessun dato tuo. Si disattiva da *Impostazioni → Notifiche → Avviso aggiornamenti*.
+L'unica connessione a Internet è il **controllo degli aggiornamenti** dell'APK di GitHub: una volta al giorno Stacco chiede a GitHub qual è l'ultima versione pubblicata, senza inviare nessun dato tuo. Si disattiva da *Impostazioni → Notifiche → Avviso aggiornamenti*. La versione per Google Play non lo ha, e non accede affatto a Internet.
+
+Informativa completa: [docs/privacy.md](docs/privacy.md).
 
 ## 🛠️ Compilare dal sorgente
 
 ```bash
 git clone https://github.com/Perruzz/Stacco.git
 cd Stacco
-./gradlew assembleDebug        # APK in app/build/outputs/apk/debug/
-./gradlew testDebugUnitTest    # test del motore di calcolo
+./gradlew assembleGithubDebug       # APK in app/build/outputs/apk/github/debug/
+./gradlew testGithubDebugUnitTest   # test del motore di calcolo
 ```
 
 Serve JDK 17+ e l'Android SDK (compileSdk 37). Per un APK di release firmato crea `keystore.properties` nella root:
@@ -178,7 +180,10 @@ keyAlias=stacco
 keyPassword=…
 ```
 
-e poi `./gradlew assembleRelease`.
+e poi:
+
+- `./gradlew assembleGithubRelease`: l'APK pubblicato su GitHub, che controlla da solo se c'è una nuova versione;
+- `./gradlew bundlePlayRelease`: l'`.aab` per Google Play, senza controllo degli aggiornamenti e senza accesso a Internet (gli aggiornamenti li porta il Play Store).
 
 ### Stack
 Kotlin 2.4 · Jetpack Compose + Material 3 · DataStore + kotlinx.serialization · WorkManager · AlarmManager · Glance (widget) · graphics-shapes (forme che si trasformano) · AGP 9.5 · Gradle 9.9

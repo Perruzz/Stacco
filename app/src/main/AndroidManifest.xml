@@ -1,13 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Only used to ask GitHub, once a day, whether a new version is out. -->
+    <!-- Only used to ask GitHub, once a day, whether a new version is out (not in the Play build). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The reminders, the live notification of the working day and of an intervention, the bank warnings. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16+: the workday countdown and the intervention timer as Live Updates. -->
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <!--
+      "Alarms & reminders", granted by the user in the system settings: the reminder to clock off
+      and the one before a shift, to the minute. Without it they still come, up to 2 minutes early
+      (notify/Reminders.kt). USE_EXACT_ALARM is for alarm clocks and calendars only.
+    -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Reminders and the live notification set again after a restart. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!--
+      WorkManager declares a foreground service for long jobs: Stacco has none (its two daily jobs
+      take a moment), so neither the service nor its permission is needed.
+    -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE"
+        tools:node="remove" />
 
     <application
         android:name=".StaccoApp"
@@ -20,7 +36,8 @@
         android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Stacco.Splash">
+        android:theme="@style/Theme.Stacco.Splash"
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".MainActivity"
@@ -92,5 +109,9 @@
                 android:name="android.service.quicksettings.ACTIVE_TILE"
                 android:value="true" />
         </service>
+
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            tools:node="remove" />
     </application>
 </manifest>
