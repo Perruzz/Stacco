@@ -43,6 +43,18 @@ Sai sempre a che ora puoi *staccare*.
 </table>
 </div>
 
+## 🚀 Novità della 2.0
+
+La 2.0 è la versione pronta per Google Play, dopo cinque revisioni complete: calcoli, interfaccia, funzionamento in background, conformità e collaudo finale.
+
+- **Reperibilità H24**: giorni reperibili sul calendario, timer degli interventi anche a schermo bloccato e recupero ore degli interventi, separato dalla banca ore, con un avviso prima che scadano.
+- **Accessibile con TalkBack**: ogni pulsante dice cosa fa e in che stato è, la ghiera si regola come un cursore e i giorni del calendario si leggono per intero. Niente testi tagliati con i caratteri grandi, sugli schermi piccoli, in orizzontale e sui tablet.
+- **Più leggera sulla batteria**: a schermo fermo l'app non ridisegna più a 120 Hz. Fuori da *Oggi* scende da 120 a circa 17 fotogrammi al secondo.
+- **Promemoria che arrivano sempre**: anche senza il permesso *Sveglie e promemoria* (al massimo 2 minuti prima), in Doze e in risparmio energetico, dopo un riavvio, un aggiornamento o un cambio di fuso orario.
+- **Widget e riquadro sempre aggiornati**: passano al nuovo giorno da soli, ignorano il doppio tocco e non timbrano sulle giornate di smart working o di ferie. Il widget si adatta a dimensioni e caratteri e ha l'anteprima nel selettore dei widget.
+- **Calcoli a prova di casi limite**: ora legale nei turni di notte, dati danneggiati recuperati parte per parte, backup di ogni versione dalla 1.0 in poi, elenco di tutte le giornate da sistemare.
+- **Pronta per Google Play**: la versione Play si aggiorna dallo store e non accede a Internet ([informativa privacy](docs/privacy.md)).
+
 ## ✨ Cosa fa
 
 ### ⏱️ Oggi
@@ -105,9 +117,9 @@ Per chi è reperibile (IT, impianti, sanità…). È un modulo **spento di defau
 - **Promemoria di inizio turno** in modalità turni.
 - **Notifica live** con conto alla rovescia e barra di avanzamento a segmenti (lavoro / pausa / lavoro); su Android 16+ diventa un *Live Update* con il countdown nella barra di stato. È visibile anche **a schermo bloccato** e, se la scorri via per sbaglio, ricompare subito (la spegni da *Impostazioni → Notifiche*).
 - **Avvisi intelligenti sulla banca ore**: se sei in negativo ti avvisa *prima della fine del mese*; se hai ore positive in scadenza ti avvisa *prima della fine del periodo*. L'anticipo dell'avviso **dipende da quante ore hai**: più ore da recuperare o da usare → prima ti avvisa (vedi l'esempio più sotto).
-- **Widget** per la home con orario di uscita, saldo e pulsante *Timbra*.
+- **Widget** per la home con orario di uscita, saldo e pulsante *Timbra*; si adatta alle dimensioni e ai caratteri grandi, e passa da solo al nuovo giorno.
 - **Riquadro Impostazioni rapide** "Timbra" e scorciatoia sull'icona (pressione prolungata → *Timbra adesso*).
-- **Avviso aggiornamenti**: una volta al giorno Stacco controlla su GitHub se è uscita una nuova versione e te lo dice con una notifica, con il pulsante *Scarica*. Puoi controllare anche a mano, in fondo alle *Impostazioni*.
+- **Avviso aggiornamenti** (versione GitHub): una volta al giorno Stacco controlla su GitHub se è uscita una nuova versione e te lo dice con una notifica, con il pulsante *Scarica*. Puoi controllare anche a mano, in fondo alle *Impostazioni*. La versione di Google Play invece si aggiorna dallo store.
 
 ### 🎨 Esperienza
 - Splash animato (l'anello si disegna, la lancetta gira, spunta la foglia), onboarding guidato, aurora verde che "respira" sullo sfondo, forme che si trasformano, numeri che scorrono come un contachilometri, molle e rimbalzi ovunque.
@@ -152,7 +164,7 @@ Quando esce una nuova versione Stacco ti avvisa: scarica l'APK e installalo sopr
 
 Requisiti: Android 8.0 (API 26) o superiore. Ottimizzata per Android 16/17 (Pixel inclusi).
 
-> Per avvisi puntuali al minuto, in *Impostazioni → Notifiche* consenti a Stacco "Sveglie e promemoria".
+> Per avvisi puntuali al minuto, in *Impostazioni → Notifiche* consenti a Stacco "Sveglie e promemoria". Senza, i promemoria arrivano comunque, al massimo 2 minuti prima.
 
 ## 🔒 Privacy
 
@@ -224,6 +236,17 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 
 **Stacco** (Italian for *clocking off*) is a calm, animated Android app to track badge stamps, lunch breaks, shifts and your **hour bank** (time bank / flexitime balance).
 
+**What's new in 2.0**, the release ready for Google Play after five full reviews:
+- **24/7 on-call duty**: on-call days, an intervention timer that also runs on the lock screen, and a recovery account kept apart from the hour bank, with a warning before the hours expire.
+- **TalkBack accessible**: every control says what it does and its state, the dial adjusts like a slider, calendar days read in full; no text cut with large fonts, on small screens, in landscape or on tablets.
+- **Easier on the battery**: a still screen no longer redraws at 120 Hz (about 17 frames per second outside *Today*).
+- **Reminders that always come**: also without the *Alarms & reminders* permission (at most 2 minutes early), in Doze and battery saver, after a restart, an update or a time zone change.
+- **Widget and tile always up to date**: they move to the new day by themselves, ignore double taps and never stamp a remote-work or vacation day; the widget adapts to its size and to large fonts, with a preview in the widget picker.
+- **Calculations proof against edge cases**: daylight saving on night shifts, damaged data recovered part by part, backups of every version since 1.0, a list of every day to fix.
+- **Ready for Google Play**: the Play version is updated by the store and has no Internet access ([privacy policy](docs/privacy.md)).
+
+**Features**
+
 - Stamp with a **rotary dial**: the button shows the current time like a clock; turn the bezel to adjust the minutes (one haptic tick per minute), then tap the centre. After 10 seconds without stamping it springs back to the current time.
 - Live countdown to your exit time; exit time calculation with company rules: minimum lunch break, daily and minimum hours, early exit using the hour bank (capped by the minimum hours) or later exit to recover a negative balance.
 - **Shift work** mode (nurses, factories…): customizable shifts (morning 7–14, afternoon 14–21, night 21–7 out of the box), monthly planning by tapping days, night shifts across midnight, shift start reminders.
@@ -231,7 +254,7 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 - Hour bank with chart, movements, manual adjustments and configurable rules (positive balance expiry per month/quarter/…; negative balance to recover by month end).
 - Yearly vacation hours: vacation days and hours of leave are taken from them (taken, planned, left, carry-over). A day with leave can lower the hour bank but never raise it.
 - Smart alerts whose timing adapts to how many hours you need to use or recover; exit reminders; Android 16 Live Update countdown, also on the lock screen; home screen widget; Quick Settings tile.
-- Forgotten exit stamps are pointed out (with a suggested time), Italian holidays plus your town's patron saint's day, and a daily check for new versions on GitHub (the app's only network access).
+- Forgotten exit stamps are pointed out (with a suggested time), Italian holidays plus your town's patron saint's day, and in the GitHub version a daily check for new versions (its only network access; the Google Play version has none).
 - Different hours per weekday (short Fridays, part-time), company rounding of badge times with tolerance, and a monthly CSV export.
 - Contract changes take effect from a date you choose: every day is counted with the rules in force on that day, so past months stay as they were.
 - Optional **on-call duty**: on-call days on the calendar, a 24/7 intervention timer (also on the lock screen), interventions credited by the quarter hour rounded up, and a separate recovery account that evens out a working day without touching the hour bank, to be used by the end of the second month after.
