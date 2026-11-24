@@ -1,6 +1,5 @@
 package io.github.perruzz.stacco.notify
 
-import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -36,7 +35,6 @@ object LiveDayNotifier {
             target != null && entry != null
         if (!active) {
             Notifications.cancelAlone(context, Notifications.ID_LIVE, Notifications.ID_LIVE_SUMMARY)
-            cancelRefresh(context)
             return
         }
 
@@ -74,7 +72,7 @@ object LiveDayNotifier {
                     .setUsesChronometer(true)
                     .setChronometerCountDown(false)
                     .setShortCriticalText(context.getString(R.string.live_chip_break))
-                    .addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_break_in), Notifications.stampAction(context, StampSlot.BREAK_IN))
+                    .addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_break_in), Notifications.stampAction(context, StampSlot.BREAK_IN, s.date))
             }
             overtime -> {
                 builder.setContentTitle(context.getString(R.string.live_overtime_title))
@@ -84,7 +82,7 @@ object LiveDayNotifier {
                     .setUsesChronometer(true)
                     .setChronometerCountDown(false)
                     .setShortCriticalText(context.getString(R.string.live_chip_go))
-                    .addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_exit), Notifications.stampAction(context, StampSlot.EXIT))
+                    .addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_exit), Notifications.stampAction(context, StampSlot.EXIT, s.date))
             }
             else -> {
                 val shift = s.shift
@@ -101,9 +99,9 @@ object LiveDayNotifier {
                     .setUsesChronometer(true)
                     .setChronometerCountDown(true)
                 if (s.record.breakOut == null && s.expectsBreak) {
-                    builder.addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_break_out), Notifications.stampAction(context, StampSlot.BREAK_OUT))
+                    builder.addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_break_out), Notifications.stampAction(context, StampSlot.BREAK_OUT, s.date))
                 }
-                builder.addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_exit), Notifications.stampAction(context, StampSlot.EXIT))
+                builder.addAction(R.drawable.ic_stat_stacco, context.getString(R.string.stamp_exit), Notifications.stampAction(context, StampSlot.EXIT, s.date))
             }
         }
 
@@ -128,24 +126,7 @@ object LiveDayNotifier {
         style.setProgress((s.nowMinutes - entry).coerceIn(0, total))
         builder.setStyle(style)
 
+        // The progress moves on with the refresh alarms of AppSync, also with the app closed.
         Notifications.postAlone(context, Notifications.ID_LIVE, Notifications.ID_LIVE_SUMMARY, Notifications.GROUP_LIVE, Notifications.CHANNEL_LIVE, builder)
-        scheduleRefresh(context)
-    }
-
-    private fun refreshIntent(context: Context) = PendingIntent.getBroadcast(
-        context, 4, Intent(context, LiveRefreshReceiver::class.java),
-        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-    )
-
-    /** Light, inexact refresh so the progress bar keeps moving when the app is closed. */
-    private fun scheduleRefresh(context: Context) {
-        val alarms = context.getSystemService(AlarmManager::class.java) ?: return
-        runCatching {
-            alarms.set(AlarmManager.RTC, System.currentTimeMillis() + 10 * 60_000L, refreshIntent(context))
-        }
-    }
-
-    private fun cancelRefresh(context: Context) {
-        context.getSystemService(AlarmManager::class.java)?.cancel(refreshIntent(context))
     }
 }

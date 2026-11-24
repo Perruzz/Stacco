@@ -23,6 +23,8 @@ import io.github.perruzz.stacco.domain.VacationCalculator
 import io.github.perruzz.stacco.domain.StampSlot
 import io.github.perruzz.stacco.domain.TodaySnapshot
 import io.github.perruzz.stacco.domain.WorkCalendar
+import io.github.perruzz.stacco.notify.AppSync
+import io.github.perruzz.stacco.notify.Notifications
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -341,6 +343,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun reset() {
         viewModelScope.launch { repo.reset() }
+    }
+
+    /**
+     * Brings notifications, alarms, widget and tile in line right away, when something they
+     * depend on changed outside the data: notifications just allowed, a new language (which
+     * also renames the notification categories in the system settings).
+     */
+    fun refreshOutside(languageChanged: Boolean = false) {
+        val app = getApplication<Application>()
+        viewModelScope.launch(Dispatchers.Default) {
+            if (languageChanged) Notifications.createChannels(app)
+            AppSync.sync(app, early = false)
+        }
     }
 
     suspend fun exportJson(): String = Backup.encode(repo.current())

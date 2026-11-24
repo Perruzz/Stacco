@@ -18,11 +18,14 @@ import io.github.perruzz.stacco.Links
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.localized
 import io.github.perruzz.stacco.stacco
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
@@ -87,8 +90,16 @@ object UpdateChecker {
         return AppUpdate(version, tag, url).takeIf { isNewer(version, BuildConfig.VERSION_NAME) }
     }
 
+    /** A release description is a few kilobytes: anything this large is not one (a captive portal…). */
+    private const val MAX_RESPONSE_BYTES = 1 shl 20
+
+    /**
+     * The latest release, or null when it cannot be known now: offline, a timeout, GitHub's rate
+     * limit, the page of a hotel Wi-Fi instead of GitHub's answer. Being stopped (the worker
+     * cancelled) is not a failure: it goes up as such.
+     */
     private suspend fun fetchLatest(): GitHubRelease? = withContext(Dispatchers.IO) {
-        runCatching {
+        try {
             val connection = (URL(API).openConnection() as HttpURLConnection).apply {
                 connectTimeout = 15_000
                 readTimeout = 15_000
@@ -96,16 +107,30 @@ object UpdateChecker {
                 setRequestProperty("User-Agent", "Stacco-Android")
             }
             try {
-                if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                    null
-                } else {
-                    json.decodeFromString<GitHubRelease>(connection.inputStream.bufferedReader().use { it.readText() })
-                        .takeUnless { it.draft || it.prerelease }
-                }
+                if (connection.responseCode != HttpURLConnection.HTTP_OK) return@withContext null
+                val body = connection.inputStream.use { readAtMost(it, MAX_RESPONSE_BYTES) } ?: return@withContext null
+                json.decodeFromString<GitHubRelease>(body).takeUnless { it.draft || it.prerelease }
             } finally {
                 connection.disconnect()
             }
-        }.getOrNull()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** The text of [input], or null if it is longer than [limit] bytes. */
+    internal fun readAtMost(input: InputStream, limit: Int): String? {
+        val out = ByteArrayOutputStream()
+        val buffer = ByteArray(8 * 1024)
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            out.write(buffer, 0, n)
+            if (out.size() > limit) return null
+        }
+        return out.toString(Charsets.UTF_8.name())
     }
 
     /** Checks now; with [notify] it also posts a notification, once per new version. */

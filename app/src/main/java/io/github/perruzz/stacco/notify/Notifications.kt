@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import io.github.perruzz.stacco.MainActivity
 import io.github.perruzz.stacco.R
 import io.github.perruzz.stacco.localized
@@ -94,10 +95,11 @@ object Notifications {
         return granted && NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
+    /** Posts the notification; false when notifications are off (or Android refused it). */
     @android.annotation.SuppressLint("MissingPermission")
-    fun post(context: Context, id: Int, builder: NotificationCompat.Builder) {
-        if (!canPost(context)) return
-        runCatching { NotificationManagerCompat.from(context).notify(id, builder.build()) }
+    fun post(context: Context, id: Int, builder: NotificationCompat.Builder): Boolean {
+        if (!canPost(context)) return false
+        return runCatching { NotificationManagerCompat.from(context).notify(id, builder.build()) }.isSuccess
     }
 
     fun cancel(context: Context, id: Int) {
@@ -138,12 +140,19 @@ object Notifications {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
-    fun stampAction(context: Context, slot: StampSlot): PendingIntent = PendingIntent.getBroadcast(
+    /**
+     * A "stamp" button for [slot] of the working day [date]. The day is part of the intent (its
+     * data), so that a button left in the shade from another day keeps its own day and does not
+     * stamp today's (see StaccoRepository.quickStamp).
+     */
+    fun stampAction(context: Context, slot: StampSlot, date: LocalDate): PendingIntent = PendingIntent.getBroadcast(
         context,
         100 + slot.ordinal,
         Intent(context, StampActionReceiver::class.java)
             .setAction(StampActionReceiver.ACTION)
-            .putExtra(StampActionReceiver.EXTRA_SLOT, slot.name),
+            .setData("stacco://stamp/$date/${slot.name}".toUri())
+            .putExtra(StampActionReceiver.EXTRA_SLOT, slot.name)
+            .putExtra(StampActionReceiver.EXTRA_DATE, date.toString()),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 

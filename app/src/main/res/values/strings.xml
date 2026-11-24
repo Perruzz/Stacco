@@ -451,7 +451,10 @@
     <string name="settings_shifts">Your shifts</string>
     <string name="settings_shifts_sub">Tap a shift to edit it. Night shifts can end the next day.</string>
     <string name="settings_shift_reminder">Shift start reminder</string>
-    <string name="settings_shift_reminder_sub">Reminds you %1$d minutes before it starts</string>
+    <plurals name="settings_shift_reminder_sub">
+        <item quantity="one">Reminds you %1$d minute before it starts</item>
+        <item quantity="other">Reminds you %1$d minutes before it starts</item>
+    </plurals>
     <string name="settings_lead_example">Example: you have %1$s to use and can leave at most %2$s early per day, so you need %3$d office days. With this margin the alert comes when %4$d are left.</string>
     <string name="settings_lead_example_zero">Alerts arrive when only the office days strictly needed to recover or use the hours are left.</string>
     <plurals name="settings_lead_example_simple">
@@ -478,7 +481,10 @@
     <string name="ob_shifts_body">Here are the most common shifts: rename them, change the times or add more.</string>
     <string name="ob_shifts_explainer">Then, in the Calendar, pick a shift and tap the days to plan the month. Stacco reminds you before every shift and counts your overtime.</string>
     <string name="notif_shift_title">%1$s shift at %2$s</string>
-    <string name="notif_shift_text">Starts in %1$d minutes. Have a good shift!</string>
+    <plurals name="notif_shift_starts">
+        <item quantity="one">Starts in %1$d minute. Have a good shift!</item>
+        <item quantity="other">Starts in %1$d minutes. Have a good shift!</item>
+    </plurals>
     <!-- Vacation hours -->
     <string name="vacation_title">Vacation and leave %1$d</string>
     <string name="vacation_setup">Keep track of your vacation hours: every vacation day and every hour of leave is taken from them.</string>

@@ -196,7 +196,11 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
     val notificationsGranted = remember(refresh) { notificationsAllowed(context) }
     val exactAlarms = remember(refresh) { exactAlarmsAllowed(context) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refresh++ }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        refresh++
+        // The live notification shows up now, not at the next minute.
+        if (granted) viewModel.refreshOutside()
+    }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
             scope.launch {
@@ -580,7 +584,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         SwitchRow(
                             icon = Icons.Rounded.AlarmOn,
                             title = stringResource(R.string.settings_shift_reminder),
-                            subtitle = stringResource(R.string.settings_shift_reminder_sub, data.notifications.shiftStartLeadMinutes),
+                            subtitle = pluralStringResource(R.plurals.settings_shift_reminder_sub, data.notifications.shiftStartLeadMinutes, data.notifications.shiftStartLeadMinutes),
                             checked = data.notifications.shiftStartReminder,
                             onCheckedChange = { on -> update { it.copy(notifications = it.notifications.copy(shiftStartReminder = on)) } },
                         )
@@ -609,7 +613,13 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 }
             }
 
-            Appear(i++) { AppearanceCard(data, onDynamic = { on -> update { it.copy(appearance = it.appearance.copy(dynamicColor = on)) } }) }
+            Appear(i++) {
+                AppearanceCard(
+                    data,
+                    onDynamic = { on -> update { it.copy(appearance = it.appearance.copy(dynamicColor = on)) } },
+                    onLanguage = { viewModel.refreshOutside(languageChanged = true) },
+                )
+            }
 
             Appear(i++) { DonateCard(onClick = { openUrl(context, Links.DONATE) }) }
 
@@ -910,7 +920,7 @@ private fun PermissionBanner(text: String, action: String, onClick: () -> Unit, 
 }
 
 @Composable
-private fun AppearanceCard(data: StaccoData, onDynamic: (Boolean) -> Unit) {
+private fun AppearanceCard(data: StaccoData, onDynamic: (Boolean) -> Unit, onLanguage: () -> Unit) {
     val switcher = LocalThemeSwitcher.current
     StaccoCard {
         SectionLabel(stringResource(R.string.settings_appearance))
@@ -946,13 +956,13 @@ private fun AppearanceCard(data: StaccoData, onDynamic: (Boolean) -> Unit) {
                 onCheckedChange = onDynamic,
             )
         }
-        LanguageRow()
+        LanguageRow(onChanged = onLanguage)
     }
 }
 
 /** Per-app language (Android 13+): the phone can stay in English while Stacco speaks Italian. */
 @Composable
-private fun LanguageRow() {
+private fun LanguageRow(onChanged: () -> Unit) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
     val context = LocalContext.current
     val manager = remember { context.getSystemService(LocaleManager::class.java) } ?: return
@@ -971,6 +981,8 @@ private fun LanguageRow() {
                 onClick = {
                     current = tag
                     manager.applicationLocales = if (tag.isEmpty()) LocaleList.getEmptyLocaleList() else LocaleList.forLanguageTags(tag)
+                    // Notifications, widget and tile speak the new language too.
+                    onChanged()
                 },
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
                 icon = {},

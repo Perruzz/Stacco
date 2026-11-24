@@ -11,6 +11,7 @@ import io.github.perruzz.stacco.domain.DayPhase
 import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.stacco
 import io.github.perruzz.stacco.ui.today.action
+import io.github.perruzz.stacco.ui.today.label
 import io.github.perruzz.stacco.ui.util.Fmt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,10 +31,20 @@ class StampTileService : TileService() {
         refresh()
     }
 
+    /**
+     * An active tile is only bound when the app asks: just added, it would say "Stamp" and
+     * nothing else until the next change of the data. Ask now.
+     */
+    override fun onTileAdded() {
+        super.onTileAdded()
+        requestUpdate(this)
+    }
+
     override fun onClick() {
         super.onClick()
         scope.launch {
-            withContext(Dispatchers.Default) { applicationContext.stacco.repository.stampNow(LocalDateTime.now()) }
+            // Only what the tile shows: a tile left from yesterday (a smart working day) stamps nothing.
+            withContext(Dispatchers.Default) { applicationContext.stacco.repository.quickStamp(LocalDateTime.now()) }
             refresh()
         }
     }
@@ -46,16 +57,18 @@ class StampTileService : TileService() {
             if (!data.onboardingDone) {
                 tile.state = Tile.STATE_UNAVAILABLE
                 tile.label = res.getString(R.string.tile_label)
+                tile.setSubtitleCompat(null)
                 tile.updateTile()
                 return@launch
             }
             val s = Engine.snapshot(data)
-            val next = s.nextSlot
+            val next = s.quickStampSlot
             when {
-                s.isSmart || s.isAway || s.isTravel -> {
+                !Engine.quickStampsAllowed(s.type) -> {
+                    // Smart working, travel, leave: nothing to stamp, and the day says why.
                     tile.state = Tile.STATE_UNAVAILABLE
                     tile.label = res.getString(R.string.tile_label)
-                    tile.setSubtitleCompat(res.getString(R.string.type_smart).takeIf { s.isSmart } ?: res.getString(R.string.widget_today))
+                    tile.setSubtitleCompat(s.type?.let { res.getString(it.label) })
                 }
                 next == null -> {
                     tile.state = Tile.STATE_INACTIVE
@@ -79,7 +92,7 @@ class StampTileService : TileService() {
         }
     }
 
-    private fun Tile.setSubtitleCompat(text: String) {
+    private fun Tile.setSubtitleCompat(text: String?) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) subtitle = text
     }
 

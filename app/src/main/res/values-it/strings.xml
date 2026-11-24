@@ -454,7 +454,11 @@
     <string name="settings_shifts">I tuoi turni</string>
     <string name="settings_shifts_sub">Tocca un turno per modificarlo. I turni di notte possono finire il giorno dopo.</string>
     <string name="settings_shift_reminder">Promemoria inizio turno</string>
-    <string name="settings_shift_reminder_sub">Ti avvisa %1$d minuti prima dell\'inizio</string>
+    <plurals name="settings_shift_reminder_sub">
+        <item quantity="one">Ti avvisa %1$d minuto prima dell\'inizio</item>
+        <item quantity="other">Ti avvisa %1$d minuti prima dell\'inizio</item>
+        <item quantity="many">Ti avvisa %1$d minuti prima dell\'inizio</item>
+    </plurals>
     <string name="settings_lead_example">Esempio: hai %1$s da usare e puoi uscire al massimo %2$s prima al giorno, quindi ti servono %3$d giorni in sede. Con questo margine l\'avviso arriva quando ne restano %4$d.</string>
     <string name="settings_lead_example_zero">Gli avvisi arrivano quando restano solo i giorni in sede strettamente necessari per recuperare o usare le ore.</string>
     <plurals name="settings_lead_example_simple">
@@ -482,7 +486,11 @@
     <string name="ob_shifts_body">Ecco i turni più comuni: rinominali, cambia gli orari o aggiungine altri.</string>
     <string name="ob_shifts_explainer">Poi, nel Calendario, scegli un turno e tocca i giorni per pianificare il mese. Stacco ti avvisa prima di ogni turno e conta gli straordinari.</string>
     <string name="notif_shift_title">Turno %1$s alle %2$s</string>
-    <string name="notif_shift_text">Inizia tra %1$d minuti. Buon lavoro!</string>
+    <plurals name="notif_shift_starts">
+        <item quantity="one">Inizia tra %1$d minuto. Buon lavoro!</item>
+        <item quantity="other">Inizia tra %1$d minuti. Buon lavoro!</item>
+        <item quantity="many">Inizia tra %1$d minuti. Buon lavoro!</item>
+    </plurals>
     <!-- Vacation hours -->
     <string name="vacation_title">Ferie e permessi %1$d</string>
     <string name="vacation_setup">Tieni il conto delle ore di ferie: ogni giorno di ferie e ogni ora di permesso le scalano.</string>

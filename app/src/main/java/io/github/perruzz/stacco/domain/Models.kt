@@ -310,6 +310,10 @@ data class DayRecord(
         else -> StampSlot.BREAK_OUT
     }
 
+    /** Whether [slot] can be stamped now: the next stamp of the day, or the one of the other path. */
+    fun accepts(slot: StampSlot, expectsBreak: Boolean): Boolean =
+        slot == nextSlot(expectsBreak) || slot == alternativeSlot(expectsBreak)
+
     companion object {
         val EMPTY = DayRecord()
     }

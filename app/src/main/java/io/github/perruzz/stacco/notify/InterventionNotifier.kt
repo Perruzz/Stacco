@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import io.github.perruzz.stacco.R
-import io.github.perruzz.stacco.domain.Engine
 import io.github.perruzz.stacco.domain.OnCall
 import io.github.perruzz.stacco.domain.TodaySnapshot
 import io.github.perruzz.stacco.localized
@@ -68,8 +67,7 @@ class InterventionReceiver : BroadcastReceiver() {
                 Notifications.post(context, Notifications.ID_INTERVENTION_DONE, builder)
             }
         }
-        val data = repository.current()
-        if (data.onboardingDone) AppSync.refresh(context, Engine.snapshot(data))
+        AppSync.sync(context)
     }
 
     companion object {

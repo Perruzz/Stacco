@@ -48,6 +48,9 @@ data class TodaySnapshot(
     val nextSlot: StampSlot? get() = record.nextSlot(expectsBreak)
     val alternativeSlot: StampSlot? get() = record.alternativeSlot(expectsBreak)
 
+    /** The stamp the widget and the Quick Settings tile record: none on a day away from the office. */
+    val quickStampSlot: StampSlot? get() = nextSlot.takeIf { Engine.quickStampsAllowed(type) }
+
     /** Exit time chosen by the user as reference for countdown and reminders. */
     val targetExit: Int? get() = projection.targetExit(data.notifications.exitTarget)
 
@@ -88,6 +91,25 @@ object Engine {
     private const val NIGHT_GRACE_MINUTES = 4 * 60
 
     fun firstDayOfWeek(locale: Locale = Locale.getDefault()): DayOfWeek = WeekFields.of(locale).firstDayOfWeek
+
+    /**
+     * Whether a stamp asked from outside the app (the widget, the tile, a notification button) may
+     * go on a day of [type]: an office day or a rest day, not one of smart working, travel or leave,
+     * which a stamp in the app would turn into an office day.
+     */
+    fun quickStampsAllowed(type: DayType?): Boolean = type == null || type == DayType.OFFICE
+
+    /**
+     * The next moment the working day shown outside the app (widget, tile) changes by itself, with
+     * no stamp: midnight, or the end of yesterday's day still under way past midnight.
+     */
+    fun nextDayChange(data: StaccoData, now: LocalDateTime): LocalDateTime {
+        val today = now.toLocalDate()
+        val midnight = today.plusDays(1).atStartOfDay()
+        val until = yesterdayUntil(data, today) ?: return midnight
+        val minutes = now.hour * 60 + now.minute
+        return if (minutes < until) minOf(today.atStartOfDay().plusMinutes(until.toLong()), midnight) else midnight
+    }
 
     fun ledger(data: StaccoData, today: LocalDate): BankLedger = BankCalculator.compute(data, today)
 
@@ -148,19 +170,25 @@ object Engine {
     fun activeDay(data: StaccoData, now: LocalDateTime): ActiveDay {
         val today = now.toLocalDate()
         val minutes = now.hour * 60 + now.minute
-        val yesterday = today.minusDays(1)
-        val calendar = WorkCalendar.from(data)
-        val record = data.days[yesterday.toString()]
-        if (record?.exit == null) {
-            val end = calendar.plannedEnd(yesterday) ?: record?.entry?.let { entry ->
-                val b = DayCalculator.breakInfo(record, calendar.breakRules(yesterday), calendar.required(yesterday), null)
-                entry + calendar.required(yesterday) + b.deducted
-            }
-            if (end != null && minutes + 1440 < end + NIGHT_GRACE_MINUTES) {
-                return ActiveDay(yesterday, minutes + 1440, now.second)
-            }
-        }
+        val until = yesterdayUntil(data, today)
+        if (until != null && minutes < until) return ActiveDay(today.minusDays(1), minutes + 1440, now.second)
         return ActiveDay(today, minutes, now.second)
+    }
+
+    /**
+     * Until which minute of [today] yesterday's working day stays the current one: when it has no
+     * exit, four hours after its expected end. Null when it does not reach into today.
+     */
+    private fun yesterdayUntil(data: StaccoData, today: LocalDate): Int? {
+        val yesterday = today.minusDays(1)
+        val record = data.days[yesterday.toString()]
+        if (record?.exit != null) return null
+        val calendar = WorkCalendar.from(data)
+        val end = calendar.plannedEnd(yesterday) ?: record?.entry?.let { entry ->
+            val b = DayCalculator.breakInfo(record, calendar.breakRules(yesterday), calendar.required(yesterday), null)
+            entry + calendar.required(yesterday) + b.deducted
+        } ?: return null
+        return end + NIGHT_GRACE_MINUTES - 1440
     }
 
     fun today(

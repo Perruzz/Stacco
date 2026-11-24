@@ -160,6 +160,44 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
 
     suspend fun stampNow(now: LocalDateTime, forceSlot: StampSlot? = null): StampSlot? = stampAt(now, forceSlot)?.slot
 
+    /** When the last stamp from outside the app was recorded ([System.nanoTime], in milliseconds). */
+    @Volatile
+    private var lastQuickStamp: Long? = null
+
+    /**
+     * A stamp asked from outside the app: a notification button ([slot], for the working day
+     * [date]), the widget or the Quick Settings tile (the next stamp). It is recorded only if it
+     * still fits: the slot must be one the day can take now, the day must be the one the button
+     * was shown for and not one away from the office. A button left from earlier (the exit
+     * already stamped in the app, yesterday's reminder) does nothing instead of overwriting a
+     * stamp, and a second tap right after a stamp is a double tap, not one more stamp.
+     */
+    suspend fun quickStamp(
+        now: LocalDateTime,
+        slot: StampSlot? = null,
+        date: LocalDate? = null,
+        elapsedMillis: Long = System.nanoTime() / 1_000_000,
+    ): Stamp? {
+        var stamp: Stamp? = null
+        update { data ->
+            val last = lastQuickStamp
+            if (last != null && elapsedMillis - last in 0 until QUICK_STAMP_GAP_MS) return@update data
+            val active = Engine.activeDay(data, now)
+            if (date != null && active.date != date) return@update data
+            val calendar = WorkCalendar.from(data)
+            if (!Engine.quickStampsAllowed(calendar.effectiveType(active.date))) return@update data
+            val record = data.days[active.date.toString()] ?: DayRecord.EMPTY
+            val expectsBreak = calendar.expectsBreak(active.date)
+            val chosen = slot ?: record.nextSlot(expectsBreak) ?: return@update data
+            if (!record.accepts(chosen, expectsBreak)) return@update data
+            val value = Engine.normalizeStamp(record, chosen, active.minutes)
+            stamp = Stamp(active.date, chosen, value, record)
+            lastQuickStamp = elapsedMillis
+            data.withDay(active.date) { it.with(chosen, value) }
+        }
+        return stamp
+    }
+
     /**
      * Takes a stamp back: the stamps and the day type return to [previous], while the rest of the
      * day stays as it is now (an intervention started or stopped meanwhile is kept).
@@ -350,6 +388,9 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
     }
 
     companion object {
+        /** Two stamps from outside the app closer than this are one double tap. */
+        const val QUICK_STAMP_GAP_MS = 5_000L
+
         fun create(context: Context, scope: CoroutineScope): StaccoRepository {
             val file = context.dataStoreFile("stacco.json")
             // A copy of a data file that had to be repaired, kept beside it.
