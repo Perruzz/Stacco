@@ -27,12 +27,48 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
+import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
 /** A small tick drawn on the ring track, e.g. the "bank exit" moment. */
 data class RingMarker(val fraction: Float, val color: Color)
+
+/** Share of the turn over which a closed ring goes from its last color back to its first, before 12 o'clock. */
+internal const val RING_BLEND = 0.035f
+
+/**
+ * Where to put the center of a sweep gradient drawn around [center]. The renderer can work out the
+ * angle of the pixels lying exactly on the gradient's axis wrongly. When the center falls on a
+ * pixel's center (Today's ring is 735 px wide at 420 dpi), the column through it took the color of
+ * the opposite side: a hairline at 12 and at 6 o'clock. Layouts sit on whole pixels, so a center is
+ * on a pixel's center or corner. A quarter of a pixel away, no pixel lies on an axis, and the
+ * angle moves by a hair.
+ */
+internal fun sweepCenter(center: Offset): Offset = Offset(center.x + 0.25f, center.y + 0.25f)
+
+/**
+ * The colors of the progress arc as stops of a sweep gradient that starts at 12 o'clock: [first]
+ * at the start, [last] from the head on ([progress], a share of the turn).
+ *
+ * A sweep gradient jumps from its end back to its start at 12 o'clock, exactly where the arc
+ * starts. The round cap of the start, which reaches [cap] back before 12 o'clock, used to take the
+ * head's color (a half-moon of another color, or another opacity during the break), and a closed
+ * ring showed a straight seam. So the colors are back to [first] before 12 o'clock:
+ * - while the ring is open, in the gap between the head and the start, where nothing is drawn;
+ * - once it closes, over [RING_BLEND] of the turn just before 12 o'clock, so a full ring has no seam.
+ *   The head, in its last stretch, already takes on that blend: closing the ring is seamless too.
+ */
+internal fun ringStops(first: Color, last: Color, progress: Float, cap: Float): Array<Pair<Float, Color>> {
+    val back = (1f - cap).coerceIn(0.5f, 1f)
+    val fade = (back - RING_BLEND).coerceAtLeast(0.05f)
+    val head = progress.coerceIn(0.05f, fade)
+    val rampFrom = (progress + cap).coerceIn(head, fade)
+    return listOf(0f to first, head to last, rampFrom to last, back to first, 1f to first)
+        .distinctBy { it.first }
+        .toTypedArray()
+}
 
 /**
  * The heart of the Today screen: a ring that fills up during the day.
@@ -121,10 +157,9 @@ fun DayRing(
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             val brush = if (colors.size > 1) {
-                Brush.sweepGradient(
-                    colorStops = arrayOf(0f to colors.first(), (p.coerceAtLeast(0.05f)) to colors.last(), 1f to colors.last()),
-                    center = center,
-                )
+                // How far, as a share of the turn, the round cap of the start reaches back before 12 o'clock.
+                val cap = asin(((stroke / 2f + 1f) / radius).coerceAtMost(1f)) / (2f * PI.toFloat())
+                Brush.sweepGradient(colorStops = ringStops(colors.first(), colors.last(), p, cap), center = sweepCenter(center))
             } else {
                 Brush.linearGradient(listOf(colors.first(), colors.first()))
             }

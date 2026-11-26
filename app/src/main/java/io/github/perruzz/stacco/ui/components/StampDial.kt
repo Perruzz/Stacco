@@ -289,7 +289,7 @@ fun StampDial(
                 drawCircle(
                     brush = Brush.sweepGradient(
                         listOf(track, trackDark, track, trackDark, track),
-                        center = c,
+                        center = sweepCenter(c),
                     ),
                     radius = mid,
                     center = c,

@@ -164,6 +164,7 @@ import io.github.perruzz.stacco.ui.components.SegmentPadding
 import io.github.perruzz.stacco.ui.components.SegmentRowModifier
 import io.github.perruzz.stacco.ui.components.StaccoCard
 import io.github.perruzz.stacco.ui.components.bouncyClickable
+import io.github.perruzz.stacco.ui.components.sweepCenter
 import io.github.perruzz.stacco.ui.oncall.OnCallIcon
 import io.github.perruzz.stacco.ui.oncall.OnCallRules
 import io.github.perruzz.stacco.ui.settings.RoundingSection
@@ -1109,7 +1110,7 @@ private fun WelcomePage() {
             drawCircle(primary.copy(alpha = 0.10f), radius = r + stroke * 1.4f, center = c)
             rotate(-90f, c) {
                 drawArc(
-                    brush = androidx.compose.ui.graphics.Brush.sweepGradient(listOf(primary, tertiary, primary), c),
+                    brush = androidx.compose.ui.graphics.Brush.sweepGradient(listOf(primary, tertiary, primary), sweepCenter(c)),
                     startAngle = 0f,
                     sweepAngle = 300f * draw.value,
                     useCenter = false,
