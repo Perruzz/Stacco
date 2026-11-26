@@ -377,6 +377,17 @@ class StaccoRepository(private val store: DataStore<StaccoData>) {
         update { data -> data.copy(adjustments = data.adjustments.filterNot { it.id == id }) }
     }
 
+    /**
+     * Saves what the setup gathered: its settings, the hour bank balance and, when given, the
+     * vacation hours left [today] (as on the payslip; otherwise the whole year's are). Days and
+     * adjustments already there stay (after a reset there are none).
+     */
+    suspend fun completeOnboarding(draft: StaccoData, balance: Int, vacationLeft: Int?, today: LocalDate) {
+        update { draft.copy(onboardingDone = true, days = it.days, adjustments = it.adjustments) }
+        setBalance(balance, today)
+        if (vacationLeft != null) setVacationAvailable(vacationLeft, today)
+    }
+
     /** Wipes everything: the app goes back to the welcome flow. */
     suspend fun reset() {
         update { StaccoData() }

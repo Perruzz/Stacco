@@ -51,6 +51,8 @@ La 2.0 è la versione pronta per Google Play, dopo cinque revisioni complete: ca
 - **Accessibile con TalkBack**: ogni pulsante dice cosa fa e in che stato è, la ghiera si regola come un cursore e i giorni del calendario si leggono per intero. Niente testi tagliati con i caratteri grandi, sugli schermi piccoli, in orizzontale e sui tablet.
 - **Più leggera sulla batteria**: a schermo fermo l'app non ridisegna più a 120 Hz. Fuori da *Oggi* scende da 120 a circa 17 fotogrammi al secondo.
 - **Promemoria che arrivano sempre**: anche senza il permesso *Sveglie e promemoria* (al massimo 2 minuti prima), in Doze e in risparmio energetico, dopo un riavvio, un aggiornamento o un cambio di fuso orario.
+- **Barra della notifica che avanza da sola**: con *Sveglie e promemoria* (o il widget sulla Home) avanza ogni minuto anche ad app chiusa e a telefono bloccato, e si rimette in pari appena accendi lo schermo. Senza, ogni 10 minuti, quanto Android concede senza ritardare i promemoria.
+- **Configurazione iniziale completa**: giorni lavorativi e orario per giorno, festività e santo patrono, pausa e arrotondamenti, banca ore, ferie e permessi (anche il saldo di oggi), smart working e reperibilità. Ogni numero si salta con un tocco, e chi ha un backup lo ripristina dalla prima schermata.
 - **Widget e riquadro sempre aggiornati**: passano al nuovo giorno da soli, ignorano il doppio tocco e non timbrano sulle giornate di smart working o di ferie. Il widget si adatta a dimensioni e caratteri e ha l'anteprima nel selettore dei widget.
 - **Calcoli a prova di casi limite**: ora legale nei turni di notte, dati danneggiati recuperati parte per parte, backup di ogni versione dalla 1.0 in poi, elenco di tutte le giornate da sistemare.
 - **Pronta per Google Play**: la versione Play si aggiorna dallo store e non accede a Internet ([informativa privacy](docs/privacy.md)).
@@ -158,13 +160,13 @@ Ogni azienda ha le sue regole: in Stacco sono tutte impostabili.
 
 1. Scarica **[Stacco.apk](https://github.com/Perruzz/Stacco/releases/latest/download/Stacco.apk)** dal telefono.
 2. Aprilo e consenti l'installazione da questa fonte quando Android lo chiede.
-3. Al primo avvio un breve onboarding ti guida nella configurazione (orario fisso o turni).
+3. Al primo avvio una configurazione guidata ti chiede orario o turni, giorni, regole della banca ore, ferie e reperibilità (tutto saltabile). Hai già un backup? Ripristinalo dalla prima schermata.
 
 Quando esce una nuova versione Stacco ti avvisa: scarica l'APK e installalo sopra quello che hai, i dati restano.
 
 Requisiti: Android 8.0 (API 26) o superiore. Ottimizzata per Android 16/17 (Pixel inclusi).
 
-> Per avvisi puntuali al minuto, in *Impostazioni → Notifiche* consenti a Stacco "Sveglie e promemoria". Senza, i promemoria arrivano comunque, al massimo 2 minuti prima.
+> Per avvisi puntuali al minuto e una barra della notifica che avanza ogni minuto, in *Impostazioni → Notifiche* consenti a Stacco "Sveglie e promemoria". Senza, i promemoria arrivano comunque, al massimo 2 minuti prima.
 
 ## 🔒 Privacy
 
@@ -241,6 +243,8 @@ Stacco è gratuita e open source. Se ti fa uscire in orario, puoi offrirmi un ca
 - **TalkBack accessible**: every control says what it does and its state, the dial adjusts like a slider, calendar days read in full; no text cut with large fonts, on small screens, in landscape or on tablets.
 - **Easier on the battery**: a still screen no longer redraws at 120 Hz (about 17 frames per second outside *Today*).
 - **Reminders that always come**: also without the *Alarms & reminders* permission (at most 2 minutes early), in Doze and battery saver, after a restart, an update or a time zone change.
+- **A notification bar that moves by itself**: with *Alarms & reminders* (or the widget on the home screen) it moves every minute with the app closed and the phone locked, and catches up as soon as the screen turns on; without, every 10 minutes, as often as Android allows without delaying the reminders.
+- **A complete first setup**: working days and hours per weekday, holidays and patron saint, break and rounding, hour bank, vacation and leave (today's balance too), remote work and on-call duty. Every number can be skipped with one tap, and a backup can be restored from the first screen.
 - **Widget and tile always up to date**: they move to the new day by themselves, ignore double taps and never stamp a remote-work or vacation day; the widget adapts to its size and to large fonts, with a preview in the widget picker.
 - **Calculations proof against edge cases**: daylight saving on night shifts, damaged data recovered part by part, backups of every version since 1.0, a list of every day to fix.
 - **Ready for Google Play**: the Play version is updated by the store and has no Internet access ([privacy policy](docs/privacy.md)).

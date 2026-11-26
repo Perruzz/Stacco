@@ -1,5 +1,6 @@
 package io.github.perruzz.stacco.notify
 
+import android.app.usage.UsageStatsManager
 import io.github.perruzz.stacco.domain.DayRecord
 import io.github.perruzz.stacco.domain.DayType
 import io.github.perruzz.stacco.domain.Engine
@@ -60,35 +61,83 @@ class OutsideRefreshTest {
     // --- Progress of the live notification, and the safety net of the reminders ---
 
     private val day = monday to DayRecord(entry = 480)
+    private val minute = RefreshAlarms.MINUTE_MS
+    private val rationed = RefreshAlarms.RATIONED_MS
 
     @Test
-    fun `while the day runs the app comes back every ten minutes, and at the exit`() {
+    fun `while the day runs the bar comes back just past each minute, and at the exit`() {
         val morning = monday.atTime(10, 0)
         val s = Engine.snapshot(data(day), morning)
-        assertEquals(millis(morning) + 10 * 60_000L, RefreshAlarms.nextProgress(s, millis(morning)))
+        // From the middle of a minute: a second past the next one, as the countdown passes it too.
+        assertEquals(millis(morning) + minute + 1_000L, RefreshAlarms.nextProgress(s, millis(morning) + 25_000L, minute))
+        assertEquals(millis(morning) + rationed + 1_000L, RefreshAlarms.nextProgress(s, millis(morning), rationed))
         val exit = s.targetExit!!
         val close = monday.atStartOfDay().plusMinutes(exit - 3L)
-        assertEquals(Notifications.epochMillis(monday, exit), RefreshAlarms.nextProgress(Engine.snapshot(data(day), close), millis(close)))
-        // In overtime, every ten minutes again.
+        assertEquals(Notifications.epochMillis(monday, exit), RefreshAlarms.nextProgress(Engine.snapshot(data(day), close), millis(close), rationed))
+        // In overtime it goes on.
         val late = monday.atStartOfDay().plusMinutes(exit + 20L)
-        assertEquals(millis(late) + 10 * 60_000L, RefreshAlarms.nextProgress(Engine.snapshot(data(day), late), millis(late)))
+        assertEquals(millis(late) + minute + 1_000L, RefreshAlarms.nextProgress(Engine.snapshot(data(day), late), millis(late), minute))
     }
 
     @Test
     fun `with the live notification off it still comes back for the reminder`() {
         val noLive = NotificationSettings(liveNotification = false)
         val at = monday.atTime(10, 0)
-        assertNotNull(RefreshAlarms.nextProgress(Engine.snapshot(data(day, notifications = noLive), at), millis(at)))
+        assertNotNull(RefreshAlarms.nextProgress(Engine.snapshot(data(day, notifications = noLive), at), millis(at), rationed))
         val neither = NotificationSettings(liveNotification = false, exitReminder = false)
-        assertNull(RefreshAlarms.nextProgress(Engine.snapshot(data(day, notifications = neither), at), millis(at)))
+        assertNull(RefreshAlarms.nextProgress(Engine.snapshot(data(day, notifications = neither), at), millis(at), rationed))
     }
 
     @Test
     fun `nothing comes back for a day over, not started or away`() {
         val at = monday.atTime(18, 0)
-        assertNull(RefreshAlarms.nextProgress(Engine.snapshot(data(monday to DayRecord(entry = 480, exit = 1020)), at), millis(at)))
-        assertNull(RefreshAlarms.nextProgress(Engine.snapshot(data(), monday.atTime(7, 0)), millis(monday.atTime(7, 0))))
-        assertNull(RefreshAlarms.nextProgress(Engine.snapshot(data(monday to DayRecord(type = DayType.SMART)), at), millis(at)))
+        assertNull(RefreshAlarms.nextProgress(Engine.snapshot(data(monday to DayRecord(entry = 480, exit = 1020)), at), millis(at), minute))
+        assertNull(RefreshAlarms.nextProgress(Engine.snapshot(data(), monday.atTime(7, 0)), millis(monday.atTime(7, 0)), minute))
+        assertNull(RefreshAlarms.nextProgress(Engine.snapshot(data(monday to DayRecord(type = DayType.SMART)), at), millis(at), minute))
+    }
+
+    // --- How often Android lets the bar move with the app closed ---
+
+    private fun allowance(exact: Boolean = false, widget: Boolean = false, bucket: Int? = UsageStatsManager.STANDBY_BUCKET_WORKING_SET, powerSave: Boolean = false) =
+        RefreshAlarms.Allowance(exact = exact, widget = widget, bucket = bucket, powerSave = powerSave)
+
+    private fun pace(a: RefreshAlarms.Allowance, live: Boolean = true) = RefreshAlarms.pace(a, live)
+
+    @Test
+    fun `the bar moves every minute when Android does not ration the app`() {
+        val everyMinute = RefreshAlarms.Pace(minute, exact = false)
+        // Exact alarms allowed in Doze are left out of the standby buckets, whatever the bucket.
+        assertEquals(RefreshAlarms.Pace(minute, exact = true), pace(allowance(exact = true, bucket = UsageStatsManager.STANDBY_BUCKET_RARE)))
+        // A widget on the home screen keeps the app active; an unrestricted battery exempts it; Android 8 has no buckets.
+        assertEquals(everyMinute, pace(allowance(widget = true, bucket = UsageStatsManager.STANDBY_BUCKET_RARE)))
+        assertEquals(everyMinute, pace(allowance(bucket = 5)))
+        assertEquals(everyMinute, pace(allowance(bucket = null)))
+        // Battery saver: every five minutes.
+        assertEquals(RefreshAlarms.Pace(RefreshAlarms.SAVER_MS, exact = true), pace(allowance(exact = true, powerSave = true)))
+        assertTrue(everyMinute.fast)
+        assertTrue(RefreshAlarms.Pace(RefreshAlarms.SAVER_MS, exact = true).fast)
+    }
+
+    @Test
+    fun `the buckets are those of Android`() {
+        assertEquals(UsageStatsManager.STANDBY_BUCKET_ACTIVE, RefreshAlarms.BUCKET_ACTIVE)
+        assertEquals(UsageStatsManager.STANDBY_BUCKET_WORKING_SET, RefreshAlarms.BUCKET_WORKING_SET)
+    }
+
+    @Test
+    fun `rationed, the bar leaves the reminders their share of the alarms`() {
+        // Six an hour, while the working set allows ten: the reminders keep the rest.
+        for (bucket in listOf(UsageStatsManager.STANDBY_BUCKET_ACTIVE, UsageStatsManager.STANDBY_BUCKET_WORKING_SET)) {
+            assertEquals(RefreshAlarms.Pace(rationed, exact = false), pace(allowance(bucket = bucket)))
+        }
+        // Two an hour or fewer: they are all the reminders'.
+        for (bucket in listOf(UsageStatsManager.STANDBY_BUCKET_FREQUENT, UsageStatsManager.STANDBY_BUCKET_RARE, UsageStatsManager.STANDBY_BUCKET_RESTRICTED)) {
+            assertNull("bucket $bucket", pace(allowance(bucket = bucket)))
+        }
+        // Without the live notification only the reminders' safety net is left, and rationed like them.
+        assertEquals(RefreshAlarms.Pace(rationed, exact = false), pace(allowance(exact = true), live = false))
+        assertNull(pace(allowance(bucket = UsageStatsManager.STANDBY_BUCKET_FREQUENT), live = false))
+        assertFalse(RefreshAlarms.Pace(rationed, exact = false).fast)
     }
 
     // --- Which exit a reminder speaks of ---

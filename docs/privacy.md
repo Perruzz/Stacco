@@ -4,7 +4,7 @@ title: Stacco – Privacy
 
 # Stacco – Informativa sulla privacy
 
-*Ultimo aggiornamento: 24 novembre 2026* · [English version below](#stacco--privacy-policy)
+*Ultimo aggiornamento: 26 novembre 2026* · [English version below](#stacco--privacy-policy)
 
 Stacco è un'app open source per tenere il conto delle ore di lavoro, sviluppata da Perruzz. Il codice è pubblico su [github.com/Perruzz/Stacco](https://github.com/Perruzz/Stacco).
 
@@ -38,7 +38,7 @@ Questi dati stanno nella memoria privata dell'app, a cui le altre app non posson
 | Permesso | A cosa serve |
 |---|---|
 | Notifiche | Il promemoria per staccare, la notifica della giornata in corso e dell'intervento, gli avvisi della banca ore |
-| Sveglie e promemoria (facoltativo) | I promemoria all'ora esatta; senza, arrivano comunque, al massimo 2 minuti prima |
+| Sveglie e promemoria (facoltativo) | I promemoria all'ora esatta e la barra della notifica che avanza ogni minuto; senza, i promemoria arrivano comunque, al massimo 2 minuti prima |
 | Avvio all'accensione | Rimettere promemoria e notifiche dopo un riavvio del telefono |
 | Live Updates (Android 16+) | Mostrare il conto alla rovescia della giornata nella barra di stato |
 | Internet (solo versione GitHub) | Il controllo degli aggiornamenti descritto sopra |
@@ -63,7 +63,7 @@ Per domande o segnalazioni: [github.com/Perruzz/Stacco/issues](https://github.co
 
 # Stacco – Privacy policy
 
-*Last updated: November 24, 2026* · [Versione italiana sopra](#stacco--informativa-sulla-privacy)
+*Last updated: November 26, 2026* · [Versione italiana sopra](#stacco--informativa-sulla-privacy)
 
 Stacco is an open source app for keeping track of working hours, developed by Perruzz. Its source code is public at [github.com/Perruzz/Stacco](https://github.com/Perruzz/Stacco).
 
@@ -97,7 +97,7 @@ This data is kept in the app's private storage, which other apps cannot read. Th
 | Permission | What it is for |
 |---|---|
 | Notifications | The reminder to clock out, the ongoing notification of the working day and of an intervention, hour-bank alerts |
-| Alarms & reminders (optional) | Reminders at the exact minute; without it they still come, at most 2 minutes early |
+| Alarms & reminders (optional) | Reminders at the exact minute and a notification bar that moves every minute; without it reminders still come, at most 2 minutes early |
 | Run at startup | Setting reminders and notifications again after the phone restarts |
 | Live Updates (Android 16+) | Showing the countdown of the working day in the status bar |
 | Internet (GitHub version only) | The update check described above |

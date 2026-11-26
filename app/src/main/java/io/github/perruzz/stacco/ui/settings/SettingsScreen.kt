@@ -1142,18 +1142,18 @@ private fun UpdateRow() {
     )
 }
 
-private fun notificationsAllowed(context: Context): Boolean {
+internal fun notificationsAllowed(context: Context): Boolean {
     val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     return granted && androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()
 }
 
-private fun exactAlarmsAllowed(context: Context): Boolean {
+internal fun exactAlarmsAllowed(context: Context): Boolean {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
     return context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
 }
 
-private fun openExactAlarmSettings(context: Context) {
+internal fun openExactAlarmSettings(context: Context) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         runCatching {
             context.startActivity(

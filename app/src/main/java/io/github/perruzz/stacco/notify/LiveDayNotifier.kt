@@ -126,7 +126,9 @@ object LiveDayNotifier {
         style.setProgress((s.nowMinutes - entry).coerceIn(0, total))
         builder.setStyle(style)
 
-        // The progress moves on with the refresh alarms of AppSync, also with the app closed.
+        // Android has no progress that moves by itself (only the countdown does): the bar moves on
+        // when the notification is posted again, by the minute tick of the app or, with the app
+        // closed, by the refresh alarms of AppSync (as often as Android allows, see RefreshAlarms.pace).
         Notifications.postAlone(context, Notifications.ID_LIVE, Notifications.ID_LIVE_SUMMARY, Notifications.GROUP_LIVE, Notifications.CHANNEL_LIVE, builder)
     }
 }

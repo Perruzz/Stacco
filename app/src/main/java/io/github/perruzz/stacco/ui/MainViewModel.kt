@@ -333,12 +333,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repo.update(transform) }
     }
 
-    /** Persists the onboarding answers and the starting balance. */
-    fun completeOnboarding(draft: StaccoData, initialBalance: Int) {
-        viewModelScope.launch {
-            repo.update { draft.copy(onboardingDone = true, days = it.days, adjustments = it.adjustments) }
-            repo.setBalance(initialBalance, LocalDate.now())
-        }
+    /** Persists the onboarding answers, the starting balance and the vacation hours left today. */
+    fun completeOnboarding(draft: StaccoData, initialBalance: Int, vacationLeft: Int?) {
+        viewModelScope.launch { repo.completeOnboarding(draft, initialBalance, vacationLeft, LocalDate.now()) }
     }
 
     fun reset() {

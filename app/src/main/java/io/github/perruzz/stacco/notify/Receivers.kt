@@ -332,11 +332,13 @@ class SystemEventsReceiver : BroadcastReceiver() {
 }
 
 /**
- * Brings the app back to refresh what lives outside it: every few minutes while a working day
- * runs, and when the day changes (see [RefreshAlarms]).
+ * Brings the app back to refresh what lives outside it: while a working day runs, and when the
+ * day changes (see [RefreshAlarms]). Coming back every minute, it redraws the widget and the tile
+ * every ten minutes only, and lets a reminder wait for its own minute.
  */
 class LiveRefreshReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) = async {
-        AppSync.sync(context)
+        val fast = intent?.getBooleanExtra(RefreshAlarms.EXTRA_FAST, false) == true
+        AppSync.sync(context, updateWidget = !fast || RefreshAlarms.widgetDue(context), early = !fast)
     }
 }

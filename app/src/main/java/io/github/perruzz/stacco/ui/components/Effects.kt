@@ -5,7 +5,7 @@ import androidx.compose.animation.core.Animatable
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.delay
 import androidx.compose.ui.MotionDurationScale
-import androidx.compose.runtime.withFrameMillis
+import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.State
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -224,16 +224,17 @@ private const val AMBIENT_STEP_MS = 50L
  * A phase from 0 to 1 that turns once every [periodMillis], for slow ambient motion (the aurora,
  * the sun of the greeting). It moves 20 times a second instead of at every frame of the display
  * (up to 120 on a phone), so a still screen costs almost nothing; it stays still when the
- * system's animations are turned off, and pauses with the app in the background.
+ * system's animations are turned off, and pauses with the app in the background. An infinite
+ * animation for Compose: UI tests (which never go idle with one running) stop it.
  */
 @Composable
 fun rememberAmbientPhase(periodMillis: Long): State<Float> {
     val phase = remember { mutableFloatStateOf(0f) }
     LaunchedEffect(periodMillis) {
         var elapsed = 0f
-        var last = withFrameMillis { it }
+        var last = withInfiniteAnimationFrameMillis { it }
         while (true) {
-            val now = withFrameMillis { it }
+            val now = withInfiniteAnimationFrameMillis { it }
             // The system's animation speed: 0 when animations are turned off.
             val speed = coroutineContext[MotionDurationScale]?.scaleFactor?.let { if (it > 0f) 1f / it else 0f } ?: 1f
             elapsed += (now - last) * speed
